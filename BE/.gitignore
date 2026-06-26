@@ -1,0 +1,33 @@
+# Runtime and dependency folders
+node_modules/
+venv/
+.venv/
+target/
+dist/
+build/
+out/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Logs and temporary files
+logs/
+*.log
+*.tmp
+*.temp
+
+# IDE and OS files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Test and coverage output
+coverage/
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
