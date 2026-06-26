@@ -1,0 +1,60 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local editor and workspace files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Local Codex/agent workspace files
+.agents/
+.codex/
+**/.agents/
+**/.codex/
+
+# Flutter/Dart generated files
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.metadata
+**/.packages
+**/.pub-cache/
+**/.pub/
+**/build/
+**/coverage/
+**/doc/api/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+**/local.properties
+**/key.properties
+**/*.keystore
+**/*.jks
+
+# Android generated files
+**/android/.gradle/
+**/android/.kotlin/
+**/android/captures/
+**/android/.cxx/
+
+# iOS/macOS generated files
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/ephemeral/
+**/ios/Pods/
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/macos/Flutter/ephemeral/
+**/macos/Pods/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
