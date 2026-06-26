@@ -16,3 +16,13 @@ Owns AI-generated suggestions and meal planning data.
 - Build meal plans.
 - Manage meal plan items.
 - Integrate with user and recipe services through service APIs or contracts.
+
+## MVC Package Layout
+
+- `controller`: REST APIs for recommendations, AI suggestions, and meal plans.
+- `dto`: request/response objects.
+- `model`: JPA entities.
+- `repository`: Spring Data repositories.
+- `service`: recommendation and meal planning business logic.
+- `client`: HTTP clients for user service, recipe service, and AI provider calls.
+- `config`: service configuration.

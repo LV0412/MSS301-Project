@@ -9,6 +9,7 @@ MSS301-Project/
     FE_web/                 Web frontend
   BE/
     services/
+      api-gateway-service/
       user-service/
       recipe-service/
       ai-recommendation-service/
@@ -19,4 +20,4 @@ MSS301-Project/
 
 - `FE/FE_app`: Flutter application.
 - `FE/FE_web`: web frontend.
-- `BE`: backend service skeleton with user, recipe, and AI recommendation services.
+- `BE`: backend service skeleton with API gateway, user, recipe, and AI recommendation services.

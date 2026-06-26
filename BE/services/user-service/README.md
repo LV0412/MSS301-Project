@@ -20,3 +20,12 @@ Owns user-related data and behavior.
 - Nutrition goals.
 - Favorite recipes.
 - Food logs.
+
+## MVC Package Layout
+
+- `controller`: REST APIs for users, health profiles, preferences, allergies, favorites, and food logs.
+- `dto`: request/response objects.
+- `model`: JPA entities.
+- `repository`: Spring Data repositories.
+- `service`: business logic.
+- `config`: security, CORS, and service configuration.
