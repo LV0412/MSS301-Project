@@ -41,6 +41,27 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.NOT_FOUND, exception.getMessage(), request, null);
     }
 
+    @ExceptionHandler(UserAllergyNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserAllergyNotFound(
+            UserAllergyNotFoundException exception,
+            HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, exception.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(FavoriteNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleFavoriteNotFound(
+            FavoriteNotFoundException exception,
+            HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, exception.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(FoodLogNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleFoodLogNotFound(
+            FoodLogNotFoundException exception,
+            HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, exception.getMessage(), request, null);
+    }
+
     @ExceptionHandler(DuplicateEmailException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateEmail(
             DuplicateEmailException exception,
@@ -65,6 +86,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateDietPreferenceException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateDietPreference(
             DuplicateDietPreferenceException exception,
+            HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.CONFLICT, exception.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(DuplicateUserAllergyException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateUserAllergy(
+            DuplicateUserAllergyException exception,
+            HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.CONFLICT, exception.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(DuplicateFavoriteException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateFavorite(
+            DuplicateFavoriteException exception,
             HttpServletRequest request) {
         return buildErrorResponse(HttpStatus.CONFLICT, exception.getMessage(), request, null);
     }

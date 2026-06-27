@@ -94,6 +94,63 @@ Base path: `/api/v1/users/{userId}/diet-preferences`
 
 A user can have multiple diet preferences, but cannot have duplicate `diet_type` values.
 
+## User Allergy API
+
+Base path: `/api/v1/users/{userId}/allergies`
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/api/v1/users/{userId}/allergies` | Add allergy |
+| `GET` | `/api/v1/users/{userId}/allergies` | View allergy list |
+| `PUT` | `/api/v1/users/{userId}/allergies/{allergyId}` | Update allergy |
+| `DELETE` | `/api/v1/users/{userId}/allergies/{allergyId}` | Delete allergy |
+
+A user can have multiple allergies, but cannot have duplicate `allergen_id` values. The service stores `allergen_id` only and does not validate it with Recipe Service.
+
+Severity values:
+
+- `LOW`
+- `MEDIUM`
+- `HIGH`
+
+## Favorite API
+
+Base path: `/api/v1/users/{userId}/favorites`
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/api/v1/users/{userId}/favorites` | Add favorite |
+| `GET` | `/api/v1/users/{userId}/favorites` | View favorite list |
+| `DELETE` | `/api/v1/users/{userId}/favorites/{favoriteId}` | Delete favorite |
+
+One user cannot save the same recipe twice. The service stores `recipe_id` only and does not validate recipe existence with Recipe Service.
+
+## Food Log API
+
+Base path: `/api/v1/users/{userId}/food-logs`
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/api/v1/users/{userId}/food-logs` | Create food log |
+| `GET` | `/api/v1/users/{userId}/food-logs` | View food log history |
+| `PUT` | `/api/v1/users/{userId}/food-logs/{logId}` | Update food log |
+| `DELETE` | `/api/v1/users/{userId}/food-logs/{logId}` | Delete food log |
+
+Food log history supports pagination and optional filters:
+
+```text
+GET /api/v1/users/{userId}/food-logs?date=2026-06-27&mealType=BREAKFAST&page=0&size=20&sort=logDate,desc
+```
+
+The service stores `recipe_id` only and does not validate recipe existence with Recipe Service. `quantity` must be greater than zero.
+
+Meal type values:
+
+- `BREAKFAST`
+- `LUNCH`
+- `DINNER`
+- `SNACK`
+
 ## Run Locally
 
 ```bash
