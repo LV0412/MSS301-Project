@@ -30,6 +30,19 @@ Owns user-related data and behavior.
 - Maven
 - Lombok
 
+## Project Structure
+
+```text
+src/main/java/com/mss301/userservice/
+  controller/   REST controllers
+  service/      business logic and orchestration
+  repository/   Spring Data JPA repositories
+  dto/          request/response DTOs
+  entity/       JPA entities and enums
+  exception/    custom exceptions and global handler
+  mapper/       object mapping helpers
+```
+
 ## User Management API
 
 Base path: `/api/v1/users`
