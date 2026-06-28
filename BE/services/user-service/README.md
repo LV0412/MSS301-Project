@@ -152,6 +152,25 @@ Meal type values:
 - `DINNER`
 - `SNACK`
 
+## Internal APIs
+
+Base path: `/api/internal`
+
+Internal APIs are read-only and intended for other microservices such as AI Recommendation Service. They return only the fields needed for service-to-service usage and never expose `password_hash`.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/api/internal/users/{userId}` | Get minimal user profile |
+| `GET` | `/api/internal/health-profiles/{userId}` | Get health profile |
+| `GET` | `/api/internal/health-profiles/{userId}/status` | Get health profile completion status |
+| `GET` | `/api/internal/nutrition-goals/{userId}` | Get nutrition goal |
+| `GET` | `/api/internal/diet-preferences/{userId}` | Get diet preferences |
+| `GET` | `/api/internal/user-allergies/{userId}` | Get allergies |
+| `GET` | `/api/internal/food-logs/{userId}` | Get food logs |
+| `GET` | `/api/internal/ai-profile/{userId}` | Get aggregated AI profile |
+
+Health profile status is `COMPLETE` only when `height`, `weight`, and `activityLevel` are present.
+
 ## Run Locally
 
 ```bash
