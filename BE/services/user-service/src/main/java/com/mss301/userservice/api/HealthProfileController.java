@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +26,7 @@ public class HealthProfileController {
     private final HealthProfileService healthProfileService;
 
     @PostMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<HealthProfileResponse> createHealthProfile(
             @PathVariable Long userId,
             @Valid @RequestBody CreateHealthProfileRequest request) {
@@ -33,11 +35,13 @@ public class HealthProfileController {
     }
 
     @GetMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<HealthProfileResponse> getHealthProfile(@PathVariable Long userId) {
         return ResponseEntity.ok(healthProfileService.getHealthProfile(userId));
     }
 
     @PutMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<HealthProfileResponse> updateHealthProfile(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateHealthProfileRequest request) {
@@ -45,6 +49,7 @@ public class HealthProfileController {
     }
 
     @DeleteMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<Void> deleteHealthProfile(@PathVariable Long userId) {
         healthProfileService.deleteHealthProfile(userId);
         return ResponseEntity.noContent().build();

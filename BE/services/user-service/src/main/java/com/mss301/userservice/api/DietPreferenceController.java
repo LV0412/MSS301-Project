@@ -9,6 +9,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +27,7 @@ public class DietPreferenceController {
     private final DietPreferenceService dietPreferenceService;
 
     @PostMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<DietPreferenceResponse> addDietPreference(
             @PathVariable Long userId,
             @Valid @RequestBody CreateDietPreferenceRequest request) {
@@ -34,11 +36,13 @@ public class DietPreferenceController {
     }
 
     @GetMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<List<DietPreferenceResponse>> getDietPreferences(@PathVariable Long userId) {
         return ResponseEntity.ok(dietPreferenceService.getDietPreferences(userId));
     }
 
     @PutMapping("/{preferenceId}")
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<DietPreferenceResponse> updateDietPreference(
             @PathVariable Long userId,
             @PathVariable Long preferenceId,
@@ -47,6 +51,7 @@ public class DietPreferenceController {
     }
 
     @DeleteMapping("/{preferenceId}")
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<Void> deleteDietPreference(
             @PathVariable Long userId,
             @PathVariable Long preferenceId) {

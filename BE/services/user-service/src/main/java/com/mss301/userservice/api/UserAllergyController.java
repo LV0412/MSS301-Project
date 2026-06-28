@@ -9,6 +9,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +27,7 @@ public class UserAllergyController {
     private final UserAllergyService userAllergyService;
 
     @PostMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<UserAllergyResponse> addAllergy(
             @PathVariable Long userId,
             @Valid @RequestBody CreateUserAllergyRequest request) {
@@ -34,11 +36,13 @@ public class UserAllergyController {
     }
 
     @GetMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<List<UserAllergyResponse>> getAllergies(@PathVariable Long userId) {
         return ResponseEntity.ok(userAllergyService.getAllergies(userId));
     }
 
     @PutMapping("/{allergyId}")
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<UserAllergyResponse> updateAllergy(
             @PathVariable Long userId,
             @PathVariable Long allergyId,
@@ -47,6 +51,7 @@ public class UserAllergyController {
     }
 
     @DeleteMapping("/{allergyId}")
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<Void> deleteAllergy(
             @PathVariable Long userId,
             @PathVariable Long allergyId) {

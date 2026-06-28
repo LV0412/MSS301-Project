@@ -14,6 +14,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +33,7 @@ public class FoodLogController {
     private final FoodLogService foodLogService;
 
     @PostMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<FoodLogResponse> createFoodLog(
             @PathVariable Long userId,
             @Valid @RequestBody CreateFoodLogRequest request) {
@@ -40,6 +42,7 @@ public class FoodLogController {
     }
 
     @GetMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<Page<FoodLogResponse>> getFoodLogHistory(
             @PathVariable Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
@@ -49,6 +52,7 @@ public class FoodLogController {
     }
 
     @PutMapping("/{logId}")
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<FoodLogResponse> updateFoodLog(
             @PathVariable Long userId,
             @PathVariable Long logId,
@@ -57,6 +61,7 @@ public class FoodLogController {
     }
 
     @DeleteMapping("/{logId}")
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<Void> deleteFoodLog(
             @PathVariable Long userId,
             @PathVariable Long logId) {

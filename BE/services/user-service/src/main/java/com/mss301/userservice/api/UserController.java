@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,17 +34,20 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long userId) {
         return ResponseEntity.ok(userManagementService.getUserById(userId));
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<UserResponse>> getAllUsers(
             @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
         return ResponseEntity.ok(userManagementService.getAllUsers(pageable));
     }
 
     @PutMapping("/{userId}")
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<UserResponse> updateUser(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateUserRequest request) {
@@ -51,6 +55,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{userId}")
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
         userManagementService.deleteUser(userId);
         return ResponseEntity.noContent().build();

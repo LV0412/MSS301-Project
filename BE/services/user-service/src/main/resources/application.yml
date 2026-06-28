@@ -17,3 +17,7 @@ spring:
       hibernate:
         format_sql: true
     show-sql: ${JPA_SHOW_SQL:false}
+
+auth:
+  jwt:
+    secret: ${JWT_SECRET:change-me-to-a-long-random-secret-with-at-least-32-characters}

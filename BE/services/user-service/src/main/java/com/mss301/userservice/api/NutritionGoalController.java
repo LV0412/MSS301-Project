@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +26,7 @@ public class NutritionGoalController {
     private final NutritionGoalService nutritionGoalService;
 
     @PostMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<NutritionGoalResponse> createNutritionGoal(
             @PathVariable Long userId,
             @Valid @RequestBody CreateNutritionGoalRequest request) {
@@ -33,11 +35,13 @@ public class NutritionGoalController {
     }
 
     @GetMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<NutritionGoalResponse> getNutritionGoal(@PathVariable Long userId) {
         return ResponseEntity.ok(nutritionGoalService.getNutritionGoal(userId));
     }
 
     @PutMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<NutritionGoalResponse> updateNutritionGoal(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateNutritionGoalRequest request) {
@@ -45,6 +49,7 @@ public class NutritionGoalController {
     }
 
     @DeleteMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<Void> deleteNutritionGoal(@PathVariable Long userId) {
         nutritionGoalService.deleteNutritionGoal(userId);
         return ResponseEntity.noContent().build();

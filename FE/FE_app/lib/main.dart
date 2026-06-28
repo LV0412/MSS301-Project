@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'auth_session.dart';
+
 void main() {
   runApp(const NutriChefApp());
 }
@@ -22,7 +24,7 @@ class NutriChefApp extends StatelessWidget {
         ),
         fontFamily: 'Roboto',
       ),
-      home: const SplashScreen(),
+      home: const AuthSplashScreen(),
     );
   }
 }
@@ -38,6 +40,758 @@ class AppColors {
   static const ink = Color(0xFF111D16);
   static const muted = Color(0xFF6D756F);
   static const line = Color(0xFFDDE4D2);
+}
+
+class AuthSplashScreen extends StatefulWidget {
+  const AuthSplashScreen({super.key});
+
+  @override
+  State<AuthSplashScreen> createState() => _AuthSplashScreenState();
+}
+
+class _AuthSplashScreenState extends State<AuthSplashScreen> {
+  bool _checking = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _restore();
+  }
+
+  Future<void> _restore() async {
+    final result = await AuthSession.instance.restore();
+    if (!mounted) return;
+
+    if (result == RestoreResult.authenticated) {
+      _replaceWith(const HomeScreen());
+      return;
+    }
+    if (result == RestoreResult.needsEmailVerification) {
+      _replaceWith(const AuthVerifyEmailScreen());
+      return;
+    }
+    setState(() => _checking = false);
+  }
+
+  void _replaceWith(Widget screen) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => screen),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Spacer(),
+              const _LogoMark(size: 74),
+              const SizedBox(height: 22),
+              const Text(
+                'NutriChef AI',
+                style: TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.ink,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Personalized nutrition powered by AI',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 15, color: AppColors.darkGreen),
+              ),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                height: 58,
+                child: FilledButton(
+                  onPressed: _checking
+                      ? null
+                      : () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AuthLoginScreen(),
+                          ),
+                        ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.green,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    _checking ? 'Checking session...' : 'Get started',
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class AuthLoginScreen extends StatefulWidget {
+  const AuthLoginScreen({super.key});
+
+  @override
+  State<AuthLoginScreen> createState() => _AuthLoginScreenState();
+}
+
+class _AuthLoginScreenState extends State<AuthLoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    await _runAuthAction(() async {
+      return AuthSession.instance.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+    });
+  }
+
+  Future<void> _googleLogin() async {
+    await _runAuthAction(AuthSession.instance.googleLogin);
+  }
+
+  Future<void> _runAuthAction(Future<RestoreResult> Function() action) async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final result = await action();
+      if (!mounted) return;
+      _openAfterAuth(result);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _openAfterAuth(RestoreResult result) {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) => result == RestoreResult.needsEmailVerification
+            ? const AuthVerifyEmailScreen()
+            : const HomeScreen(),
+      ),
+      (route) => false,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _AuthPage(
+      title: 'Sign in',
+      subtitle: 'Use your email and password to continue.',
+      children: [
+        _AuthField(
+          controller: _emailController,
+          label: 'Email',
+          icon: Icons.mail_outline,
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 14),
+        _AuthField(
+          controller: _passwordController,
+          label: 'Password',
+          icon: Icons.lock_outline,
+          obscureText: true,
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: _loading
+                ? null
+                : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AuthForgotPasswordScreen(),
+                    ),
+                  ),
+            child: const Text('Forgot password?'),
+          ),
+        ),
+        if (_error != null) _AuthError(_error!),
+        _AuthPrimaryButton(
+          label: _loading ? 'Signing in...' : 'Sign in',
+          onPressed: _loading ? null : _login,
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: _loading ? null : _googleLogin,
+          icon: const Text('G'),
+          label: const Text('Continue with Google'),
+        ),
+        const SizedBox(height: 18),
+        TextButton(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AuthRegisterScreen()),
+          ),
+          child: const Text('Create an account'),
+        ),
+      ],
+    );
+  }
+}
+
+class AuthRegisterScreen extends StatefulWidget {
+  const AuthRegisterScreen({super.key});
+
+  @override
+  State<AuthRegisterScreen> createState() => _AuthRegisterScreenState();
+}
+
+class _AuthRegisterScreenState extends State<AuthRegisterScreen> {
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _register() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final result = await AuthSession.instance.register(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        fullName: _nameController.text.trim(),
+      );
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => result == RestoreResult.needsEmailVerification
+              ? const AuthVerifyEmailScreen()
+              : const LifestyleScreen(),
+        ),
+        (route) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _AuthPage(
+      title: 'Create account',
+      subtitle: 'Register with email and password.',
+      children: [
+        _AuthField(
+          controller: _nameController,
+          label: 'Full name',
+          icon: Icons.person_outline,
+        ),
+        const SizedBox(height: 14),
+        _AuthField(
+          controller: _emailController,
+          label: 'Email',
+          icon: Icons.mail_outline,
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 14),
+        _AuthField(
+          controller: _passwordController,
+          label: 'Password',
+          icon: Icons.lock_outline,
+          obscureText: true,
+        ),
+        const SizedBox(height: 18),
+        if (_error != null) _AuthError(_error!),
+        _AuthPrimaryButton(
+          label: _loading ? 'Creating...' : 'Register',
+          onPressed: _loading ? null : _register,
+        ),
+      ],
+    );
+  }
+}
+
+class AuthVerifyEmailScreen extends StatefulWidget {
+  const AuthVerifyEmailScreen({super.key});
+
+  @override
+  State<AuthVerifyEmailScreen> createState() => _AuthVerifyEmailScreenState();
+}
+
+class _AuthVerifyEmailScreenState extends State<AuthVerifyEmailScreen> {
+  final _otpController = TextEditingController();
+  bool _loading = false;
+  String? _message;
+
+  @override
+  void dispose() {
+    _otpController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _verify() async {
+    setState(() {
+      _loading = true;
+      _message = null;
+    });
+    try {
+      await AuthSession.instance.verifyEmail(_otpController.text.trim());
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LifestyleScreen()),
+        (route) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _message = error.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _resend() async {
+    setState(() {
+      _loading = true;
+      _message = null;
+    });
+    try {
+      await AuthSession.instance.resendOtp();
+      if (!mounted) return;
+      setState(() => _message = 'OTP sent again. Check email or backend log.');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _message = error.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _AuthPage(
+      title: 'Verify email',
+      subtitle:
+          'Enter the 6-digit OTP sent to ${AuthSession.instance.account?.email ?? 'your email'}.',
+      children: [
+        _AuthField(
+          controller: _otpController,
+          label: 'OTP',
+          icon: Icons.password_outlined,
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 18),
+        if (_message != null) _AuthInfo(_message!),
+        _AuthPrimaryButton(
+          label: _loading ? 'Verifying...' : 'Verify',
+          onPressed: _loading ? null : _verify,
+        ),
+        TextButton(
+          onPressed: _loading ? null : _resend,
+          child: const Text('Resend OTP'),
+        ),
+      ],
+    );
+  }
+}
+
+class AuthForgotPasswordScreen extends StatefulWidget {
+  const AuthForgotPasswordScreen({super.key});
+
+  @override
+  State<AuthForgotPasswordScreen> createState() =>
+      _AuthForgotPasswordScreenState();
+}
+
+class _AuthForgotPasswordScreenState extends State<AuthForgotPasswordScreen> {
+  final _emailController = TextEditingController();
+  bool _loading = false;
+  String? _message;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    setState(() {
+      _loading = true;
+      _message = null;
+    });
+    try {
+      await AuthSession.instance.forgotPassword(_emailController.text.trim());
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthResetPasswordScreen()),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _message = error.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _AuthPage(
+      title: 'Forgot password',
+      subtitle: 'Enter your email to receive a reset token.',
+      children: [
+        _AuthField(
+          controller: _emailController,
+          label: 'Email',
+          icon: Icons.mail_outline,
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 18),
+        if (_message != null) _AuthError(_message!),
+        _AuthPrimaryButton(
+          label: _loading ? 'Sending...' : 'Send reset token',
+          onPressed: _loading ? null : _send,
+        ),
+      ],
+    );
+  }
+}
+
+class AuthResetPasswordScreen extends StatefulWidget {
+  const AuthResetPasswordScreen({super.key});
+
+  @override
+  State<AuthResetPasswordScreen> createState() =>
+      _AuthResetPasswordScreenState();
+}
+
+class _AuthResetPasswordScreenState extends State<AuthResetPasswordScreen> {
+  final _tokenController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _tokenController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _reset() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      await AuthSession.instance.resetPassword(
+        resetToken: _tokenController.text.trim(),
+        newPassword: _passwordController.text,
+      );
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthLoginScreen()),
+        (route) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _AuthPage(
+      title: 'Reset password',
+      subtitle: 'Paste the reset token from email or backend log.',
+      children: [
+        _AuthField(
+          controller: _tokenController,
+          label: 'Reset token',
+          icon: Icons.key_outlined,
+        ),
+        const SizedBox(height: 14),
+        _AuthField(
+          controller: _passwordController,
+          label: 'New password',
+          icon: Icons.lock_outline,
+          obscureText: true,
+        ),
+        const SizedBox(height: 18),
+        if (_error != null) _AuthError(_error!),
+        _AuthPrimaryButton(
+          label: _loading ? 'Resetting...' : 'Reset password',
+          onPressed: _loading ? null : _reset,
+        ),
+      ],
+    );
+  }
+}
+
+class AuthChangePasswordScreen extends StatefulWidget {
+  const AuthChangePasswordScreen({super.key});
+
+  @override
+  State<AuthChangePasswordScreen> createState() =>
+      _AuthChangePasswordScreenState();
+}
+
+class _AuthChangePasswordScreenState extends State<AuthChangePasswordScreen> {
+  final _currentController = TextEditingController();
+  final _newController = TextEditingController();
+  bool _loading = false;
+  String? _message;
+
+  @override
+  void dispose() {
+    _currentController.dispose();
+    _newController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _change() async {
+    setState(() {
+      _loading = true;
+      _message = null;
+    });
+    try {
+      await AuthSession.instance.changePassword(
+        currentPassword: _currentController.text,
+        newPassword: _newController.text,
+      );
+      if (!mounted) return;
+      setState(() => _message = 'Password changed.');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _message = error.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _AuthPage(
+      title: 'Change password',
+      subtitle: 'Update your password and keep the current device signed in.',
+      children: [
+        _AuthField(
+          controller: _currentController,
+          label: 'Current password',
+          icon: Icons.lock_outline,
+          obscureText: true,
+        ),
+        const SizedBox(height: 14),
+        _AuthField(
+          controller: _newController,
+          label: 'New password',
+          icon: Icons.lock_reset_outlined,
+          obscureText: true,
+        ),
+        const SizedBox(height: 18),
+        if (_message != null) _AuthInfo(_message!),
+        _AuthPrimaryButton(
+          label: _loading ? 'Changing...' : 'Change password',
+          onPressed: _loading ? null : _change,
+        ),
+      ],
+    );
+  }
+}
+
+class _AuthPage extends StatelessWidget {
+  const _AuthPage({
+    required this.title,
+    required this.subtitle,
+    required this.children,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.cream,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            const SizedBox(height: 24),
+            const Center(child: _LogoMark(size: 46)),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.fromLTRB(18, 28, 18, 24),
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.line),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    subtitle,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ...children,
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AuthField extends StatelessWidget {
+  const _AuthField({
+    required this.controller,
+    required this.label,
+    required this.icon,
+    this.obscureText = false,
+    this.keyboardType,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final IconData icon;
+  final bool obscureText;
+  final TextInputType? keyboardType;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        filled: true,
+        fillColor: AppColors.field,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
+}
+
+class _AuthPrimaryButton extends StatelessWidget {
+  const _AuthPrimaryButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: FilledButton(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.green,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        child: Text(label),
+      ),
+    );
+  }
+}
+
+class _AuthError extends StatelessWidget {
+  const _AuthError(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: Colors.red, fontSize: 12),
+      ),
+    );
+  }
+}
+
+class _AuthInfo extends StatelessWidget {
+  const _AuthInfo(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: AppColors.darkGreen, fontSize: 12),
+      ),
+    );
+  }
 }
 
 class SplashScreen extends StatelessWidget {
@@ -3833,25 +4587,48 @@ class SettingsCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
-        children: const [
-          SettingsRow(icon: Icons.notifications_none, title: 'Notifications'),
-          Divider(height: 1, color: AppColors.line),
-          SettingsRow(
+        children: [
+          const SettingsRow(
+            icon: Icons.notifications_none,
+            title: 'Notifications',
+          ),
+          const Divider(height: 1, color: AppColors.line),
+          const SettingsRow(
             icon: Icons.dark_mode_outlined,
             title: 'Dark Mode',
             toggle: true,
           ),
-          Divider(height: 1, color: AppColors.line),
+          const Divider(height: 1, color: AppColors.line),
           SettingsRow(
+            icon: Icons.lock_reset_outlined,
+            title: 'Change Password',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const AuthChangePasswordScreen(),
+              ),
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.line),
+          const SettingsRow(
             icon: Icons.privacy_tip_outlined,
             title: 'Privacy & Data Security',
           ),
-          Divider(height: 1, color: AppColors.line),
+          const Divider(height: 1, color: AppColors.line),
           SettingsRow(
             icon: Icons.logout,
             title: 'Logout',
             destructive: true,
             showArrow: false,
+            onTap: () async {
+              await AuthSession.instance.logout();
+              if (!context.mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const AuthLoginScreen()),
+                (route) => false,
+              );
+            },
           ),
         ],
       ),
@@ -3867,6 +4644,7 @@ class SettingsRow extends StatelessWidget {
     this.toggle = false,
     this.destructive = false,
     this.showArrow = true,
+    this.onTap,
   });
 
   final IconData icon;
@@ -3874,48 +4652,52 @@ class SettingsRow extends StatelessWidget {
   final bool toggle;
   final bool destructive;
   final bool showArrow;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final color = destructive ? const Color(0xFFD71920) : AppColors.ink;
-    return SizedBox(
-      height: 68,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 22),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 21),
-            const SizedBox(width: 22),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: destructive ? FontWeight.w900 : FontWeight.w500,
-                  color: color,
-                ),
-              ),
-            ),
-            if (toggle)
-              Container(
-                width: 48,
-                height: 28,
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: AppColors.line,
-                  borderRadius: BorderRadius.circular(99),
-                ),
-                child: const Align(
-                  alignment: Alignment.centerLeft,
-                  child: CircleAvatar(
-                    radius: 11,
-                    backgroundColor: Colors.white,
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        height: 68,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 21),
+              const SizedBox(width: 22),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: destructive ? FontWeight.w900 : FontWeight.w500,
+                    color: color,
                   ),
                 ),
-              )
-            else if (showArrow)
-              Icon(Icons.chevron_right, color: color),
-          ],
+              ),
+              if (toggle)
+                Container(
+                  width: 48,
+                  height: 28,
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: AppColors.line,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: const Align(
+                    alignment: Alignment.centerLeft,
+                    child: CircleAvatar(
+                      radius: 11,
+                      backgroundColor: Colors.white,
+                    ),
+                  ),
+                )
+              else if (showArrow)
+                Icon(Icons.chevron_right, color: color),
+            ],
+          ),
         ),
       ),
     );

@@ -8,6 +8,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +25,7 @@ public class FavoriteController {
     private final FavoriteService favoriteService;
 
     @PostMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<FavoriteResponse> addFavorite(
             @PathVariable Long userId,
             @Valid @RequestBody CreateFavoriteRequest request) {
@@ -32,11 +34,13 @@ public class FavoriteController {
     }
 
     @GetMapping
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<List<FavoriteResponse>> getFavorites(@PathVariable Long userId) {
         return ResponseEntity.ok(favoriteService.getFavorites(userId));
     }
 
     @DeleteMapping("/{favoriteId}")
+    @PreAuthorize("@authz.canAccessUser(#userId)")
     public ResponseEntity<Void> deleteFavorite(
             @PathVariable Long userId,
             @PathVariable Long favoriteId) {
