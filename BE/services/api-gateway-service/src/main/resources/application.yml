@@ -1,0 +1,27 @@
+server:
+  port: ${APP_PORT:8080}
+
+spring:
+  application:
+    name: api-gateway-service
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: ${USER_SERVICE_URL:http://localhost:8001}
+          predicates:
+            - Path=/api/users/**,/api/health-profiles/**,/api/diet-preferences/**,/api/nutrition-goals/**,/api/allergies/**,/api/favorites/**,/api/food-logs/**
+        - id: recipe-service
+          uri: ${RECIPE_SERVICE_URL:http://localhost:8002}
+          predicates:
+            - Path=/api/recipes/**,/api/ingredients/**,/api/categories/**,/api/nutrition-info/**
+        - id: ai-recommendation-service
+          uri: ${AI_RECOMMENDATION_SERVICE_URL:http://localhost:8003}
+          predicates:
+            - Path=/api/recommendations/**,/api/ai-suggestions/**,/api/meal-plans/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
