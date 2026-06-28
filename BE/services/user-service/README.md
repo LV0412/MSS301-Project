@@ -121,6 +121,7 @@ Base path: `/api/v1/users/{userId}/favorites`
 | --- | --- | --- |
 | `POST` | `/api/v1/users/{userId}/favorites` | Add favorite |
 | `GET` | `/api/v1/users/{userId}/favorites` | View favorite list |
+| `PUT` | `/api/v1/users/{userId}/favorites/{favoriteId}` | Update favorite |
 | `DELETE` | `/api/v1/users/{userId}/favorites/{favoriteId}` | Delete favorite |
 
 One user cannot save the same recipe twice. The service stores `recipe_id` only and does not validate recipe existence with Recipe Service.

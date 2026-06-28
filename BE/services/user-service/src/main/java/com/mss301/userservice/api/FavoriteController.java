@@ -2,6 +2,7 @@ package com.mss301.userservice.api;
 
 import com.mss301.userservice.api.dto.CreateFavoriteRequest;
 import com.mss301.userservice.api.dto.FavoriteResponse;
+import com.mss301.userservice.api.dto.UpdateFavoriteRequest;
 import com.mss301.userservice.application.FavoriteService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,6 +36,14 @@ public class FavoriteController {
     @GetMapping
     public ResponseEntity<List<FavoriteResponse>> getFavorites(@PathVariable Long userId) {
         return ResponseEntity.ok(favoriteService.getFavorites(userId));
+    }
+
+    @PutMapping("/{favoriteId}")
+    public ResponseEntity<FavoriteResponse> updateFavorite(
+            @PathVariable Long userId,
+            @PathVariable Long favoriteId,
+            @Valid @RequestBody UpdateFavoriteRequest request) {
+        return ResponseEntity.ok(favoriteService.updateFavorite(userId, favoriteId, request));
     }
 
     @DeleteMapping("/{favoriteId}")

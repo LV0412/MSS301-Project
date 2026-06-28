@@ -2,6 +2,7 @@ package com.mss301.userservice.application;
 
 import com.mss301.userservice.api.dto.CreateFavoriteRequest;
 import com.mss301.userservice.api.dto.FavoriteResponse;
+import com.mss301.userservice.api.dto.UpdateFavoriteRequest;
 import com.mss301.userservice.domain.Favorite;
 import com.mss301.userservice.domain.User;
 import com.mss301.userservice.exception.DuplicateFavoriteException;
@@ -24,7 +25,7 @@ public class FavoriteService {
 
     public FavoriteResponse addFavorite(Long userId, CreateFavoriteRequest request) {
         User user = findUser(userId);
-        ensureRecipeIsAvailable(userId, request.recipeId());
+        ensureRecipeIsAvailable(userId, request.recipeId(), null);
 
         Favorite favorite = Favorite.builder()
                 .user(user)
@@ -42,9 +43,16 @@ public class FavoriteService {
                 .toList();
     }
 
+    public FavoriteResponse updateFavorite(Long userId, Long favoriteId, UpdateFavoriteRequest request) {
+        Favorite favorite = findFavorite(userId, favoriteId);
+        ensureRecipeIsAvailable(userId, request.recipeId(), favoriteId);
+
+        favorite.setRecipeId(request.recipeId());
+        return toResponse(favoriteRepository.save(favorite));
+    }
+
     public void deleteFavorite(Long userId, Long favoriteId) {
-        Favorite favorite = favoriteRepository.findByFavoriteIdAndUserUserId(favoriteId, userId)
-                .orElseThrow(() -> new FavoriteNotFoundException(favoriteId, userId));
+        Favorite favorite = findFavorite(userId, favoriteId);
         favoriteRepository.delete(favorite);
     }
 
@@ -53,10 +61,17 @@ public class FavoriteService {
                 .orElseThrow(() -> new UserNotFoundException(userId));
     }
 
-    private void ensureRecipeIsAvailable(Long userId, Long recipeId) {
-        if (favoriteRepository.existsByUserUserIdAndRecipeId(userId, recipeId)) {
-            throw new DuplicateFavoriteException(userId, recipeId);
-        }
+    private Favorite findFavorite(Long userId, Long favoriteId) {
+        return favoriteRepository.findByFavoriteIdAndUserUserId(favoriteId, userId)
+                .orElseThrow(() -> new FavoriteNotFoundException(favoriteId, userId));
+    }
+
+    private void ensureRecipeIsAvailable(Long userId, Long recipeId, Long currentFavoriteId) {
+        favoriteRepository.findByUserUserIdAndRecipeId(userId, recipeId)
+                .filter(existing -> !existing.getFavoriteId().equals(currentFavoriteId))
+                .ifPresent(existing -> {
+                    throw new DuplicateFavoriteException(userId, recipeId);
+                });
     }
 
     private FavoriteResponse toResponse(Favorite favorite) {
