@@ -1,0 +1,42 @@
+server:
+  port: ${AUTH_APP_PORT:8000}
+
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: ${AUTH_DATABASE_URL:jdbc:mysql://localhost:3306/auth_service?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${AUTH_DATABASE_USERNAME:root}
+    password: ${AUTH_DATABASE_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: ${AUTH_JPA_DDL_AUTO:update}
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: ${AUTH_JPA_SHOW_SQL:false}
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
+
+auth:
+  jwt:
+    secret: ${JWT_SECRET:change-this-secret-before-running}
+    access-token-expiration-minutes: ${JWT_ACCESS_TOKEN_EXPIRATION_MINUTES:15}
+    refresh-token-expiration-days: ${JWT_REFRESH_TOKEN_EXPIRATION_DAYS:30}
+  verification:
+    otp-expiration-minutes: ${OTP_EXPIRATION_MINUTES:10}
+  password-reset:
+    token-expiration-minutes: ${PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES:15}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
