@@ -43,4 +43,26 @@ public class EmailService {
             log.warn("Failed to send verification OTP to {}. OTP fallback: {}", toEmail, otp, exception);
         }
     }
+
+    public void sendPasswordResetToken(String toEmail, String resetToken) {
+        if (!StringUtils.hasText(mailHost)) {
+            log.info("MAIL_HOST is not configured. Password reset token for {} is {}", toEmail, resetToken);
+            return;
+        }
+
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            if (StringUtils.hasText(mailUsername)) {
+                message.setFrom(mailUsername);
+            }
+            message.setTo(toEmail);
+            message.setSubject("MSS301 password reset");
+            message.setText("Use this token to reset your password: "
+                    + resetToken
+                    + "\nThis token will expire soon.");
+            mailSender.send(message);
+        } catch (RuntimeException exception) {
+            log.warn("Failed to send password reset token to {}. Token fallback: {}", toEmail, resetToken, exception);
+        }
+    }
 }

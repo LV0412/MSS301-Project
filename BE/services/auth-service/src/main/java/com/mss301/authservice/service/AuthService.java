@@ -1,22 +1,29 @@
 package com.mss301.authservice.service;
 
 import com.mss301.authservice.config.JwtProperties;
+import com.mss301.authservice.config.PasswordResetProperties;
 import com.mss301.authservice.config.VerificationProperties;
 import com.mss301.authservice.dto.AccountResponse;
 import com.mss301.authservice.dto.AuthResponse;
+import com.mss301.authservice.dto.ChangePasswordRequest;
 import com.mss301.authservice.dto.EmailRequest;
 import com.mss301.authservice.dto.LoginRequest;
+import com.mss301.authservice.dto.LogoutRequest;
 import com.mss301.authservice.dto.MessageResponse;
+import com.mss301.authservice.dto.RefreshTokenRequest;
 import com.mss301.authservice.dto.RegisterRequest;
+import com.mss301.authservice.dto.ResetPasswordRequest;
 import com.mss301.authservice.dto.VerifyEmailRequest;
 import com.mss301.authservice.entity.AccountRole;
 import com.mss301.authservice.entity.AccountStatus;
 import com.mss301.authservice.entity.AuthProvider;
 import com.mss301.authservice.entity.EmailVerification;
+import com.mss301.authservice.entity.PasswordResetToken;
 import com.mss301.authservice.entity.RefreshToken;
 import com.mss301.authservice.entity.UserAccount;
 import com.mss301.authservice.exception.AuthException;
 import com.mss301.authservice.repository.EmailVerificationRepository;
+import com.mss301.authservice.repository.PasswordResetTokenRepository;
 import com.mss301.authservice.repository.RefreshTokenRepository;
 import com.mss301.authservice.repository.UserAccountRepository;
 import com.mss301.authservice.security.JwtService;
@@ -37,10 +44,12 @@ public class AuthService {
     private final UserAccountRepository userAccountRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final EmailVerificationRepository emailVerificationRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
     private final VerificationProperties verificationProperties;
+    private final PasswordResetProperties passwordResetProperties;
     private final SecureTokenService secureTokenService;
     private final EmailService emailService;
 
@@ -81,11 +90,11 @@ public class AuthService {
         ensureAccountCanLogin(account);
 
         String accessToken = jwtService.generateAccessToken(account);
-        String refreshToken = createRefreshToken(account);
+        CreatedRefreshToken refreshToken = createRefreshToken(account);
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshToken)
+                .refreshToken(refreshToken.rawToken())
                 .tokenType(TOKEN_TYPE)
                 .expiresIn(jwtProperties.getAccessTokenExpirationMinutes() * 60)
                 .account(toAccountResponse(account))
@@ -136,15 +145,112 @@ public class AuthService {
                 .build();
     }
 
-    private String createRefreshToken(UserAccount account) {
+    public AuthResponse refresh(RefreshTokenRequest request) {
+        RefreshToken currentToken = findValidRefreshToken(request.refreshToken());
+        UserAccount account = currentToken.getUserAccount();
+        ensureAccountCanLogin(account);
+
+        currentToken.setRevokedAt(LocalDateTime.now());
+        CreatedRefreshToken newRefreshToken = createRefreshToken(account);
+        currentToken.setReplacedByTokenId(newRefreshToken.entity().getRefreshTokenId());
+
+        return AuthResponse.builder()
+                .accessToken(jwtService.generateAccessToken(account))
+                .refreshToken(newRefreshToken.rawToken())
+                .tokenType(TOKEN_TYPE)
+                .expiresIn(jwtProperties.getAccessTokenExpirationMinutes() * 60)
+                .account(toAccountResponse(account))
+                .build();
+    }
+
+    public MessageResponse logout(LogoutRequest request) {
+        RefreshToken refreshToken = findValidRefreshToken(request.refreshToken());
+        refreshToken.setRevokedAt(LocalDateTime.now());
+
+        return MessageResponse.builder()
+                .message("Logged out successfully.")
+                .build();
+    }
+
+    public MessageResponse forgotPassword(EmailRequest request) {
+        userAccountRepository.findByEmailIgnoreCase(request.email())
+                .filter(account -> account.getProvider() == AuthProvider.LOCAL)
+                .filter(account -> account.getPasswordHash() != null)
+                .ifPresent(this::createAndSendPasswordResetToken);
+
+        return MessageResponse.builder()
+                .message("If the email exists, password reset instructions have been sent.")
+                .build();
+    }
+
+    public MessageResponse resetPassword(ResetPasswordRequest request) {
+        String tokenHash = secureTokenService.hashTokenSha256(request.resetToken());
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByTokenHash(tokenHash)
+                .orElseThrow(() -> new AuthException("Invalid password reset token", HttpStatus.BAD_REQUEST));
+
+        if (resetToken.getConsumedAt() != null) {
+            throw new AuthException("Password reset token has already been used", HttpStatus.BAD_REQUEST);
+        }
+        if (LocalDateTime.now().isAfter(resetToken.getExpiresAt())) {
+            resetToken.setConsumedAt(LocalDateTime.now());
+            throw new AuthException("Password reset token has expired", HttpStatus.BAD_REQUEST);
+        }
+
+        UserAccount account = resetToken.getUserAccount();
+        account.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        resetToken.setConsumedAt(LocalDateTime.now());
+        revokeActiveRefreshTokens(account);
+
+        return MessageResponse.builder()
+                .message("Password has been reset successfully. Please log in with your new password.")
+                .build();
+    }
+
+    public MessageResponse changePassword(Long accountId, ChangePasswordRequest request) {
+        UserAccount account = findAccountById(accountId);
+        ensureAccountCanLogin(account);
+
+        if (account.getProvider() != AuthProvider.LOCAL || account.getPasswordHash() == null) {
+            throw new AuthException("Password change is not available for this account", HttpStatus.BAD_REQUEST);
+        }
+        if (!passwordEncoder.matches(request.currentPassword(), account.getPasswordHash())) {
+            throw new AuthException("Current password is incorrect", HttpStatus.BAD_REQUEST);
+        }
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new AuthException("New password and confirm password do not match", HttpStatus.BAD_REQUEST);
+        }
+        if (passwordEncoder.matches(request.newPassword(), account.getPasswordHash())) {
+            throw new AuthException("New password must be different from current password", HttpStatus.BAD_REQUEST);
+        }
+
+        account.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        revokeActiveRefreshTokens(account);
+
+        return MessageResponse.builder()
+                .message("Password changed successfully. Please log in again.")
+                .build();
+    }
+
+    private CreatedRefreshToken createRefreshToken(UserAccount account) {
         String rawToken = secureTokenService.generateToken();
         RefreshToken refreshToken = RefreshToken.builder()
                 .userAccount(account)
                 .tokenHash(secureTokenService.hashToken(rawToken))
                 .expiresAt(LocalDateTime.now().plusDays(jwtProperties.getRefreshTokenExpirationDays()))
                 .build();
-        refreshTokenRepository.save(refreshToken);
-        return rawToken;
+        RefreshToken savedToken = refreshTokenRepository.save(refreshToken);
+        return new CreatedRefreshToken(rawToken, savedToken);
+    }
+
+    private void createAndSendPasswordResetToken(UserAccount account) {
+        String rawToken = secureTokenService.generateToken();
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+                .userAccount(account)
+                .tokenHash(secureTokenService.hashTokenSha256(rawToken))
+                .expiresAt(LocalDateTime.now().plusMinutes(passwordResetProperties.getTokenExpirationMinutes()))
+                .build();
+        passwordResetTokenRepository.save(resetToken);
+        emailService.sendPasswordResetToken(account.getEmail(), rawToken);
     }
 
     private void ensureEmailIsAvailable(String email) {
@@ -155,6 +261,11 @@ public class AuthService {
 
     private UserAccount findAccountByEmail(String email) {
         return userAccountRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new AuthException("Account not found", HttpStatus.NOT_FOUND));
+    }
+
+    private UserAccount findAccountById(Long accountId) {
+        return userAccountRepository.findById(accountId)
                 .orElseThrow(() -> new AuthException("Account not found", HttpStatus.NOT_FOUND));
     }
 
@@ -174,6 +285,26 @@ public class AuthService {
                 .build();
         emailVerificationRepository.save(verification);
         emailService.sendVerificationOtp(account.getEmail(), otp);
+    }
+
+    private RefreshToken findValidRefreshToken(String rawToken) {
+        RefreshToken refreshToken = refreshTokenRepository.findByRevokedAtIsNull().stream()
+                .filter(token -> secureTokenService.matches(rawToken, token.getTokenHash()))
+                .findFirst()
+                .orElseThrow(() -> new AuthException("Invalid refresh token", HttpStatus.UNAUTHORIZED));
+
+        if (LocalDateTime.now().isAfter(refreshToken.getExpiresAt())) {
+            refreshToken.setRevokedAt(LocalDateTime.now());
+            throw new AuthException("Refresh token has expired", HttpStatus.UNAUTHORIZED);
+        }
+
+        return refreshToken;
+    }
+
+    private void revokeActiveRefreshTokens(UserAccount account) {
+        LocalDateTime revokedAt = LocalDateTime.now();
+        refreshTokenRepository.findByUserAccountAccountIdAndRevokedAtIsNull(account.getAccountId())
+                .forEach(refreshToken -> refreshToken.setRevokedAt(revokedAt));
     }
 
     private void ensureAccountCanLogin(UserAccount account) {
@@ -197,5 +328,8 @@ public class AuthService {
                 .createdAt(account.getCreatedAt())
                 .updatedAt(account.getUpdatedAt())
                 .build();
+    }
+
+    private record CreatedRefreshToken(String rawToken, RefreshToken entity) {
     }
 }

@@ -1,7 +1,10 @@
 package com.mss301.authservice.service;
 
 import java.security.SecureRandom;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.nio.charset.StandardCharsets;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +33,16 @@ public class SecureTokenService {
 
     public String hashToken(String token) {
         return passwordEncoder.encode(token);
+    }
+
+    public String hashTokenSha256(String token) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 algorithm is not available", exception);
+        }
     }
 
     public boolean matches(String rawToken, String tokenHash) {
