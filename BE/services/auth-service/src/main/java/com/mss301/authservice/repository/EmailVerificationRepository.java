@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface EmailVerificationRepository extends JpaRepository<EmailVerification, Long> {
 
     Optional<EmailVerification> findFirstByUserAccountAccountIdAndConsumedAtIsNullOrderByCreatedAtDesc(Long accountId);
+
+    Optional<EmailVerification> findFirstByUserAccountAccountIdOrderByCreatedAtDesc(Long accountId);
 }
