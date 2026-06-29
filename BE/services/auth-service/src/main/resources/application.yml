@@ -38,3 +38,5 @@ auth:
     otp-expiration-minutes: ${OTP_EXPIRATION_MINUTES:10}
   password-reset:
     token-expiration-minutes: ${PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES:15}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}

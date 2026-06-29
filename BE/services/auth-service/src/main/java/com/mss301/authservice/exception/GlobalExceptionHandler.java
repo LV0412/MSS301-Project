@@ -8,6 +8,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -20,7 +22,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAuthException(
             AuthException exception,
             HttpServletRequest request) {
-        return buildErrorResponse(exception.getStatus(), exception.getMessage(), request, null);
+        return buildErrorResponse(exception.getStatus(), exception.getCode(), exception.getMessage(), request, null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -33,6 +35,7 @@ public class GlobalExceptionHandler {
 
         return buildErrorResponse(
                 HttpStatus.BAD_REQUEST,
+                ErrorCode.VALIDATION_ERROR,
                 "Request validation failed",
                 request,
                 validationErrors);
@@ -44,6 +47,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
         return buildErrorResponse(
                 HttpStatus.BAD_REQUEST,
+                ErrorCode.INVALID_PARAMETER,
                 "Invalid value for parameter: " + exception.getName(),
                 request,
                 null);
@@ -55,6 +59,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
         return buildErrorResponse(
                 HttpStatus.BAD_REQUEST,
+                ErrorCode.MALFORMED_REQUEST,
                 "Malformed request body or invalid enum value",
                 request,
                 null);
@@ -66,7 +71,32 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
         return buildErrorResponse(
                 HttpStatus.CONFLICT,
+                ErrorCode.DATA_INTEGRITY_VIOLATION,
                 "Data integrity violation",
+                request,
+                null);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(
+            AuthenticationException exception,
+            HttpServletRequest request) {
+        return buildErrorResponse(
+                HttpStatus.UNAUTHORIZED,
+                ErrorCode.UNAUTHORIZED,
+                "Authentication is required",
+                request,
+                null);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(
+            AccessDeniedException exception,
+            HttpServletRequest request) {
+        return buildErrorResponse(
+                HttpStatus.FORBIDDEN,
+                ErrorCode.ACCESS_DENIED,
+                "Access is denied",
                 request,
                 null);
     }
@@ -77,6 +107,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
         return buildErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
+                ErrorCode.INTERNAL_SERVER_ERROR,
                 "Unexpected server error",
                 request,
                 null);
@@ -84,6 +115,7 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<ErrorResponse> buildErrorResponse(
             HttpStatus status,
+            ErrorCode code,
             String message,
             HttpServletRequest request,
             Map<String, String> validationErrors) {
@@ -91,6 +123,7 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .status(status.value())
                 .error(status.getReasonPhrase())
+                .code(code.name())
                 .message(message)
                 .path(request.getRequestURI())
                 .validationErrors(validationErrors)
