@@ -1,5 +1,7 @@
 package com.mss301.userservice.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import com.mss301.userservice.entity.Gender;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -9,6 +11,7 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import lombok.Builder;
 
+@Schema(description = "Create User Request")
 @Builder
 public record CreateUserRequest(
         @NotBlank

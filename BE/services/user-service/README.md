@@ -27,6 +27,7 @@ Owns user-related data and behavior.
 - Java 21
 - Spring Data JPA
 - MySQL
+- Springdoc OpenAPI / Swagger UI
 - Maven
 - Lombok
 
@@ -186,8 +187,53 @@ Health profile status is `COMPLETE` only when `height`, `weight`, and `activityL
 
 ## Run Locally
 
+Start MySQL first, then configure environment variables:
+
+```env
+APP_PORT=8001
+DATABASE_URL=jdbc:mysql://localhost:3306/user_service?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+DATABASE_USERNAME=root
+DATABASE_PASSWORD=
+JPA_DDL_AUTO=update
+JPA_SHOW_SQL=false
+```
+
 ```bash
 mvn spring-boot:run
 ```
 
 Default port: `8001`.
+
+Swagger UI:
+
+```text
+http://localhost:8001/swagger-ui/index.html
+```
+
+OpenAPI JSON:
+
+```text
+http://localhost:8001/v3/api-docs
+```
+
+## Run With Docker Compose
+
+From repository root:
+
+```bash
+docker compose up --build user-service user-mysql
+```
+
+Service URLs:
+
+| Service | URL |
+| --- | --- |
+| User Service | `http://localhost:8001` |
+| Swagger UI | `http://localhost:8001/swagger-ui/index.html` |
+| User MySQL | `localhost:3308` |
+
+The root `docker-compose.yml` starts `user-service` with `user-mysql` and uses the `user_mysql_data` volume for database persistence.
+
+## OpenAPI
+
+The service exposes Swagger/OpenAPI with a shared Bearer JWT security scheme for future gateway integration. JWT validation is not enabled inside `user-service` yet; authentication will be integrated later through API Gateway.

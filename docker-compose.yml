@@ -55,12 +55,38 @@ services:
     ports:
       - "${AUTH_SERVICE_PORT:-8000}:8000"
 
+  user-mysql:
+    image: mysql:8.4
+    container_name: mss301-user-mysql
+    environment:
+      MYSQL_DATABASE: user_service
+      MYSQL_ROOT_PASSWORD: ${USER_MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "${USER_MYSQL_PORT:-3308}:3306"
+    volumes:
+      - user_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${USER_MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   user-service:
-    profiles: ["future"]
     build:
       context: ./BE/services/user-service
+    container_name: mss301-user-service
+    depends_on:
+      user-mysql:
+        condition: service_healthy
     environment:
       APP_PORT: 8001
+      DATABASE_URL: jdbc:mysql://user-mysql:3306/user_service?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DATABASE_USERNAME: root
+      DATABASE_PASSWORD: ${USER_MYSQL_ROOT_PASSWORD:-root}
+      JPA_DDL_AUTO: ${USER_JPA_DDL_AUTO:-update}
+      JPA_SHOW_SQL: ${USER_JPA_SHOW_SQL:-false}
+    ports:
+      - "${USER_SERVICE_PORT:-8001}:8001"
 
   recipe-service:
     profiles: ["future"]
@@ -89,3 +115,4 @@ services:
 
 volumes:
   auth_mysql_data:
+  user_mysql_data:
