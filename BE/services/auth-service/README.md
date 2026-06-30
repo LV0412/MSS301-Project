@@ -58,6 +58,7 @@ Required for local development:
 - `AUTH_DATABASE_USERNAME`
 - `AUTH_DATABASE_PASSWORD`
 - `JWT_SECRET`
+- `CORS_ALLOWED_ORIGINS`
 
 Optional integrations:
 
@@ -67,6 +68,13 @@ Optional integrations:
 - `MAIL_PASSWORD`
 
 If `MAIL_HOST` is empty, OTP and password reset tokens are logged to the service console.
+
+Security defaults:
+
+- Refresh tokens use `tokenId.secret`; the token ID is public and the secret is stored as BCrypt hash.
+- Failed password login attempts lock the account temporarily.
+- In-memory rate limiting protects login, OTP, and password reset flows.
+- Production startup validates JWT, DB password, and unsafe JPA `ddl-auto` settings.
 
 ## Run Locally
 
@@ -83,6 +91,13 @@ mvn spring-boot:run
 ```
 
 Default port: `8000`.
+
+For local PowerShell runs, set DB password before starting if your MySQL root user requires one:
+
+```powershell
+$env:AUTH_DATABASE_PASSWORD="your_mysql_password"
+mvn spring-boot:run
+```
 
 ## Docker
 

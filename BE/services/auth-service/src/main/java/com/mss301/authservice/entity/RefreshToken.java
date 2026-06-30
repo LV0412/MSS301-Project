@@ -23,6 +23,7 @@ import org.hibernate.annotations.CreationTimestamp;
         name = "refresh_tokens",
         indexes = {
                 @Index(name = "idx_refresh_tokens_account_id", columnList = "account_id"),
+                @Index(name = "idx_refresh_tokens_token_id", columnList = "token_id"),
                 @Index(name = "idx_refresh_tokens_expires_at", columnList = "expires_at")
         }
 )
@@ -41,6 +42,9 @@ public class RefreshToken {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "account_id", nullable = false)
     private UserAccount userAccount;
+
+    @Column(name = "token_id", nullable = false, unique = true, length = 36)
+    private String tokenId;
 
     @Column(name = "token_hash", nullable = false, unique = true, length = 255)
     private String tokenHash;

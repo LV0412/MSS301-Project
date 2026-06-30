@@ -43,6 +43,7 @@ All error responses include a stable `code` field. Clients should branch on `cod
 | `GOOGLE_EMAIL_NOT_VERIFIED` | `401` | Google account email is not verified. |
 | `INVALID_REFRESH_TOKEN` | `401` | Refresh token is invalid or revoked. |
 | `REFRESH_TOKEN_EXPIRED` | `401` | Refresh token has expired. |
+| `RATE_LIMIT_EXCEEDED` | `429` | Too many requests in the configured time window. |
 
 ## Common Codes
 
@@ -62,3 +63,4 @@ All error responses include a stable `code` field. Clients should branch on `cod
 - Treat `403 EMAIL_NOT_VERIFIED` as a signal to show email verification UI.
 - Treat `409 EMAIL_ALREADY_EXISTS` as a registration conflict.
 - Treat `503 GOOGLE_AUTH_UNAVAILABLE` as a disabled Google login feature.
+- Treat `429 RATE_LIMIT_EXCEEDED` as a temporary client backoff signal.

@@ -157,7 +157,7 @@ Response `200`:
 ```json
 {
   "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
-  "refreshToken": "X7PV0vlb0M9tDksW07fxa7P6hdcQmTX6RLTiw6ih9s4",
+  "refreshToken": "c6a9df1a-3df7-4d41-97f3-ea2fcb8c909a.X7PV0vlb0M9tDksW07fxa7P6hdcQmTX6RLTiw6ih9s4",
   "tokenType": "Bearer",
   "expiresIn": 900,
   "account": {
@@ -229,7 +229,7 @@ Request:
 
 ```json
 {
-  "refreshToken": "X7PV0vlb0M9tDksW07fxa7P6hdcQmTX6RLTiw6ih9s4"
+  "refreshToken": "c6a9df1a-3df7-4d41-97f3-ea2fcb8c909a.X7PV0vlb0M9tDksW07fxa7P6hdcQmTX6RLTiw6ih9s4"
 }
 ```
 
@@ -240,6 +240,7 @@ Behavior:
 - Old refresh token is revoked.
 - New refresh token is issued.
 - Client must store the new refresh token.
+- Refresh token format is `tokenId.secret`; only the public token ID is used for lookup and the secret is verified with BCrypt.
 
 ## Logout
 
@@ -252,7 +253,7 @@ Request:
 
 ```json
 {
-  "refreshToken": "X7PV0vlb0M9tDksW07fxa7P6hdcQmTX6RLTiw6ih9s4"
+  "refreshToken": "c6a9df1a-3df7-4d41-97f3-ea2fcb8c909a.X7PV0vlb0M9tDksW07fxa7P6hdcQmTX6RLTiw6ih9s4"
 }
 ```
 
@@ -370,3 +371,33 @@ All errors use the same shape:
 ```
 
 See [ERROR_CODES.md](./ERROR_CODES.md).
+
+## Rate Limits
+
+The service applies in-memory rate limits to abuse-sensitive flows:
+
+| Flow | Default limit | Window |
+| --- | ---: | --- |
+| Login | `10` requests | `60` seconds |
+| Resend OTP | `3` requests | `60` seconds |
+| Verify email | `10` requests | `60` seconds |
+| Forgot password | `3` requests | `60` seconds |
+| Reset password | `10` requests | `60` seconds |
+
+The implementation is intentionally behind a `RateLimiter` interface so it can be replaced by Redis later.
+
+## Login Lock
+
+The default failed login policy is:
+
+```text
+5 failed password attempts -> lock account for 15 minutes
+successful login -> reset failedLoginAttempts and lockedUntil
+```
+
+Configuration:
+
+```env
+AUTH_MAX_LOGIN_ATTEMPTS=5
+AUTH_LOCK_DURATION_MINUTES=15
+```
