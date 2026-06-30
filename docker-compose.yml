@@ -1,0 +1,82 @@
+name: mss301
+
+services:
+  auth-mysql:
+    image: mysql:8.4
+    container_name: mss301-auth-mysql
+    environment:
+      MYSQL_DATABASE: auth_service
+      MYSQL_ROOT_PASSWORD: ${AUTH_MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "${AUTH_MYSQL_PORT:-3307}:3306"
+    volumes:
+      - auth_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${AUTH_MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  auth-service:
+    build:
+      context: ./BE/services/auth-service
+    container_name: mss301-auth-service
+    depends_on:
+      auth-mysql:
+        condition: service_healthy
+    environment:
+      AUTH_APP_PORT: 8000
+      AUTH_DATABASE_URL: jdbc:mysql://auth-mysql:3306/auth_service?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      AUTH_DATABASE_USERNAME: root
+      AUTH_DATABASE_PASSWORD: ${AUTH_MYSQL_ROOT_PASSWORD:-root}
+      AUTH_JPA_DDL_AUTO: ${AUTH_JPA_DDL_AUTO:-update}
+      AUTH_JPA_SHOW_SQL: ${AUTH_JPA_SHOW_SQL:-false}
+      JWT_SECRET: ${JWT_SECRET:-change-this-to-a-long-random-secret-at-least-32-bytes-long}
+      JWT_ACCESS_TOKEN_EXPIRATION_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRATION_MINUTES:-15}
+      JWT_REFRESH_TOKEN_EXPIRATION_DAYS: ${JWT_REFRESH_TOKEN_EXPIRATION_DAYS:-30}
+      OTP_EXPIRATION_MINUTES: ${OTP_EXPIRATION_MINUTES:-10}
+      PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES: ${PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES:-15}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-true}
+      MAIL_SMTP_STARTTLS_ENABLE: ${MAIL_SMTP_STARTTLS_ENABLE:-true}
+    ports:
+      - "${AUTH_SERVICE_PORT:-8000}:8000"
+
+  user-service:
+    profiles: ["future"]
+    build:
+      context: ./BE/services/user-service
+    environment:
+      APP_PORT: 8001
+
+  recipe-service:
+    profiles: ["future"]
+    build:
+      context: ./BE/services/recipe-service
+
+  ai-recommendation-service:
+    profiles: ["future"]
+    build:
+      context: ./BE/services/ai-recommendation-service
+
+  api-gateway-service:
+    profiles: ["future"]
+    build:
+      context: ./BE/services/api-gateway-service
+
+  eureka-server:
+    profiles: ["future"]
+    image: eclipse-temurin:21-jre
+    command: ["java", "-version"]
+
+  config-server:
+    profiles: ["future"]
+    image: eclipse-temurin:21-jre
+    command: ["java", "-version"]
+
+volumes:
+  auth_mysql_data:
