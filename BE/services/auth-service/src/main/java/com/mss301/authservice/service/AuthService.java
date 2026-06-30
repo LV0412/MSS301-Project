@@ -1,7 +1,9 @@
 package com.mss301.authservice.service;
 
+import com.mss301.authservice.config.AuthSecurityProperties;
 import com.mss301.authservice.config.JwtProperties;
 import com.mss301.authservice.config.PasswordResetProperties;
+import com.mss301.authservice.config.RateLimitProperties;
 import com.mss301.authservice.config.VerificationProperties;
 import com.mss301.authservice.dto.AccountResponse;
 import com.mss301.authservice.dto.AuthResponse;
@@ -30,6 +32,7 @@ import com.mss301.authservice.repository.RefreshTokenRepository;
 import com.mss301.authservice.repository.UserAccountRepository;
 import com.mss301.authservice.security.JwtService;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -52,9 +55,12 @@ public class AuthService {
     private final JwtProperties jwtProperties;
     private final VerificationProperties verificationProperties;
     private final PasswordResetProperties passwordResetProperties;
+    private final AuthSecurityProperties authSecurityProperties;
+    private final RateLimitProperties rateLimitProperties;
     private final SecureTokenService secureTokenService;
     private final EmailService emailService;
     private final GoogleTokenVerifier googleTokenVerifier;
+    private final RateLimiter rateLimiter;
 
     public MessageResponse register(RegisterRequest request) {
         ensureEmailIsAvailable(request.email());
@@ -79,6 +85,8 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
+        rateLimiter.check("login", request.email(), rateLimitProperties.getLoginLimit());
+
         UserAccount account = userAccountRepository.findByEmailIgnoreCase(request.email())
                 .orElseThrow(() -> new AuthException(
                         ErrorCode.INVALID_CREDENTIALS,
@@ -93,6 +101,7 @@ public class AuthService {
         }
 
         if (!passwordEncoder.matches(request.password(), account.getPasswordHash())) {
+            recordFailedLogin(account);
             throw new AuthException(
                     ErrorCode.INVALID_CREDENTIALS,
                     "Invalid email or password",
@@ -100,6 +109,7 @@ public class AuthService {
         }
 
         ensureAccountCanLogin(account);
+        resetFailedLoginState(account);
 
         String accessToken = jwtService.generateAccessToken(account);
         CreatedRefreshToken refreshToken = createRefreshToken(account);
@@ -133,6 +143,8 @@ public class AuthService {
     }
 
     public MessageResponse verifyEmail(VerifyEmailRequest request) {
+        rateLimiter.check("verify-email", request.email(), rateLimitProperties.getVerifyEmailLimit());
+
         UserAccount account = findAccountByEmail(request.email());
         if (Boolean.TRUE.equals(account.getEmailVerified()) && account.getStatus() == AccountStatus.ACTIVE) {
             return MessageResponse.builder()
@@ -171,6 +183,8 @@ public class AuthService {
     }
 
     public MessageResponse resendVerificationOtp(EmailRequest request) {
+        rateLimiter.check("resend-otp", request.email(), rateLimitProperties.getResendOtpLimit());
+
         UserAccount account = findAccountByEmail(request.email());
         if (Boolean.TRUE.equals(account.getEmailVerified()) && account.getStatus() == AccountStatus.ACTIVE) {
             return MessageResponse.builder()
@@ -213,6 +227,8 @@ public class AuthService {
     }
 
     public MessageResponse forgotPassword(EmailRequest request) {
+        rateLimiter.check("forgot-password", request.email(), rateLimitProperties.getForgotPasswordLimit());
+
         userAccountRepository.findByEmailIgnoreCase(request.email())
                 .filter(account -> account.getProvider() == AuthProvider.LOCAL)
                 .filter(account -> account.getPasswordHash() != null)
@@ -224,6 +240,8 @@ public class AuthService {
     }
 
     public MessageResponse resetPassword(ResetPasswordRequest request) {
+        rateLimiter.check("reset-password", request.resetToken(), rateLimitProperties.getResetPasswordLimit());
+
         String tokenHash = secureTokenService.hashTokenSha256(request.resetToken());
         PasswordResetToken resetToken = passwordResetTokenRepository.findByTokenHash(tokenHash)
                 .orElseThrow(() -> new AuthException(
@@ -300,10 +318,13 @@ public class AuthService {
     }
 
     private CreatedRefreshToken createRefreshToken(UserAccount account) {
-        String rawToken = secureTokenService.generateToken();
+        String tokenId = UUID.randomUUID().toString();
+        String rawSecret = secureTokenService.generateToken();
+        String rawToken = tokenId + "." + rawSecret;
         RefreshToken refreshToken = RefreshToken.builder()
                 .userAccount(account)
-                .tokenHash(secureTokenService.hashToken(rawToken))
+                .tokenId(tokenId)
+                .tokenHash(secureTokenService.hashToken(rawSecret))
                 .expiresAt(LocalDateTime.now().plusDays(jwtProperties.getRefreshTokenExpirationDays()))
                 .build();
         RefreshToken savedToken = refreshTokenRepository.save(refreshToken);
@@ -389,13 +410,19 @@ public class AuthService {
     }
 
     private RefreshToken findValidRefreshToken(String rawToken) {
-        RefreshToken refreshToken = refreshTokenRepository.findByRevokedAtIsNull().stream()
-                .filter(token -> secureTokenService.matches(rawToken, token.getTokenHash()))
-                .findFirst()
+        ParsedRefreshToken parsedToken = parseRefreshToken(rawToken);
+        RefreshToken refreshToken = refreshTokenRepository.findByTokenIdAndRevokedAtIsNull(parsedToken.tokenId())
                 .orElseThrow(() -> new AuthException(
                         ErrorCode.INVALID_REFRESH_TOKEN,
                         "Invalid refresh token",
                         HttpStatus.UNAUTHORIZED));
+
+        if (!secureTokenService.matches(parsedToken.secret(), refreshToken.getTokenHash())) {
+            throw new AuthException(
+                    ErrorCode.INVALID_REFRESH_TOKEN,
+                    "Invalid refresh token",
+                    HttpStatus.UNAUTHORIZED);
+        }
 
         if (LocalDateTime.now().isAfter(refreshToken.getExpiresAt())) {
             refreshToken.setRevokedAt(LocalDateTime.now());
@@ -408,6 +435,28 @@ public class AuthService {
         return refreshToken;
     }
 
+    private ParsedRefreshToken parseRefreshToken(String rawToken) {
+        if (rawToken == null) {
+            throw invalidRefreshToken();
+        }
+
+        int separatorIndex = rawToken.indexOf('.');
+        if (separatorIndex <= 0 || separatorIndex == rawToken.length() - 1) {
+            throw invalidRefreshToken();
+        }
+
+        return new ParsedRefreshToken(
+                rawToken.substring(0, separatorIndex),
+                rawToken.substring(separatorIndex + 1));
+    }
+
+    private AuthException invalidRefreshToken() {
+        return new AuthException(
+                ErrorCode.INVALID_REFRESH_TOKEN,
+                "Invalid refresh token",
+                HttpStatus.UNAUTHORIZED);
+    }
+
     private void revokeActiveRefreshTokens(UserAccount account) {
         LocalDateTime revokedAt = LocalDateTime.now();
         refreshTokenRepository.findByUserAccountAccountIdAndRevokedAtIsNull(account.getAccountId())
@@ -415,6 +464,15 @@ public class AuthService {
     }
 
     private void ensureAccountCanLogin(UserAccount account) {
+        if (account.getLockedUntil() != null && LocalDateTime.now().isBefore(account.getLockedUntil())) {
+            throw new AuthException(
+                    ErrorCode.ACCOUNT_LOCKED,
+                    "Account is temporarily locked. Please try again later.",
+                    HttpStatus.FORBIDDEN);
+        }
+        if (account.getLockedUntil() != null && !LocalDateTime.now().isBefore(account.getLockedUntil())) {
+            resetFailedLoginState(account);
+        }
         if (account.getStatus() == AccountStatus.LOCKED) {
             throw new AuthException(
                     ErrorCode.ACCOUNT_LOCKED,
@@ -427,6 +485,20 @@ public class AuthService {
                     "Please verify your email before logging in",
                     HttpStatus.FORBIDDEN);
         }
+    }
+
+    private void recordFailedLogin(UserAccount account) {
+        int attempts = account.getFailedLoginAttempts() + 1;
+        account.setFailedLoginAttempts(attempts);
+
+        if (attempts >= authSecurityProperties.getMaxLoginAttempts()) {
+            account.setLockedUntil(LocalDateTime.now().plusMinutes(authSecurityProperties.getLockDurationMinutes()));
+        }
+    }
+
+    private void resetFailedLoginState(UserAccount account) {
+        account.setFailedLoginAttempts(0);
+        account.setLockedUntil(null);
     }
 
     private void ensureAccountCanAccessSession(UserAccount account) {
@@ -459,5 +531,8 @@ public class AuthService {
     }
 
     private record CreatedRefreshToken(String rawToken, RefreshToken entity) {
+    }
+
+    private record ParsedRefreshToken(String tokenId, String secret) {
     }
 }
