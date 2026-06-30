@@ -58,3 +58,7 @@ desktop.ini
 *.temp
 *.swp
 *.swo
+
+# Web frontend generated files
+FE/FE_web/node_modules/
+FE/FE_web/dist/

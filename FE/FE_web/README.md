@@ -1,5 +1,16 @@
-# FE Web
+# NutriChef Admin Web
 
-Reserved for the web frontend.
+React/Vite admin dashboard for the food recommendation system.
 
-Use this folder when the web-specific frontend is implemented separately from the Flutter application.
+## Run
+
+```bash
+npm install
+npm run dev
+```
+
+## Build
+
+```bash
+npm run build
+```
