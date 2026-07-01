@@ -4,6 +4,10 @@ import com.mss301.userservice.dto.CreateDietPreferenceRequest;
 import com.mss301.userservice.dto.DietPreferenceResponse;
 import com.mss301.userservice.dto.UpdateDietPreferenceRequest;
 import com.mss301.userservice.service.DietPreferenceService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -21,11 +25,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/users/{userId}/diet-preferences")
 @RequiredArgsConstructor
+@Tag(name = "Diet Preferences", description = "User diet preference APIs")
 public class DietPreferenceController {
 
     private final DietPreferenceService dietPreferenceService;
 
     @PostMapping
+    @Operation(summary = "Add diet preference", description = "Add a diet preference for a user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Diet preference added"),
+            @ApiResponse(responseCode = "400", description = "Invalid request"),
+            @ApiResponse(responseCode = "404", description = "User not found"),
+            @ApiResponse(responseCode = "409", description = "Duplicate diet preference")
+    })
     public ResponseEntity<DietPreferenceResponse> addDietPreference(
             @PathVariable Long userId,
             @Valid @RequestBody CreateDietPreferenceRequest request) {
@@ -34,11 +46,22 @@ public class DietPreferenceController {
     }
 
     @GetMapping
+    @Operation(summary = "Get diet preferences", description = "Return all diet preferences of a user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Diet preferences returned"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
     public ResponseEntity<List<DietPreferenceResponse>> getDietPreferences(@PathVariable Long userId) {
         return ResponseEntity.ok(dietPreferenceService.getDietPreferences(userId));
     }
 
     @PutMapping("/{preferenceId}")
+    @Operation(summary = "Update diet preference", description = "Update one diet preference of a user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Diet preference updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid request"),
+            @ApiResponse(responseCode = "404", description = "Diet preference not found")
+    })
     public ResponseEntity<DietPreferenceResponse> updateDietPreference(
             @PathVariable Long userId,
             @PathVariable Long preferenceId,
@@ -47,6 +70,11 @@ public class DietPreferenceController {
     }
 
     @DeleteMapping("/{preferenceId}")
+    @Operation(summary = "Delete diet preference", description = "Delete one diet preference of a user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Diet preference deleted"),
+            @ApiResponse(responseCode = "404", description = "Diet preference not found")
+    })
     public ResponseEntity<Void> deleteDietPreference(
             @PathVariable Long userId,
             @PathVariable Long preferenceId) {

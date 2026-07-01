@@ -1,5 +1,7 @@
 package com.mss301.userservice.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import com.mss301.userservice.entity.MealType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -8,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.Builder;
 
+@Schema(description = "Create Food Log Request")
 @Builder
 public record CreateFoodLogRequest(
         @NotNull
