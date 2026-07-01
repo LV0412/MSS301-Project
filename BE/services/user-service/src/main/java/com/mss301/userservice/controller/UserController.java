@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -57,7 +58,7 @@ public class UserController {
     @Operation(summary = "Get users", description = "Return paginated user profiles.")
     @ApiResponse(responseCode = "200", description = "Users returned")
     public ResponseEntity<Page<UserResponse>> getAllUsers(
-            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+            @ParameterObject @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
         return ResponseEntity.ok(userManagementService.getAllUsers(pageable));
     }
 
