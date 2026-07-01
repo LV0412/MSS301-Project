@@ -1,0 +1,32 @@
+server:
+  port: ${APP_PORT:8002}
+
+spring:
+  application:
+    name: recipe-service
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/recipe_service}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: ${JPA_SHOW_SQL:false}
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
