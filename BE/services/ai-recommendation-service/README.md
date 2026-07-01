@@ -1,28 +1,25 @@
 # AI Recommendation Service
 
-Owns AI-generated suggestions and meal planning data.
+Python AI module for the recommendation pipeline:
 
-## Domain Entities
+1. Receive user profile and recommendation intent through FastAPI.
+2. Embed query text and run hybrid retrieval over the recipe knowledge base.
+3. Build a RAG prompt from retrieved candidates.
+4. Generate a deterministic FoodyLLM-style answer for local development.
+5. Optimize meal choices against calories, diet, allergy, and budget constraints.
 
-- `AI_SUGGESTION`
-- `SUGGESTED_RECIPE`
-- `MEAL_PLAN`
-- `MEAL_PLAN_ITEM`
+## Run Locally
 
-## Suggested Responsibilities
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app:app --reload --port 8004
+```
 
-- Generate recipe recommendations.
-- Store AI suggestion history.
-- Build meal plans.
-- Manage meal plan items.
-- Integrate with user and recipe services through service APIs or contracts.
+## Endpoints
 
-## MVC Package Layout
+- `GET /health`
+- `POST /api/ai/recommendations`
 
-- `controller`: REST APIs for recommendations, AI suggestions, and meal plans.
-- `dto`: request/response objects.
-- `model`: JPA entities.
-- `repository`: Spring Data repositories.
-- `service`: recommendation and meal planning business logic.
-- `client`: HTTP clients for user service, recipe service, and AI provider calls.
-- `config`: service configuration.
+The current implementation is intentionally lightweight and deterministic so the service can run before real embeddings, vector database, or LLM provider keys are configured.
