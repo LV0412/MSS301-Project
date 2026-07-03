@@ -99,9 +99,20 @@ services:
       context: ./BE/services/ai-recommendation-service
 
   api-gateway-service:
-    profiles: ["future"]
     build:
       context: ./BE/services/api-gateway-service
+    container_name: mss301-api-gateway-service
+    depends_on:
+      - auth-service
+      - user-service
+    environment:
+      APP_PORT: 8080
+      AUTH_SERVICE_URL: http://auth-service:8000
+      USER_SERVICE_URL: http://user-service:8001
+      RECIPE_SERVICE_URL: http://recipe-service:8002
+      AI_RECOMMENDATION_SERVICE_URL: http://ai-recommendation-service:8003
+    ports:
+      - "${API_GATEWAY_PORT:-8080}:8080"
 
   eureka-server:
     profiles: ["future"]

@@ -32,6 +32,13 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Flutter desktop generated plugin registration
+linux/flutter/generated_plugin_registrant.*
+linux/flutter/generated_plugins.cmake
+macos/Flutter/GeneratedPluginRegistrant.swift
+windows/flutter/generated_plugin_registrant.*
+windows/flutter/generated_plugins.cmake
+
 # Local environment and secrets
 .env
 .env.*

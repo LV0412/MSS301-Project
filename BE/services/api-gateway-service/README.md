@@ -11,9 +11,11 @@ Single entry point for frontend requests.
 
 ## Default Routes
 
-- `/api/users/**` -> `user-service`
-- `/api/recipes/**` -> `recipe-service`
-- `/api/recommendations/**` -> `ai-recommendation-service`
+- `/api/v1/auth/**` -> `auth-service`
+- `/api/v1/users/**` -> `user-service`
+- `/api/internal/users/**`, `/api/internal/health-profiles/**`, `/api/internal/nutrition-goals/**`, `/api/internal/diet-preferences/**`, `/api/internal/user-allergies/**`, `/api/internal/food-logs/**`, `/api/internal/ai-profile/**` -> `user-service`
+- `/api/recipes/**`, `/api/v1/recipes/**`, `/api/ingredients/**`, `/api/v1/ingredients/**`, `/api/categories/**`, `/api/v1/categories/**`, `/api/allergens/**`, `/api/v1/allergens/**`, `/api/internal/recipes/**` -> `recipe-service`
+- `/api/ai/**` -> `ai-recommendation-service`
 
 ## Local Ports
 
@@ -25,10 +27,18 @@ Single entry point for frontend requests.
 ## Environment Variables
 
 - `APP_PORT`
+- `AUTH_SERVICE_URL`
 - `USER_SERVICE_URL`
 - `RECIPE_SERVICE_URL`
 - `AI_RECOMMENDATION_SERVICE_URL`
 - `JWT_SECRET`
+
+When running with Docker Compose, set service URLs to Compose DNS names:
+
+- `AUTH_SERVICE_URL=http://auth-service:8000`
+- `USER_SERVICE_URL=http://user-service:8001`
+- `RECIPE_SERVICE_URL=http://recipe-service:8002`
+- `AI_RECOMMENDATION_SERVICE_URL=http://ai-recommendation-service:8003`
 
 ## Package Layout
 
