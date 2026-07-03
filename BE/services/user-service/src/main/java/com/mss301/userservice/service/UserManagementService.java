@@ -7,6 +7,7 @@ import com.mss301.userservice.entity.User;
 import com.mss301.userservice.exception.DuplicateEmailException;
 import com.mss301.userservice.exception.UserNotFoundException;
 import com.mss301.userservice.repository.UserRepository;
+import com.mss301.userservice.util.PageableUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,7 +43,9 @@ public class UserManagementService {
 
     @Transactional(readOnly = true)
     public Page<UserResponse> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable).map(this::toResponse);
+        Pageable normalizedPageable = PageableUtils.normalizeSort(pageable, "createdAt");
+        Page<User> users = userRepository.findAll(normalizedPageable);
+        return users.map(this::toResponse);
     }
 
     public UserResponse updateUser(Long userId, UpdateUserRequest request) {

@@ -7,18 +7,22 @@ spring:
   cloud:
     gateway:
       routes:
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8000}
+          predicates:
+            - Path=/api/v1/auth/**
         - id: user-service
           uri: ${USER_SERVICE_URL:http://localhost:8001}
           predicates:
-            - Path=/api/users/**,/api/health-profiles/**,/api/diet-preferences/**,/api/nutrition-goals/**,/api/allergies/**,/api/favorites/**,/api/food-logs/**
+            - Path=/api/v1/users/**,/api/internal/users/**,/api/internal/health-profiles/**,/api/internal/nutrition-goals/**,/api/internal/diet-preferences/**,/api/internal/user-allergies/**,/api/internal/food-logs/**,/api/internal/ai-profile/**
         - id: recipe-service
           uri: ${RECIPE_SERVICE_URL:http://localhost:8002}
           predicates:
-            - Path=/api/recipes/**,/api/ingredients/**,/api/categories/**,/api/nutrition-info/**
+            - Path=/api/recipes/**,/api/v1/recipes/**,/api/ingredients/**,/api/v1/ingredients/**,/api/categories/**,/api/v1/categories/**,/api/allergens/**,/api/v1/allergens/**,/api/internal/recipes/**
         - id: ai-recommendation-service
           uri: ${AI_RECOMMENDATION_SERVICE_URL:http://localhost:8003}
           predicates:
-            - Path=/api/recommendations/**,/api/ai-suggestions/**,/api/meal-plans/**
+            - Path=/api/ai/**
 
 management:
   endpoints:
