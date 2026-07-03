@@ -1,0 +1,1342 @@
+[
+	{
+		"id": 1,
+		"name": "Ức gà áp chảo với cơm gạo lứt",
+		"description": "Món ăn giàu protein, phù hợp cho người tập gym hoặc muốn kiểm soát cân nặng.",
+		"ingredients": [
+			"ức gà",
+			"cơm gạo lứt",
+			"bông cải xanh",
+			"cà rốt",
+			"dầu ô liu"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"high_protein",
+			"muscle_gain",
+			"balanced"
+		],
+		"allergens": [],
+		"calories": 520,
+		"protein": 42,
+		"carbs": 48,
+		"fat": 15,
+		"cost": 45000,
+		"cooking_time": 25
+	},
+	{
+		"id": 2,
+		"name": "Bún thịt nướng ít dầu",
+		"description": "Phiên bản bún thịt nướng nhẹ hơn, dùng nhiều rau sống và thịt nạc.",
+		"ingredients": [
+			"bún tươi",
+			"thịt heo nạc",
+			"xà lách",
+			"dưa leo",
+			"cà rốt",
+			"nước mắm chua ngọt"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"balanced"
+		],
+		"allergens": [],
+		"calories": 560,
+		"protein": 31,
+		"carbs": 72,
+		"fat": 16,
+		"cost": 35000,
+		"cooking_time": 30
+	},
+	{
+		"id": 3,
+		"name": "Phở bò tái ít bánh",
+		"description": "Tô phở bò giảm lượng bánh phở, tăng thịt bò nạc và rau thơm.",
+		"ingredients": [
+			"bánh phở",
+			"thịt bò nạc",
+			"hành tây",
+			"giá đỗ",
+			"rau thơm",
+			"nước dùng bò"
+		],
+		"meal_type": "breakfast",
+		"diet": [
+			"high_protein",
+			"balanced"
+		],
+		"allergens": [],
+		"calories": 480,
+		"protein": 35,
+		"carbs": 52,
+		"fat": 13,
+		"cost": 40000,
+		"cooking_time": 20
+	},
+	{
+		"id": 4,
+		"name": "Cháo yến mạch thịt bằm",
+		"description": "Bữa sáng mềm, dễ ăn, nhiều chất xơ hơn cháo trắng thông thường.",
+		"ingredients": [
+			"yến mạch",
+			"thịt heo bằm nạc",
+			"cà rốt",
+			"hành lá",
+			"nấm rơm"
+		],
+		"meal_type": "breakfast",
+		"diet": [
+			"balanced",
+			"low_calorie"
+		],
+		"allergens": [
+			"gluten"
+		],
+		"calories": 360,
+		"protein": 22,
+		"carbs": 45,
+		"fat": 9,
+		"cost": 25000,
+		"cooking_time": 18
+	},
+	{
+		"id": 5,
+		"name": "Cơm tấm sườn nạc trứng",
+		"description": "Cơm tấm sinh viên với sườn nạc và trứng, phù hợp bữa trưa nhiều năng lượng.",
+		"ingredients": [
+			"cơm tấm",
+			"sườn heo nạc",
+			"trứng gà",
+			"dưa leo",
+			"đồ chua",
+			"nước mắm"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"high_protein",
+			"balanced"
+		],
+		"allergens": [
+			"egg"
+		],
+		"calories": 680,
+		"protein": 39,
+		"carbs": 78,
+		"fat": 22,
+		"cost": 42000,
+		"cooking_time": 35
+	},
+	{
+		"id": 6,
+		"name": "Gỏi cuốn tôm thịt",
+		"description": "Món cuốn nhiều rau, ít dầu mỡ, thích hợp cho bữa nhẹ hoặc bữa tối nhẹ.",
+		"ingredients": [
+			"bánh tráng",
+			"tôm",
+			"thịt heo nạc",
+			"bún",
+			"xà lách",
+			"rau thơm"
+		],
+		"meal_type": "snack",
+		"diet": [
+			"low_calorie",
+			"balanced"
+		],
+		"allergens": [
+			"seafood"
+		],
+		"calories": 310,
+		"protein": 23,
+		"carbs": 38,
+		"fat": 7,
+		"cost": 30000,
+		"cooking_time": 20
+	},
+	{
+		"id": 7,
+		"name": "Đậu hũ sốt cà chua",
+		"description": "Món chay đơn giản, rẻ và dễ nấu cho sinh viên.",
+		"ingredients": [
+			"đậu hũ",
+			"cà chua",
+			"hành lá",
+			"tỏi",
+			"dầu thực vật"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"vegetarian",
+			"vegan",
+			"balanced"
+		],
+		"allergens": [
+			"soy"
+		],
+		"calories": 330,
+		"protein": 18,
+		"carbs": 20,
+		"fat": 19,
+		"cost": 20000,
+		"cooking_time": 15
+	},
+	{
+		"id": 8,
+		"name": "Salad ức gà rau củ",
+		"description": "Món salad giàu protein, ít tinh bột, phù hợp giảm cân.",
+		"ingredients": [
+			"ức gà",
+			"xà lách",
+			"cà chua bi",
+			"dưa leo",
+			"bắp ngọt",
+			"sốt sữa chua"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"high_protein",
+			"low_calorie",
+			"weight_loss"
+		],
+		"allergens": [
+			"milk"
+		],
+		"calories": 390,
+		"protein": 38,
+		"carbs": 25,
+		"fat": 13,
+		"cost": 42000,
+		"cooking_time": 20
+	},
+	{
+		"id": 9,
+		"name": "Bánh mì trứng rau củ",
+		"description": "Bữa sáng nhanh, đủ năng lượng với trứng và rau tươi.",
+		"ingredients": [
+			"bánh mì",
+			"trứng gà",
+			"dưa leo",
+			"cà chua",
+			"xà lách"
+		],
+		"meal_type": "breakfast",
+		"diet": [
+			"balanced"
+		],
+		"allergens": [
+			"egg",
+			"gluten"
+		],
+		"calories": 430,
+		"protein": 18,
+		"carbs": 55,
+		"fat": 15,
+		"cost": 18000,
+		"cooking_time": 10
+	},
+	{
+		"id": 10,
+		"name": "Bánh mì ức gà xé",
+		"description": "Bánh mì giàu đạm hơn nhờ ức gà xé và rau củ.",
+		"ingredients": [
+			"bánh mì",
+			"ức gà",
+			"dưa leo",
+			"cà rốt",
+			"rau mùi",
+			"tương ớt"
+		],
+		"meal_type": "breakfast",
+		"diet": [
+			"high_protein",
+			"balanced"
+		],
+		"allergens": [
+			"gluten"
+		],
+		"calories": 460,
+		"protein": 32,
+		"carbs": 58,
+		"fat": 10,
+		"cost": 28000,
+		"cooking_time": 15
+	},
+	{
+		"id": 11,
+		"name": "Cá basa kho tộ với cơm trắng",
+		"description": "Món Việt quen thuộc, chi phí thấp, dùng cá basa mềm và cơm vừa đủ.",
+		"ingredients": [
+			"cá basa",
+			"cơm trắng",
+			"hành tím",
+			"nước mắm",
+			"tiêu",
+			"rau luộc"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"balanced"
+		],
+		"allergens": [
+			"seafood"
+		],
+		"calories": 540,
+		"protein": 34,
+		"carbs": 62,
+		"fat": 16,
+		"cost": 32000,
+		"cooking_time": 30
+	},
+	{
+		"id": 12,
+		"name": "Canh chua cá lóc",
+		"description": "Canh chua thanh nhẹ, nhiều rau, phù hợp bữa tối gia đình.",
+		"ingredients": [
+			"cá lóc",
+			"thơm",
+			"cà chua",
+			"đậu bắp",
+			"giá đỗ",
+			"me chua"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"low_calorie",
+			"balanced"
+		],
+		"allergens": [
+			"seafood"
+		],
+		"calories": 300,
+		"protein": 29,
+		"carbs": 22,
+		"fat": 8,
+		"cost": 38000,
+		"cooking_time": 30
+	},
+	{
+		"id": 13,
+		"name": "Thịt bò xào bông cải",
+		"description": "Món xào giàu sắt và protein, dùng ít dầu để giữ calo vừa phải.",
+		"ingredients": [
+			"thịt bò",
+			"bông cải xanh",
+			"tỏi",
+			"dầu hào",
+			"cà rốt"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"high_protein",
+			"low_carb",
+			"muscle_gain"
+		],
+		"allergens": [],
+		"calories": 430,
+		"protein": 37,
+		"carbs": 18,
+		"fat": 22,
+		"cost": 48000,
+		"cooking_time": 20
+	},
+	{
+		"id": 14,
+		"name": "Cơm gạo lứt cá thu sốt cà",
+		"description": "Bữa trưa cân bằng với cá thu giàu chất béo tốt và gạo lứt.",
+		"ingredients": [
+			"cá thu",
+			"cơm gạo lứt",
+			"cà chua",
+			"hành tây",
+			"rau cải"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"balanced",
+			"high_protein"
+		],
+		"allergens": [
+			"seafood"
+		],
+		"calories": 590,
+		"protein": 36,
+		"carbs": 55,
+		"fat": 24,
+		"cost": 55000,
+		"cooking_time": 30
+	},
+	{
+		"id": 15,
+		"name": "Miến gà nấm",
+		"description": "Món nước nhẹ bụng, nhiều đạm và ít chất béo.",
+		"ingredients": [
+			"miến dong",
+			"thịt gà xé",
+			"nấm hương",
+			"hành lá",
+			"rau răm"
+		],
+		"meal_type": "breakfast",
+		"diet": [
+			"low_calorie",
+			"balanced"
+		],
+		"allergens": [],
+		"calories": 390,
+		"protein": 27,
+		"carbs": 50,
+		"fat": 8,
+		"cost": 30000,
+		"cooking_time": 20
+	},
+	{
+		"id": 16,
+		"name": "Bún riêu cua ít bún",
+		"description": "Bún riêu giảm tinh bột, tăng rau và đậu hũ.",
+		"ingredients": [
+			"bún",
+			"cua đồng",
+			"đậu hũ",
+			"cà chua",
+			"rau muống bào",
+			"giá đỗ"
+		],
+		"meal_type": "breakfast",
+		"diet": [
+			"balanced"
+		],
+		"allergens": [
+			"seafood",
+			"soy"
+		],
+		"calories": 470,
+		"protein": 26,
+		"carbs": 55,
+		"fat": 16,
+		"cost": 32000,
+		"cooking_time": 35
+	},
+	{
+		"id": 17,
+		"name": "Cơm đậu hũ kho nấm",
+		"description": "Bữa chay tiết kiệm với đậu hũ, nấm và cơm trắng.",
+		"ingredients": [
+			"đậu hũ",
+			"nấm rơm",
+			"cơm trắng",
+			"nước tương",
+			"hành lá"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"vegetarian",
+			"vegan",
+			"balanced"
+		],
+		"allergens": [
+			"soy"
+		],
+		"calories": 510,
+		"protein": 24,
+		"carbs": 70,
+		"fat": 15,
+		"cost": 25000,
+		"cooking_time": 25
+	},
+	{
+		"id": 18,
+		"name": "Salad đậu gà rau củ",
+		"description": "Món chay nhiều chất xơ, hợp cho bữa tối nhẹ hoặc meal prep.",
+		"ingredients": [
+			"đậu gà",
+			"xà lách",
+			"cà chua",
+			"dưa leo",
+			"bắp ngọt",
+			"chanh"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"vegetarian",
+			"vegan",
+			"low_calorie",
+			"weight_loss"
+		],
+		"allergens": [],
+		"calories": 360,
+		"protein": 17,
+		"carbs": 52,
+		"fat": 10,
+		"cost": 35000,
+		"cooking_time": 15
+	},
+	{
+		"id": 19,
+		"name": "Trứng cuộn rau củ",
+		"description": "Món nhanh giàu đạm, dùng được cho bữa sáng hoặc snack.",
+		"ingredients": [
+			"trứng gà",
+			"cà rốt",
+			"hành lá",
+			"ớt chuông",
+			"dầu ăn"
+		],
+		"meal_type": "breakfast",
+		"diet": [
+			"high_protein",
+			"low_carb"
+		],
+		"allergens": [
+			"egg"
+		],
+		"calories": 280,
+		"protein": 18,
+		"carbs": 8,
+		"fat": 20,
+		"cost": 18000,
+		"cooking_time": 12
+	},
+	{
+		"id": 20,
+		"name": "Sữa chua Hy Lạp với chuối",
+		"description": "Snack giàu protein, dễ chuẩn bị trước khi học hoặc tập luyện.",
+		"ingredients": [
+			"sữa chua Hy Lạp",
+			"chuối",
+			"hạt chia",
+			"mật ong"
+		],
+		"meal_type": "snack",
+		"diet": [
+			"high_protein",
+			"balanced"
+		],
+		"allergens": [
+			"milk"
+		],
+		"calories": 260,
+		"protein": 18,
+		"carbs": 38,
+		"fat": 5,
+		"cost": 25000,
+		"cooking_time": 5
+	},
+	{
+		"id": 21,
+		"name": "Khoai lang luộc trứng",
+		"description": "Bữa phụ rẻ, no lâu, phù hợp người giảm cân.",
+		"ingredients": [
+			"khoai lang",
+			"trứng gà",
+			"muối tiêu"
+		],
+		"meal_type": "snack",
+		"diet": [
+			"low_calorie",
+			"weight_loss",
+			"balanced"
+		],
+		"allergens": [
+			"egg"
+		],
+		"calories": 310,
+		"protein": 14,
+		"carbs": 48,
+		"fat": 8,
+		"cost": 15000,
+		"cooking_time": 20
+	},
+	{
+		"id": 22,
+		"name": "Sinh tố bơ sữa hạt",
+		"description": "Sinh tố nhiều năng lượng tốt, phù hợp người cần tăng cân lành mạnh.",
+		"ingredients": [
+			"bơ",
+			"sữa hạt",
+			"chuối",
+			"hạt điều"
+		],
+		"meal_type": "snack",
+		"diet": [
+			"vegetarian",
+			"vegan",
+			"muscle_gain"
+		],
+		"allergens": [
+			"peanut"
+		],
+		"calories": 420,
+		"protein": 10,
+		"carbs": 38,
+		"fat": 27,
+		"cost": 30000,
+		"cooking_time": 7
+	},
+	{
+		"id": 23,
+		"name": "Cơm gà xé luộc",
+		"description": "Cơm gà đơn giản, ít dầu, phù hợp bữa trưa sinh viên.",
+		"ingredients": [
+			"cơm trắng",
+			"thịt gà luộc",
+			"dưa leo",
+			"rau răm",
+			"nước mắm gừng"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"high_protein",
+			"balanced"
+		],
+		"allergens": [],
+		"calories": 570,
+		"protein": 38,
+		"carbs": 70,
+		"fat": 13,
+		"cost": 35000,
+		"cooking_time": 25
+	},
+	{
+		"id": 24,
+		"name": "Bò lúc lắc khoai tây",
+		"description": "Món tăng cơ giàu năng lượng, thích hợp sau buổi tập nặng.",
+		"ingredients": [
+			"thịt bò",
+			"khoai tây",
+			"ớt chuông",
+			"hành tây",
+			"dầu ô liu"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"high_protein",
+			"muscle_gain"
+		],
+		"allergens": [],
+		"calories": 650,
+		"protein": 42,
+		"carbs": 48,
+		"fat": 30,
+		"cost": 60000,
+		"cooking_time": 30
+	},
+	{
+		"id": 25,
+		"name": "Tôm xào rau củ",
+		"description": "Món ít tinh bột, giàu đạm, nhiều màu sắc và dễ ăn.",
+		"ingredients": [
+			"tôm",
+			"bông cải xanh",
+			"ớt chuông",
+			"cà rốt",
+			"tỏi"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"high_protein",
+			"low_carb",
+			"low_calorie"
+		],
+		"allergens": [
+			"seafood"
+		],
+		"calories": 340,
+		"protein": 32,
+		"carbs": 20,
+		"fat": 14,
+		"cost": 48000,
+		"cooking_time": 18
+	},
+	{
+		"id": 26,
+		"name": "Mì ý sốt bò bằm phiên bản sinh viên",
+		"description": "Món nhiều năng lượng với bò bằm và sốt cà chua tự nấu.",
+		"ingredients": [
+			"mì ý",
+			"thịt bò bằm",
+			"cà chua",
+			"hành tây",
+			"phô mai"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"muscle_gain",
+			"balanced"
+		],
+		"allergens": [
+			"gluten",
+			"milk"
+		],
+		"calories": 690,
+		"protein": 34,
+		"carbs": 88,
+		"fat": 22,
+		"cost": 45000,
+		"cooking_time": 30
+	},
+	{
+		"id": 27,
+		"name": "Rau luộc chấm trứng dầm",
+		"description": "Món giảm cân đơn giản, nhiều rau và vừa đủ đạm.",
+		"ingredients": [
+			"rau cải",
+			"đậu bắp",
+			"cà rốt",
+			"trứng gà",
+			"nước mắm"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"low_calorie",
+			"weight_loss"
+		],
+		"allergens": [
+			"egg"
+		],
+		"calories": 260,
+		"protein": 14,
+		"carbs": 28,
+		"fat": 10,
+		"cost": 18000,
+		"cooking_time": 15
+	},
+	{
+		"id": 28,
+		"name": "Canh bí đỏ thịt bằm",
+		"description": "Canh ngọt nhẹ, dễ ăn, bổ sung tinh bột tốt từ bí đỏ.",
+		"ingredients": [
+			"bí đỏ",
+			"thịt heo bằm nạc",
+			"hành lá",
+			"ngò rí"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"low_calorie",
+			"balanced"
+		],
+		"allergens": [],
+		"calories": 250,
+		"protein": 18,
+		"carbs": 30,
+		"fat": 7,
+		"cost": 22000,
+		"cooking_time": 20
+	},
+	{
+		"id": 29,
+		"name": "Cơm trứng đậu que",
+		"description": "Bữa ăn rẻ, nhanh, có trứng và rau xanh cho sinh viên.",
+		"ingredients": [
+			"cơm trắng",
+			"trứng gà",
+			"đậu que",
+			"tỏi",
+			"nước tương"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"vegetarian",
+			"balanced"
+		],
+		"allergens": [
+			"egg",
+			"soy"
+		],
+		"calories": 520,
+		"protein": 19,
+		"carbs": 72,
+		"fat": 17,
+		"cost": 22000,
+		"cooking_time": 15
+	},
+	{
+		"id": 30,
+		"name": "Đậu hũ non hấp nấm",
+		"description": "Món chay mềm, ít dầu, phù hợp bữa tối ít calo.",
+		"ingredients": [
+			"đậu hũ non",
+			"nấm đông cô",
+			"nấm kim châm",
+			"nước tương",
+			"hành lá"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"vegetarian",
+			"vegan",
+			"low_calorie"
+		],
+		"allergens": [
+			"soy"
+		],
+		"calories": 240,
+		"protein": 16,
+		"carbs": 18,
+		"fat": 12,
+		"cost": 28000,
+		"cooking_time": 18
+	},
+	{
+		"id": 31,
+		"name": "Bún chay đậu hũ nấm",
+		"description": "Món nước chay thanh nhẹ với đậu hũ và nấm.",
+		"ingredients": [
+			"bún",
+			"đậu hũ",
+			"nấm rơm",
+			"cà chua",
+			"rau sống"
+		],
+		"meal_type": "breakfast",
+		"diet": [
+			"vegetarian",
+			"vegan",
+			"balanced"
+		],
+		"allergens": [
+			"soy"
+		],
+		"calories": 420,
+		"protein": 18,
+		"carbs": 65,
+		"fat": 10,
+		"cost": 25000,
+		"cooking_time": 25
+	},
+	{
+		"id": 32,
+		"name": "Cháo gà đậu xanh",
+		"description": "Bữa sáng ấm bụng, dễ tiêu, hợp lúc cần ăn nhẹ.",
+		"ingredients": [
+			"gạo",
+			"thịt gà",
+			"đậu xanh",
+			"hành lá",
+			"gừng"
+		],
+		"meal_type": "breakfast",
+		"diet": [
+			"balanced"
+		],
+		"allergens": [],
+		"calories": 410,
+		"protein": 24,
+		"carbs": 58,
+		"fat": 9,
+		"cost": 25000,
+		"cooking_time": 35
+	},
+	{
+		"id": 33,
+		"name": "Cá hồi áp chảo salad",
+		"description": "Món giàu omega-3, ít tinh bột, hợp bữa tối lành mạnh.",
+		"ingredients": [
+			"cá hồi",
+			"xà lách",
+			"bơ",
+			"cà chua bi",
+			"chanh vàng"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"high_protein",
+			"low_carb",
+			"balanced"
+		],
+		"allergens": [
+			"seafood"
+		],
+		"calories": 520,
+		"protein": 36,
+		"carbs": 16,
+		"fat": 34,
+		"cost": 75000,
+		"cooking_time": 20
+	},
+	{
+		"id": 34,
+		"name": "Cá ngừ trộn bắp cải",
+		"description": "Món nhanh, nhiều protein, hợp meal prep giảm cân.",
+		"ingredients": [
+			"cá ngừ",
+			"bắp cải tím",
+			"xà lách",
+			"bắp ngọt",
+			"sốt sữa chua"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"high_protein",
+			"low_calorie",
+			"weight_loss"
+		],
+		"allergens": [
+			"seafood",
+			"milk"
+		],
+		"calories": 350,
+		"protein": 34,
+		"carbs": 24,
+		"fat": 12,
+		"cost": 38000,
+		"cooking_time": 10
+	},
+	{
+		"id": 35,
+		"name": "Yến mạch qua đêm cacao chuối",
+		"description": "Bữa sáng chuẩn bị từ tối, nhiều chất xơ và no lâu.",
+		"ingredients": [
+			"yến mạch",
+			"sữa tươi",
+			"chuối",
+			"bột cacao",
+			"hạt chia"
+		],
+		"meal_type": "breakfast",
+		"diet": [
+			"vegetarian",
+			"balanced"
+		],
+		"allergens": [
+			"gluten",
+			"milk"
+		],
+		"calories": 390,
+		"protein": 16,
+		"carbs": 62,
+		"fat": 10,
+		"cost": 22000,
+		"cooking_time": 5
+	},
+	{
+		"id": 36,
+		"name": "Súp lơ trắng xào trứng",
+		"description": "Món ít tinh bột, dễ nấu, phù hợp bữa tối nhẹ.",
+		"ingredients": [
+			"súp lơ trắng",
+			"trứng gà",
+			"hành lá",
+			"tỏi"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"vegetarian",
+			"low_carb",
+			"low_calorie"
+		],
+		"allergens": [
+			"egg"
+		],
+		"calories": 290,
+		"protein": 17,
+		"carbs": 18,
+		"fat": 17,
+		"cost": 22000,
+		"cooking_time": 15
+	},
+	{
+		"id": 37,
+		"name": "Cơm bò trứng kiểu meal prep",
+		"description": "Hộp cơm giàu protein cho người tập luyện và cần tăng cơ.",
+		"ingredients": [
+			"cơm trắng",
+			"thịt bò bằm",
+			"trứng gà",
+			"bông cải",
+			"cà rốt"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"high_protein",
+			"muscle_gain"
+		],
+		"allergens": [
+			"egg"
+		],
+		"calories": 720,
+		"protein": 48,
+		"carbs": 78,
+		"fat": 24,
+		"cost": 55000,
+		"cooking_time": 30
+	},
+	{
+		"id": 38,
+		"name": "Cơm heo nạc rim tiêu",
+		"description": "Bữa trưa Việt Nam đơn giản, nhiều đạm và chi phí vừa phải.",
+		"ingredients": [
+			"cơm trắng",
+			"thịt heo nạc",
+			"tiêu",
+			"nước mắm",
+			"rau luộc"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"high_protein",
+			"balanced"
+		],
+		"allergens": [],
+		"calories": 610,
+		"protein": 38,
+		"carbs": 70,
+		"fat": 18,
+		"cost": 35000,
+		"cooking_time": 25
+	},
+	{
+		"id": 39,
+		"name": "Bắp luộc và sữa đậu nành",
+		"description": "Snack rẻ, tiện, phù hợp giữa buổi học.",
+		"ingredients": [
+			"bắp Mỹ",
+			"sữa đậu nành không đường"
+		],
+		"meal_type": "snack",
+		"diet": [
+			"vegetarian",
+			"vegan",
+			"balanced"
+		],
+		"allergens": [
+			"soy"
+		],
+		"calories": 260,
+		"protein": 11,
+		"carbs": 48,
+		"fat": 4,
+		"cost": 15000,
+		"cooking_time": 10
+	},
+	{
+		"id": 40,
+		"name": "Táo với bơ đậu phộng",
+		"description": "Bữa phụ nhanh, có chất béo tốt và năng lượng vừa phải.",
+		"ingredients": [
+			"táo",
+			"bơ đậu phộng"
+		],
+		"meal_type": "snack",
+		"diet": [
+			"vegetarian",
+			"vegan",
+			"balanced"
+		],
+		"allergens": [
+			"peanut"
+		],
+		"calories": 220,
+		"protein": 6,
+		"carbs": 28,
+		"fat": 10,
+		"cost": 18000,
+		"cooking_time": 3
+	},
+	{
+		"id": 41,
+		"name": "Nui gà rau củ",
+		"description": "Món nước dễ ăn, phù hợp bữa sáng hoặc bữa trưa nhẹ.",
+		"ingredients": [
+			"nui",
+			"thịt gà",
+			"cà rốt",
+			"khoai tây",
+			"hành lá"
+		],
+		"meal_type": "breakfast",
+		"diet": [
+			"balanced"
+		],
+		"allergens": [
+			"gluten"
+		],
+		"calories": 500,
+		"protein": 27,
+		"carbs": 68,
+		"fat": 13,
+		"cost": 28000,
+		"cooking_time": 25
+	},
+	{
+		"id": 42,
+		"name": "Lẩu nấm chay một người",
+		"description": "Bữa tối chay nhiều rau, nước dùng thanh và ít calo.",
+		"ingredients": [
+			"nấm kim châm",
+			"nấm đùi gà",
+			"đậu hũ",
+			"cải thảo",
+			"bún nhỏ"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"vegetarian",
+			"vegan",
+			"low_calorie"
+		],
+		"allergens": [
+			"soy"
+		],
+		"calories": 360,
+		"protein": 20,
+		"carbs": 46,
+		"fat": 11,
+		"cost": 38000,
+		"cooking_time": 25
+	},
+	{
+		"id": 43,
+		"name": "Gà kho gừng với cơm",
+		"description": "Món Việt đậm vị, dùng phần thịt gà nạc để giảm chất béo.",
+		"ingredients": [
+			"thịt gà",
+			"cơm trắng",
+			"gừng",
+			"nước mắm",
+			"rau cải"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"high_protein",
+			"balanced"
+		],
+		"allergens": [],
+		"calories": 590,
+		"protein": 40,
+		"carbs": 66,
+		"fat": 18,
+		"cost": 38000,
+		"cooking_time": 30
+	},
+	{
+		"id": 44,
+		"name": "Bún bò rau nhiều",
+		"description": "Tô bún bò tăng rau, dùng lượng bún vừa phải để cân bằng năng lượng.",
+		"ingredients": [
+			"bún",
+			"thịt bò",
+			"rau muống",
+			"giá đỗ",
+			"sả",
+			"nước dùng bò"
+		],
+		"meal_type": "breakfast",
+		"diet": [
+			"high_protein",
+			"balanced"
+		],
+		"allergens": [],
+		"calories": 560,
+		"protein": 34,
+		"carbs": 64,
+		"fat": 18,
+		"cost": 42000,
+		"cooking_time": 30
+	},
+	{
+		"id": 45,
+		"name": "Cơm chay thập cẩm",
+		"description": "Hộp cơm chay đủ rau, đậu hũ và nấm, hợp bữa trưa tiết kiệm.",
+		"ingredients": [
+			"cơm trắng",
+			"đậu hũ",
+			"nấm",
+			"cải thìa",
+			"cà rốt",
+			"nước tương"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"vegetarian",
+			"vegan",
+			"balanced"
+		],
+		"allergens": [
+			"soy"
+		],
+		"calories": 540,
+		"protein": 22,
+		"carbs": 82,
+		"fat": 14,
+		"cost": 30000,
+		"cooking_time": 25
+	},
+	{
+		"id": 46,
+		"name": "Ức gà xé trộn bắp cải",
+		"description": "Món trộn giòn, ít calo, phù hợp giảm cân.",
+		"ingredients": [
+			"ức gà",
+			"bắp cải",
+			"cà rốt",
+			"rau răm",
+			"nước mắm chanh"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"high_protein",
+			"low_calorie",
+			"weight_loss"
+		],
+		"allergens": [],
+		"calories": 320,
+		"protein": 36,
+		"carbs": 20,
+		"fat": 10,
+		"cost": 35000,
+		"cooking_time": 20
+	},
+	{
+		"id": 47,
+		"name": "Cơm cá nục kho cà",
+		"description": "Món cá bình dân, giàu đạm, phù hợp ngân sách sinh viên.",
+		"ingredients": [
+			"cá nục",
+			"cơm trắng",
+			"cà chua",
+			"hành tím",
+			"rau luộc"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"balanced",
+			"high_protein"
+		],
+		"allergens": [
+			"seafood"
+		],
+		"calories": 560,
+		"protein": 35,
+		"carbs": 68,
+		"fat": 16,
+		"cost": 30000,
+		"cooking_time": 30
+	},
+	{
+		"id": 48,
+		"name": "Bánh cuốn chả lụa",
+		"description": "Bữa sáng Việt Nam nhẹ, dễ mua, năng lượng vừa phải.",
+		"ingredients": [
+			"bánh cuốn",
+			"chả lụa",
+			"giá đỗ",
+			"hành phi",
+			"nước mắm"
+		],
+		"meal_type": "breakfast",
+		"diet": [
+			"balanced"
+		],
+		"allergens": [],
+		"calories": 420,
+		"protein": 18,
+		"carbs": 58,
+		"fat": 12,
+		"cost": 25000,
+		"cooking_time": 10
+	},
+	{
+		"id": 49,
+		"name": "Súp gà ngô non",
+		"description": "Món nhẹ, dễ ăn, hợp bữa phụ hoặc bữa tối ít calo.",
+		"ingredients": [
+			"thịt gà",
+			"ngô non",
+			"nấm",
+			"trứng gà",
+			"bột năng"
+		],
+		"meal_type": "snack",
+		"diet": [
+			"low_calorie",
+			"balanced"
+		],
+		"allergens": [
+			"egg"
+		],
+		"calories": 240,
+		"protein": 19,
+		"carbs": 28,
+		"fat": 6,
+		"cost": 22000,
+		"cooking_time": 20
+	},
+	{
+		"id": 50,
+		"name": "Hủ tiếu gà",
+		"description": "Món nước quen thuộc, dùng thịt gà nạc để tăng protein.",
+		"ingredients": [
+			"hủ tiếu",
+			"thịt gà",
+			"giá đỗ",
+			"hẹ",
+			"hành lá",
+			"nước dùng gà"
+		],
+		"meal_type": "breakfast",
+		"diet": [
+			"balanced",
+			"high_protein"
+		],
+		"allergens": [],
+		"calories": 500,
+		"protein": 30,
+		"carbs": 66,
+		"fat": 12,
+		"cost": 32000,
+		"cooking_time": 25
+	},
+	{
+		"id": 51,
+		"name": "Đậu lăng cà ri chay",
+		"description": "Món chay giàu đạm thực vật, hợp ăn cùng cơm hoặc bánh mì.",
+		"ingredients": [
+			"đậu lăng",
+			"cà rốt",
+			"khoai tây",
+			"nước cốt dừa",
+			"bột cà ri"
+		],
+		"meal_type": "dinner",
+		"diet": [
+			"vegetarian",
+			"vegan",
+			"balanced"
+		],
+		"allergens": [],
+		"calories": 470,
+		"protein": 20,
+		"carbs": 62,
+		"fat": 16,
+		"cost": 32000,
+		"cooking_time": 30
+	},
+	{
+		"id": 52,
+		"name": "Cơm tôm trứng rau củ",
+		"description": "Bữa trưa giàu đạm với tôm, trứng và rau củ xào nhanh.",
+		"ingredients": [
+			"cơm trắng",
+			"tôm",
+			"trứng gà",
+			"đậu Hà Lan",
+			"cà rốt"
+		],
+		"meal_type": "lunch",
+		"diet": [
+			"high_protein",
+			"balanced"
+		],
+		"allergens": [
+			"seafood",
+			"egg"
+		],
+		"calories": 620,
+		"protein": 39,
+		"carbs": 72,
+		"fat": 18,
+		"cost": 48000,
+		"cooking_time": 25
+	}
+]
