@@ -38,6 +38,12 @@ class AuthApiClient {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    if (_isPublicAuthPath(options.path)) {
+      options.headers.remove('Authorization');
+      handler.next(options);
+      return;
+    }
+
     final token = await _sessionStorage.readAccessToken();
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
@@ -51,7 +57,10 @@ class AuthApiClient {
   ) async {
     final statusCode = error.response?.statusCode;
     final path = error.requestOptions.path;
-    final canRefresh = statusCode == 401 && !path.contains('/auth/refresh');
+    final canRefresh =
+        statusCode == 401 &&
+        !path.contains('/auth/refresh') &&
+        !_isPublicAuthPath(path);
 
     if (!canRefresh) {
       handler.next(error);
@@ -100,5 +109,17 @@ class AuthApiClient {
       await _sessionStorage.clear();
       handler.next(error);
     }
+  }
+
+  bool _isPublicAuthPath(String path) {
+    final normalizedPath = Uri.tryParse(path)?.path ?? path;
+    return normalizedPath.endsWith('/auth/register') ||
+        normalizedPath.endsWith('/auth/login') ||
+        normalizedPath.endsWith('/auth/google') ||
+        normalizedPath.endsWith('/auth/refresh') ||
+        normalizedPath.endsWith('/auth/verify-email') ||
+        normalizedPath.endsWith('/auth/resend-otp') ||
+        normalizedPath.endsWith('/auth/forgot-password') ||
+        normalizedPath.endsWith('/auth/reset-password');
   }
 }

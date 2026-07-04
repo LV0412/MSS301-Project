@@ -1,5 +1,7 @@
 import '../../../core/network/auth_api_client.dart';
 import '../../../core/storage/auth_session_storage.dart';
+import '../../recipe/data/recipe_repository.dart';
+import '../../user/data/user_repository.dart';
 import '../data/auth_repository.dart';
 
 class AuthDependencies {
@@ -14,5 +16,11 @@ class AuthDependencies {
   late final AuthRepository repository = AuthRepository(
     apiClient: apiClient,
     sessionStorage: sessionStorage,
+  );
+  late final UserRepository userRepository = UserRepository(
+    apiClient: apiClient,
+  );
+  late final RecipeRepository recipeRepository = RecipeRepository(
+    apiClient: apiClient,
   );
 }
