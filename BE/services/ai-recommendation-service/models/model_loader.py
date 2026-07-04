@@ -1,45 +1,63 @@
+import json
+from pathlib import Path
+from typing import Any
+
+from rag.embedding import build_recipe_text
 from rag.vector_store import RecipeDocument
 
 
+RECIPES_PATH = Path(__file__).resolve().parents[1] / "data" / "recipes.json"
+
+
+def load_recipes(path: Path = RECIPES_PATH) -> list[dict[str, Any]]:
+    try:
+        with path.open("r", encoding="utf-8") as recipes_file:
+            recipes = json.load(recipes_file)
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(f"Recipe data file not found: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Recipe data file contains invalid JSON: {path}") from exc
+
+    if not isinstance(recipes, list):
+        raise ValueError(f"Recipe data must be a list: {path}")
+
+    return recipes
+
+
 class ModelLoader:
-    """Loads local placeholder models and recipe documents for development."""
+    """Loads recipe data from the local JSON knowledge base."""
 
     def load_recipe_corpus(self) -> list[RecipeDocument]:
-        return [
-            RecipeDocument(
-                recipe_id="r001",
-                name="Chicken Brown Rice Bowl",
-                tags=["high-protein", "balanced", "lunch"],
-                calories=520,
-                protein=42,
-                estimated_cost=55000,
-                text="Grilled chicken, brown rice, broccoli, carrots, and light soy dressing.",
-            ),
-            RecipeDocument(
-                recipe_id="r002",
-                name="Tofu Vegetable Stir Fry",
-                tags=["vegetarian", "low-fat", "dinner"],
-                calories=430,
-                protein=28,
-                estimated_cost=42000,
-                text="Tofu, mushroom, bok choy, bell pepper, and garlic sauce.",
-            ),
-            RecipeDocument(
-                recipe_id="r003",
-                name="Salmon Avocado Salad",
-                tags=["omega-3", "low-carb", "dinner"],
-                calories=480,
-                protein=35,
-                estimated_cost=78000,
-                text="Salmon, avocado, mixed greens, cucumber, and lemon vinaigrette.",
-            ),
-            RecipeDocument(
-                recipe_id="r004",
-                name="Oat Banana Breakfast",
-                tags=["breakfast", "high-fiber", "budget"],
-                calories=390,
-                protein=16,
-                estimated_cost=28000,
-                text="Rolled oats, banana, chia seeds, milk, and cinnamon.",
-            ),
-        ]
+        return [self._to_document(recipe) for recipe in load_recipes()]
+
+    def _to_document(self, recipe: dict[str, Any]) -> RecipeDocument:
+        diet = self._as_string_list(recipe.get("diet", []))
+        allergens = self._as_string_list(recipe.get("allergens", []))
+        ingredients = self._as_string_list(recipe.get("ingredients", []))
+        meal_type = str(recipe.get("meal_type", ""))
+
+        return RecipeDocument(
+            recipe_id=str(recipe["id"]),
+            name=str(recipe["name"]),
+            tags=[meal_type, *diet, *allergens],
+            calories=int(recipe["calories"]),
+            protein=int(recipe["protein"]),
+            estimated_cost=int(recipe["cost"]),
+            text=build_recipe_text(recipe),
+            metadata={
+                "meal_type": meal_type,
+                "diet": diet,
+                "allergens": allergens,
+                "ingredients": ingredients,
+                "description": str(recipe.get("description", "")),
+                "carbs": int(recipe["carbs"]),
+                "fat": int(recipe["fat"]),
+                "cooking_time": int(recipe["cooking_time"]),
+                "source": "local-recipes-json",
+            },
+        )
+
+    def _as_string_list(self, value: Any) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        return [str(item) for item in value]
