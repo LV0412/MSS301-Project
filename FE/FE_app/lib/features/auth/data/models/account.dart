@@ -11,13 +11,13 @@ class Account {
 
   factory Account.fromJson(Map<String, dynamic> json) {
     return Account(
-      accountId: json['accountId'] as int,
-      email: json['email'] as String,
-      fullName: json['fullName'] as String,
-      role: json['role'] as String,
-      status: json['status'] as String,
-      emailVerified: json['emailVerified'] as bool,
-      provider: json['provider'] as String,
+      accountId: (json['accountId'] as num).toInt(),
+      email: json['email']?.toString() ?? '',
+      fullName: json['fullName']?.toString() ?? '',
+      role: json['role']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      emailVerified: json['emailVerified'] == true,
+      provider: json['provider']?.toString() ?? '',
     );
   }
 
