@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any
 
 from config import settings
@@ -112,10 +113,35 @@ class FoodyLLM:
             logger.warning("Using FoodyLLM fallback: %s", self._fallback_reason)
         if "No matching recipe found" in prompt:
             return "Chua tim thay mon phu hop voi rang buoc hien tai. Hay noi long calories, ngan sach hoac di ung."
+
+        recipes = self._extract_recipe_names(prompt)
+        query = self._extract_query(prompt)
+        if recipes:
+            names = ", ".join(recipes[:3])
+            return (
+                f"Voi yeu cau '{query}', he thong uu tien {names}. "
+                "Cac mon nay duoc chon tu ket qua hybrid search, sau do sap xep lai nhe theo calories, "
+                "protein va ngan sach de phu hop hon voi muc tieu cua ban."
+            )
+
         return (
             "He thong da ket hop hybrid search va RAG context de chon cac mon phu hop. "
             "Danh sach uu tien mon dung muc tieu dinh duong, tranh di ung va nam trong ngan sach."
         )
+
+    def _extract_query(self, prompt: str) -> str:
+        match = re.search(r"User query:\s*(.+)", prompt)
+        return match.group(1).strip() if match else "goi y mon an"
+
+    def _extract_recipe_names(self, prompt: str) -> list[str]:
+        names: list[str] = []
+        for line in prompt.splitlines():
+            if not line.startswith("- "):
+                continue
+            name = line[2:].split(":", 1)[0].strip()
+            if name:
+                names.append(name)
+        return names
 
 
 FoodyLLMClient = FoodyLLM
