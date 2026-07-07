@@ -26,7 +26,10 @@ management:
       exposure:
         include: health,info
 
+app:
+  seed-data:
+    enabled: ${APP_SEED_DATA_ENABLED:true}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
-

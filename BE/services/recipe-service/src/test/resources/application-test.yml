@@ -11,3 +11,6 @@ spring:
   flyway:
     enabled: true
 
+app:
+  seed-data:
+    enabled: false
