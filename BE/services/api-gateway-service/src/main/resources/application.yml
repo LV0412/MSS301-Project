@@ -32,6 +32,24 @@ spring:
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
       routes:
+        - id: auth-service-openapi
+          uri: ${AUTH_SERVICE_URL:http://localhost:8000}
+          predicates:
+            - Path=/v3/api-docs/auth
+          filters:
+            - RewritePath=/v3/api-docs/auth,/v3/api-docs
+        - id: user-service-openapi
+          uri: ${USER_SERVICE_URL:http://localhost:8001}
+          predicates:
+            - Path=/v3/api-docs/users
+          filters:
+            - RewritePath=/v3/api-docs/users,/v3/api-docs
+        - id: recipe-service-openapi
+          uri: ${RECIPE_SERVICE_URL:http://localhost:8002}
+          predicates:
+            - Path=/v3/api-docs/recipes
+          filters:
+            - RewritePath=/v3/api-docs/recipes,/v3/api-docs
         - id: auth-service
           uri: ${AUTH_SERVICE_URL:http://localhost:8000}
           predicates:
@@ -54,3 +72,18 @@ management:
     web:
       exposure:
         include: health,info,gateway
+
+springdoc:
+  api-docs:
+    path: /gateway/v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    urls-primary-name: Auth Service
+    urls:
+      - name: Auth Service
+        url: /v3/api-docs/auth
+      - name: User Service
+        url: /v3/api-docs/users
+      - name: Recipe Service
+        url: /v3/api-docs/recipes
