@@ -17,6 +17,22 @@ Single entry point for frontend requests.
 - `/api/recipes/**`, `/api/v1/recipes/**`, `/api/ingredients/**`, `/api/v1/ingredients/**`, `/api/categories/**`, `/api/v1/categories/**`, `/api/allergens/**`, `/api/v1/allergens/**`, `/api/internal/recipes/**` -> `recipe-service`
 - `/api/ai/**` -> `ai-recommendation-service`
 
+## Swagger UI Aggregation
+
+Gateway exposes a combined Swagger UI:
+
+```text
+http://localhost:8080/swagger-ui/index.html
+```
+
+The dropdown currently includes:
+
+- Auth Service: `/v3/api-docs/auth`
+- User Service: `/v3/api-docs/users`
+- Recipe Service: `/v3/api-docs/recipes`
+
+AI Recommendation is intentionally not included yet.
+
 ## Local Ports
 
 - Gateway: `8080`
