@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'core/network/api_exception.dart';
 import 'features/auth/application/auth_dependencies.dart';
@@ -122,7 +123,9 @@ class SplashScreen extends StatelessWidget {
 }
 
 class ApiLoginScreen extends StatefulWidget {
-  const ApiLoginScreen({super.key});
+  const ApiLoginScreen({super.key, this.initialEmail});
+
+  final String? initialEmail;
 
   @override
   State<ApiLoginScreen> createState() => _ApiLoginScreenState();
@@ -133,6 +136,15 @@ class _ApiLoginScreenState extends State<ApiLoginScreen> {
   final _passwordController = TextEditingController();
   bool _isSubmitting = false;
   String? _message;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialEmail = widget.initialEmail;
+    if (initialEmail != null && initialEmail.isNotEmpty) {
+      _emailController.text = initialEmail;
+    }
+  }
 
   @override
   void dispose() {
@@ -167,6 +179,18 @@ class _ApiLoginScreenState extends State<ApiLoginScreen> {
       );
     } on ApiException catch (error) {
       if (!mounted) return;
+      if (error.code == 'EMAIL_NOT_VERIFIED') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ApiVerifyEmailScreen(
+              email: email,
+              password: password,
+            ),
+          ),
+        );
+        return;
+      }
       setState(() => _message = error.message);
     } catch (_) {
       if (!mounted) return;
@@ -292,10 +316,15 @@ class _ApiSignUpScreenState extends State<ApiSignUpScreen> {
         fullName: fullName,
       );
       if (!mounted) return;
-      setState(() {
-        _successMessage =
-            'Đăng ký thành công. Hãy xác thực email trước khi đăng nhập.';
-      });
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ApiVerifyEmailScreen(
+            email: email,
+            password: password,
+          ),
+        ),
+      );
     } on ApiException catch (error) {
       if (!mounted) return;
       setState(() => _errorMessage = error.message);
@@ -380,6 +409,210 @@ class _ApiSignUpScreenState extends State<ApiSignUpScreen> {
   }
 }
 
+class ApiVerifyEmailScreen extends StatefulWidget {
+  const ApiVerifyEmailScreen({
+    super.key,
+    required this.email,
+    this.password,
+  });
+
+  final String email;
+  final String? password;
+
+  @override
+  State<ApiVerifyEmailScreen> createState() => _ApiVerifyEmailScreenState();
+}
+
+class _ApiVerifyEmailScreenState extends State<ApiVerifyEmailScreen> {
+  final _otpController = TextEditingController();
+  late String? _passwordForLogin = widget.password;
+  bool _isVerifying = false;
+  bool _isResending = false;
+  String? _message;
+  bool _isError = false;
+
+  @override
+  void dispose() {
+    _passwordForLogin = null;
+    _otpController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _verify() async {
+    final otp = _otpController.text.trim();
+    if (otp.length != 6) {
+      setState(() {
+        _message = 'Nhập mã OTP gồm 6 số.';
+        _isError = true;
+      });
+      return;
+    }
+
+    setState(() {
+      _isVerifying = true;
+      _message = null;
+      _isError = false;
+    });
+
+    try {
+      await AuthDependencies.instance.repository.verifyEmail(
+        email: widget.email,
+        otp: otp,
+      );
+
+      final password = _passwordForLogin;
+      if (password != null && password.isNotEmpty) {
+        await AuthDependencies.instance.repository.login(
+          email: widget.email,
+          password: password,
+        );
+        _passwordForLogin = null;
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (_) => false,
+        );
+        return;
+      }
+
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ApiLoginScreen(initialEmail: widget.email),
+        ),
+        (_) => false,
+      );
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _message = error.message;
+        _isError = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _message = 'Không thể kết nối API Gateway.';
+        _isError = true;
+      });
+    } finally {
+      if (mounted) setState(() => _isVerifying = false);
+    }
+  }
+
+  Future<void> _resendOtp() async {
+    setState(() {
+      _isResending = true;
+      _message = null;
+      _isError = false;
+    });
+
+    try {
+      await AuthDependencies.instance.repository.resendVerification(
+        widget.email,
+      );
+      if (!mounted) return;
+      setState(() {
+        _message = 'Mã OTP mới đã được gửi. Kiểm tra email hoặc log backend.';
+        _isError = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _message = error.message;
+        _isError = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _message = 'Không thể gửi lại OTP. Vui lòng thử lại.';
+        _isError = true;
+      });
+    } finally {
+      if (mounted) setState(() => _isResending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AuthFrame(
+      topLabel: 'NutriChef AI',
+      child: Column(
+        children: [
+          const Icon(
+            Icons.mark_email_read_outlined,
+            size: 44,
+            color: AppColors.green,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Xác thực email',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Nhập mã OTP 6 số đã gửi tới ${widget.email}.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 13, color: AppColors.muted),
+          ),
+          const SizedBox(height: 26),
+          _ApiInputField(
+            label: 'MÃ OTP',
+            hint: '123456',
+            icon: Icons.pin_outlined,
+            controller: _otpController,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(6),
+            ],
+            onSubmitted: (_) {
+              if (!_isVerifying) _verify();
+            },
+          ),
+          if (_message != null) ...[
+            const SizedBox(height: 12),
+            ApiMessageBanner(message: _message!, isError: _isError),
+          ],
+          const SizedBox(height: 18),
+          _ApiSubmitButton(
+            label: 'Xác thực và tiếp tục',
+            isLoading: _isVerifying,
+            onPressed: _isVerifying ? null : _verify,
+          ),
+          const SizedBox(height: 10),
+          TextButton(
+            onPressed: _isResending ? null : _resendOtp,
+            child: Text(
+              _isResending ? 'Đang gửi lại...' : 'Gửi lại mã OTP',
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                color: AppColors.darkGreen,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextButton(
+            onPressed: () {
+              _passwordForLogin = null;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ApiLoginScreen(initialEmail: widget.email),
+                ),
+                (_) => false,
+              );
+            },
+            child: const Text('Quay lại đăng nhập'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ApiInputField extends StatelessWidget {
   const _ApiInputField({
     required this.label,
@@ -388,6 +621,9 @@ class _ApiInputField extends StatelessWidget {
     this.icon,
     this.keyboardType,
     this.obscureText = false,
+    this.maxLength,
+    this.inputFormatters,
+    this.onSubmitted,
   });
 
   final String label;
@@ -396,6 +632,9 @@ class _ApiInputField extends StatelessWidget {
   final IconData? icon;
   final TextInputType? keyboardType;
   final bool obscureText;
+  final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -415,8 +654,12 @@ class _ApiInputField extends StatelessWidget {
           controller: controller,
           keyboardType: keyboardType,
           obscureText: obscureText,
+          maxLength: maxLength,
+          inputFormatters: inputFormatters,
+          onSubmitted: onSubmitted,
           decoration: InputDecoration(
             hintText: hint,
+            counterText: '',
             prefixIcon: icon == null ? null : Icon(icon, size: 18),
             filled: true,
             fillColor: AppColors.field,
