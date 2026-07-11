@@ -1,8 +1,9 @@
-package com.mss301.authservice.service;
+package com.mss301.authservice.service.impl;
 
 import com.mss301.authservice.config.RateLimitProperties;
 import com.mss301.authservice.exception.AuthException;
 import com.mss301.authservice.exception.ErrorCode;
+import com.mss301.authservice.service.RateLimiter;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
