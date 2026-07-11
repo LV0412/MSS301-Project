@@ -69,6 +69,8 @@ class ApiException implements Exception {
       'ACCOUNT_LOCKED' => 'Tài khoản đang bị khóa. Vui lòng thử lại sau.',
       'ACCOUNT_DISABLED' => 'Tài khoản chưa sẵn sàng để đăng nhập.',
       'EMAIL_ALREADY_EXISTS' => 'Email này đã được đăng ký.',
+      'GOOGLE_LINK_PASSWORD_REQUIRED' =>
+        'Tài khoản này đã được đăng ký bằng email và mật khẩu. Nhập mật khẩu để liên kết Google.',
       'MALFORMED_REQUEST' => 'Dữ liệu gửi lên chưa đúng định dạng.',
       'ACCESS_DENIED' =>
         'Không thể thực hiện thao tác này. Vui lòng đăng xuất rồi thử lại hoặc dùng email khác.',

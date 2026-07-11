@@ -60,7 +60,7 @@ public class GoogleTokenVerifier {
                     : email;
 
             return new GoogleAccountInfo(payload.getSubject(), email, fullName);
-        } catch (GeneralSecurityException | IOException exception) {
+        } catch (GeneralSecurityException | IOException | IllegalArgumentException exception) {
             throw new AuthException(
                     ErrorCode.INVALID_GOOGLE_TOKEN,
                     "Unable to verify Google ID token",

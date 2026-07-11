@@ -56,11 +56,17 @@ class AuthRepository {
     return result;
   }
 
-  Future<AuthResult> googleLogin({required String idToken}) async {
+  Future<AuthResult> googleLogin({
+    required String idToken,
+    String? password,
+  }) async {
     final response = await _request(
       () => _apiClient.dio.post<Map<String, dynamic>>(
         '/auth/google',
-        data: {'idToken': idToken},
+        data: {
+          'idToken': idToken,
+          if (password != null && password.isNotEmpty) 'password': password,
+        },
       ),
     );
     final data = response.data;

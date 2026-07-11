@@ -31,6 +31,9 @@ public record AccountResponse(
         @Schema(description = "Authentication provider", example = "LOCAL")
         AuthProvider provider,
 
+        @Schema(description = "Whether this account is linked to Google", example = "true")
+        Boolean googleLinked,
+
         @Schema(description = "Created timestamp")
         LocalDateTime createdAt,
 

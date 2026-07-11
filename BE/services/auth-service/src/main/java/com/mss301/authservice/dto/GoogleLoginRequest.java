@@ -9,6 +9,9 @@ import lombok.Builder;
 public record GoogleLoginRequest(
         @NotBlank
         @Schema(description = "Google ID token returned by the client SDK", example = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...")
-        String idToken
+        String idToken,
+
+        @Schema(description = "Current LOCAL account password. Required only when linking Google to an existing LOCAL email.")
+        String password
 ) {
 }

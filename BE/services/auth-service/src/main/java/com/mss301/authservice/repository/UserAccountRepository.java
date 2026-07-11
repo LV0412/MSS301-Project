@@ -12,4 +12,6 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
     Optional<UserAccount> findByEmailIgnoreCase(String email);
 
     Optional<UserAccount> findByProviderAndProviderId(AuthProvider provider, String providerId);
+
+    Optional<UserAccount> findByGoogleProviderId(String googleProviderId);
 }
