@@ -68,7 +68,7 @@ services:
     image: mysql:8.4
     container_name: mss301-user-mysql
     environment:
-      MYSQL_DATABASE: user_service
+      MYSQL_DATABASE: ${USER_MYSQL_DATABASE:-user_service}
       MYSQL_ROOT_PASSWORD: ${USER_MYSQL_ROOT_PASSWORD:-root}
     ports:
       - "${USER_MYSQL_PORT:-3308}:3306"
@@ -95,9 +95,11 @@ services:
     depends_on:
       user-mysql:
         condition: service_healthy
+    env_file:
+      - ./BE/services/user-service/.env
     environment:
       APP_PORT: 8001
-      DATABASE_URL: jdbc:mysql://user-mysql:3306/user_service?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DATABASE_URL: jdbc:mysql://user-mysql:3306/${USER_MYSQL_DATABASE:-user_service}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       DATABASE_USERNAME: root
       DATABASE_PASSWORD: ${USER_MYSQL_ROOT_PASSWORD:-root}
       JPA_DDL_AUTO: ${USER_JPA_DDL_AUTO:-update}
@@ -105,22 +107,25 @@ services:
     ports:
       - "${USER_SERVICE_PORT:-8001}:8001"
 
-  recipe-postgres:
-    image: postgres:16-alpine
-    container_name: mss301-recipe-postgres
+  recipe-mysql:
+    image: mysql:8.4
+    container_name: mss301-recipe-mysql
     environment:
-      POSTGRES_DB: recipe_service
-      POSTGRES_USER: ${RECIPE_DATABASE_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${RECIPE_DATABASE_PASSWORD:-postgres}
+      MYSQL_DATABASE: ${RECIPE_MYSQL_DATABASE:-recipe_service}
+      MYSQL_ROOT_PASSWORD: ${RECIPE_MYSQL_ROOT_PASSWORD:-root}
     ports:
-      - "${RECIPE_POSTGRES_PORT:-5433}:5432"
+      - "${RECIPE_MYSQL_PORT:-3309}:3306"
     volumes:
-      - recipe_postgres_data:/var/lib/postgresql/data
+      - recipe_mysql_data:/var/lib/mysql
     healthcheck:
       test:
         [
-          "CMD-SHELL",
-          "pg_isready -U ${RECIPE_DATABASE_USERNAME:-postgres} -d recipe_service",
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-p${RECIPE_MYSQL_ROOT_PASSWORD:-root}",
         ]
       interval: 10s
       timeout: 5s
@@ -131,13 +136,15 @@ services:
       context: ./BE/services/recipe-service
     container_name: mss301-recipe-service
     depends_on:
-      recipe-postgres:
+      recipe-mysql:
         condition: service_healthy
+    env_file:
+      - ./BE/services/recipe-service/.env
     environment:
       APP_PORT: 8002
-      DATABASE_URL: jdbc:postgresql://recipe-postgres:5432/recipe_service
-      DATABASE_USERNAME: ${RECIPE_DATABASE_USERNAME:-postgres}
-      DATABASE_PASSWORD: ${RECIPE_DATABASE_PASSWORD:-postgres}
+      DATABASE_URL: jdbc:mysql://recipe-mysql:3306/${RECIPE_MYSQL_DATABASE:-recipe_service}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DATABASE_USERNAME: root
+      DATABASE_PASSWORD: ${RECIPE_MYSQL_ROOT_PASSWORD:-root}
       JPA_SHOW_SQL: ${RECIPE_JPA_SHOW_SQL:-false}
     ports:
       - "${RECIPE_SERVICE_PORT:-8002}:8002"
@@ -177,4 +184,4 @@ services:
 volumes:
   auth_mysql_data:
   user_mysql_data:
-  recipe_postgres_data:
+  recipe_mysql_data:
