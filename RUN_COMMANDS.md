@@ -493,7 +493,16 @@ Flutter app chạy riêng, chưa có Docker Compose trong repo.
 ```powershell
 cd FE\FE_app
 flutter pub get
-flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8080/api/v1
+flutter run -d chrome
+```
+
+Flutter app đọc cấu hình từ file `.env` ở root project:
+
+```env
+API_BASE_URL=http://localhost:8080/api/v1
+AUTH_API_BASE_URL=http://localhost:8080/api/v1
+GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
+GOOGLE_SERVER_CLIENT_ID=xxxxx.apps.googleusercontent.com
 ```
 
 ## 12. React Admin Web
@@ -575,7 +584,7 @@ Recipe riêng:     http://localhost:8002/swagger-ui.html
 ```powershell
 cd FE\FE_app
 flutter pub get
-flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8080/api/v1
+flutter run -d chrome
 ```
 
 **Bước 5: chạy React admin web nếu cần.**

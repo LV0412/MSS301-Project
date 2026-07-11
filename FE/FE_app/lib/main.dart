@@ -1,13 +1,20 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'core/network/api_exception.dart';
 import 'features/auth/application/auth_dependencies.dart';
 import 'features/auth/data/models/account.dart';
+import 'features/auth/presentation/google_web_button.dart';
 import 'features/recipe/data/models/recipe.dart';
 import 'features/user/data/models/user_profile.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '../../.env');
   runApp(const NutriChefApp());
 }
 
@@ -134,7 +141,9 @@ class ApiLoginScreen extends StatefulWidget {
 class _ApiLoginScreenState extends State<ApiLoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  StreamSubscription<String>? _googleIdTokenSubscription;
   bool _isSubmitting = false;
+  bool _isGoogleSubmitting = false;
   String? _message;
 
   @override
@@ -144,13 +153,27 @@ class _ApiLoginScreenState extends State<ApiLoginScreen> {
     if (initialEmail != null && initialEmail.isNotEmpty) {
       _emailController.text = initialEmail;
     }
+    _initializeGoogleSignIn();
   }
 
   @override
   void dispose() {
+    _googleIdTokenSubscription?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initializeGoogleSignIn() async {
+    if (kIsWeb) return;
+
+    final googleAuthService = AuthDependencies.instance.googleAuthService;
+    try {
+      await googleAuthService.initialize();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _message = googleAuthService.messageFromError(error));
+    }
   }
 
   Future<void> _login() async {
@@ -183,10 +206,8 @@ class _ApiLoginScreenState extends State<ApiLoginScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ApiVerifyEmailScreen(
-              email: email,
-              password: password,
-            ),
+            builder: (_) =>
+                ApiVerifyEmailScreen(email: email, password: password),
           ),
         );
         return;
@@ -200,8 +221,47 @@ class _ApiLoginScreenState extends State<ApiLoginScreen> {
     }
   }
 
+  Future<void> _loginWithGoogle() async {
+    final googleAuthService = AuthDependencies.instance.googleAuthService;
+    try {
+      final idToken = await googleAuthService.authenticateAndReadIdToken();
+      await _completeGoogleLogin(idToken);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _message = googleAuthService.messageFromError(error));
+    }
+  }
+
+  Future<void> _completeGoogleLogin(String idToken) async {
+    if (_isGoogleSubmitting) return;
+
+    setState(() {
+      _isGoogleSubmitting = true;
+      _message = null;
+    });
+
+    try {
+      await AuthDependencies.instance.repository.googleLogin(idToken: idToken);
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _message = error.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _message = 'KhÃ´ng thá»ƒ Ä‘Äƒng nháº­p báº±ng Google.');
+    } finally {
+      if (mounted) setState(() => _isGoogleSubmitting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final googleClientId =
+        AuthDependencies.instance.googleAuthService.webClientId;
     return AuthFrame(
       child: Column(
         children: [
@@ -249,6 +309,27 @@ class _ApiLoginScreenState extends State<ApiLoginScreen> {
             onPressed: _isSubmitting ? null : _login,
           ),
           const OrDivider(),
+          kIsWeb
+              ? _ApiGoogleWebButton(
+                  clientId: googleClientId,
+                  isLoading: _isGoogleSubmitting,
+                  onIdToken: (idToken) =>
+                      unawaited(_completeGoogleLogin(idToken)),
+                  onError: (error) {
+                    if (!mounted) return;
+                    setState(
+                      () => _message = AuthDependencies
+                          .instance
+                          .googleAuthService
+                          .messageFromError(error),
+                    );
+                  },
+                )
+              : _ApiGoogleButton(
+                  isLoading: _isGoogleSubmitting,
+                  onPressed: _isGoogleSubmitting ? null : _loginWithGoogle,
+                ),
+          const SizedBox(height: 20),
           AuthSwitchText(
             normal: 'Chưa có tài khoản? ',
             action: 'Đăng ký ngay',
@@ -319,10 +400,8 @@ class _ApiSignUpScreenState extends State<ApiSignUpScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => ApiVerifyEmailScreen(
-            email: email,
-            password: password,
-          ),
+          builder: (_) =>
+              ApiVerifyEmailScreen(email: email, password: password),
         ),
       );
     } on ApiException catch (error) {
@@ -410,11 +489,7 @@ class _ApiSignUpScreenState extends State<ApiSignUpScreen> {
 }
 
 class ApiVerifyEmailScreen extends StatefulWidget {
-  const ApiVerifyEmailScreen({
-    super.key,
-    required this.email,
-    this.password,
-  });
+  const ApiVerifyEmailScreen({super.key, required this.email, this.password});
 
   final String email;
   final String? password;
@@ -714,6 +789,101 @@ class _ApiSubmitButton extends StatelessWidget {
                 ),
               )
             : Text(label),
+      ),
+    );
+  }
+}
+
+class _ApiGoogleButton extends StatelessWidget {
+  const _ApiGoogleButton({required this.onPressed, required this.isLoading});
+
+  final VoidCallback? onPressed;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.darkGreen,
+          side: const BorderSide(color: AppColors.line),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.darkGreen,
+                ),
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'G',
+                    style: TextStyle(
+                      color: Color(0xFF4285F4),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Text('Tiáº¿p tá»¥c vá»›i Google'),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _ApiGoogleWebButton extends StatelessWidget {
+  const _ApiGoogleWebButton({
+    required this.clientId,
+    required this.isLoading,
+    required this.onIdToken,
+    required this.onError,
+  });
+
+  final String? clientId;
+  final bool? isLoading;
+  final ValueChanged<String> onIdToken;
+  final ValueChanged<Object> onError;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveClientId = clientId?.trim() ?? '';
+    final effectiveIsLoading = isLoading ?? false;
+
+    if (effectiveClientId.isEmpty) {
+      return const SizedBox(
+        height: 48,
+        child: Center(
+          child: Text(
+            'Missing GOOGLE_CLIENT_ID.',
+            style: TextStyle(color: AppColors.muted),
+          ),
+        ),
+      );
+    }
+
+    return IgnorePointer(
+      ignoring: effectiveIsLoading,
+      child: SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: Center(
+          child: renderGoogleWebButton(
+            clientId: effectiveClientId,
+            minimumWidth: 320,
+            onIdToken: onIdToken,
+            onError: onError,
+          ),
+        ),
       ),
     );
   }

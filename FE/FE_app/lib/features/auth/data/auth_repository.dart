@@ -56,6 +56,23 @@ class AuthRepository {
     return result;
   }
 
+  Future<AuthResult> googleLogin({required String idToken}) async {
+    final response = await _request(
+      () => _apiClient.dio.post<Map<String, dynamic>>(
+        '/auth/google',
+        data: {'idToken': idToken},
+      ),
+    );
+    final data = response.data;
+    if (data == null) {
+      throw const ApiException(message: 'Empty Google login response.');
+    }
+
+    final result = AuthResult.fromJson(data);
+    await _sessionStorage.save(result.session);
+    return result;
+  }
+
   Future<void> verifyEmail({required String email, required String otp}) async {
     await _request(
       () => _apiClient.dio.post<dynamic>(
