@@ -69,6 +69,12 @@ public class UserAccount {
     @Column(name = "provider_id", length = 255)
     private String providerId;
 
+    @Column(name = "google_provider_id", unique = true, length = 255)
+    private String googleProviderId;
+
+    @Column(name = "google_linked_at")
+    private LocalDateTime googleLinkedAt;
+
     @Column(name = "failed_login_attempts", nullable = false)
     @Builder.Default
     private Integer failedLoginAttempts = 0;

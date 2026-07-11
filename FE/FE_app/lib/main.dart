@@ -233,6 +233,13 @@ class _ApiLoginScreenState extends State<ApiLoginScreen> {
   }
 
   Future<void> _completeGoogleLogin(String idToken) async {
+    await _completeGoogleLoginWithPassword(idToken: idToken);
+  }
+
+  Future<void> _completeGoogleLoginWithPassword({
+    required String idToken,
+    String? password,
+  }) async {
     if (_isGoogleSubmitting) return;
 
     setState(() {
@@ -241,14 +248,14 @@ class _ApiLoginScreenState extends State<ApiLoginScreen> {
     });
 
     try {
-      await AuthDependencies.instance.repository.googleLogin(idToken: idToken);
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      await _loginWithGoogleToken(idToken: idToken, password: password);
     } on ApiException catch (error) {
       if (!mounted) return;
+      if (error.code == 'GOOGLE_LINK_PASSWORD_REQUIRED' && password == null) {
+        setState(() => _message = null);
+        await _showGoogleLinkPasswordDialog(idToken, error.message);
+        return;
+      }
       setState(() => _message = error.message);
     } catch (_) {
       if (!mounted) return;
@@ -256,6 +263,36 @@ class _ApiLoginScreenState extends State<ApiLoginScreen> {
     } finally {
       if (mounted) setState(() => _isGoogleSubmitting = false);
     }
+  }
+
+  Future<void> _loginWithGoogleToken({
+    required String idToken,
+    String? password,
+  }) async {
+    await AuthDependencies.instance.repository.googleLogin(
+      idToken: idToken,
+      password: password,
+    );
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
+    );
+  }
+
+  Future<void> _showGoogleLinkPasswordDialog(
+    String idToken,
+    String message,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: !_isGoogleSubmitting,
+      builder: (context) => _GoogleLinkPasswordDialog(
+        message: message,
+        onSubmit: (password) =>
+            _loginWithGoogleToken(idToken: idToken, password: password),
+      ),
+    );
   }
 
   @override
@@ -882,6 +919,137 @@ class _ApiGoogleWebButton extends StatelessWidget {
             minimumWidth: 320,
             onIdToken: onIdToken,
             onError: onError,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GoogleLinkPasswordDialog extends StatefulWidget {
+  const _GoogleLinkPasswordDialog({
+    required this.message,
+    required this.onSubmit,
+  });
+
+  final String message;
+  final Future<void> Function(String password) onSubmit;
+
+  @override
+  State<_GoogleLinkPasswordDialog> createState() =>
+      _GoogleLinkPasswordDialogState();
+}
+
+class _GoogleLinkPasswordDialogState extends State<_GoogleLinkPasswordDialog> {
+  final _passwordController = TextEditingController();
+  bool _isSubmitting = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final password = _passwordController.text;
+    if (password.isEmpty) {
+      setState(() => _errorMessage = 'Nhập mật khẩu để liên kết Google.');
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await widget.onSubmit(password);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _errorMessage = error.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _errorMessage = 'Không thể liên kết Google.');
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.mint,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.link,
+                      color: AppColors.darkGreen,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Liên kết Google',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Đóng',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ApiMessageBanner(message: widget.message, isError: false),
+              const SizedBox(height: 16),
+              _ApiInputField(
+                label: 'MẬT KHẨU TÀI KHOẢN',
+                hint: 'Nhập mật khẩu hiện tại',
+                icon: Icons.lock_outline,
+                controller: _passwordController,
+                obscureText: true,
+                onSubmitted: (_) {
+                  if (!_isSubmitting) unawaited(_submit());
+                },
+              ),
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 12),
+                ApiMessageBanner(message: _errorMessage!, isError: true),
+              ],
+              const SizedBox(height: 18),
+              _ApiSubmitButton(
+                label: 'Liên kết Google',
+                isLoading: _isSubmitting,
+                onPressed: _isSubmitting ? null : _submit,
+              ),
+            ],
           ),
         ),
       ),

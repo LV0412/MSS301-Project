@@ -38,6 +38,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -127,9 +128,13 @@ public class AuthService {
         GoogleTokenVerifier.GoogleAccountInfo googleAccount = googleTokenVerifier.verify(request.idToken());
 
         UserAccount account = userAccountRepository
-                .findByProviderAndProviderId(AuthProvider.GOOGLE, googleAccount.providerId())
-                .orElseGet(() -> findOrCreateGoogleAccount(googleAccount));
+                .findByGoogleProviderId(googleAccount.providerId())
+                .or(() -> userAccountRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, googleAccount.providerId()))
+                .orElseGet(() -> findOrCreateGoogleAccount(googleAccount, request.password()));
 
+        if (account.getProvider() == AuthProvider.GOOGLE && !StringUtils.hasText(account.getGoogleProviderId())) {
+            linkGoogleIdentity(account, googleAccount);
+        }
         ensureAccountCanLogin(account);
 
         CreatedRefreshToken refreshToken = createRefreshToken(account);
@@ -331,17 +336,22 @@ public class AuthService {
         return new CreatedRefreshToken(rawToken, savedToken);
     }
 
-    private UserAccount findOrCreateGoogleAccount(GoogleTokenVerifier.GoogleAccountInfo googleAccount) {
+    private UserAccount findOrCreateGoogleAccount(
+            GoogleTokenVerifier.GoogleAccountInfo googleAccount,
+            String password) {
         return userAccountRepository.findByEmailIgnoreCase(googleAccount.email())
                 .map(existingAccount -> {
-                    if (existingAccount.getProvider() != AuthProvider.GOOGLE) {
-                        throw new AuthException(
-                                ErrorCode.AUTH_PROVIDER_MISMATCH,
-                                "This email is already registered with email and password. Please sign in using your password.",
-                                HttpStatus.CONFLICT);
+                    if (existingAccount.getProvider() == AuthProvider.LOCAL) {
+                        return linkGoogleToLocalAccount(existingAccount, googleAccount, password);
                     }
-                    existingAccount.setProviderId(googleAccount.providerId());
-                    return existingAccount;
+                    if (existingAccount.getProvider() == AuthProvider.GOOGLE) {
+                        linkGoogleIdentity(existingAccount, googleAccount);
+                        return existingAccount;
+                    }
+                    throw new AuthException(
+                            ErrorCode.AUTH_PROVIDER_MISMATCH,
+                            "This email is already registered with another provider.",
+                            HttpStatus.CONFLICT);
                 })
                 .orElseGet(() -> userAccountRepository.save(UserAccount.builder()
                         .email(googleAccount.email())
@@ -351,8 +361,78 @@ public class AuthService {
                         .emailVerified(true)
                         .provider(AuthProvider.GOOGLE)
                         .providerId(googleAccount.providerId())
+                        .googleProviderId(googleAccount.providerId())
+                        .googleLinkedAt(LocalDateTime.now())
                         .failedLoginAttempts(0)
                         .build()));
+    }
+
+    private UserAccount linkGoogleToLocalAccount(
+            UserAccount account,
+            GoogleTokenVerifier.GoogleAccountInfo googleAccount,
+            String password) {
+        if (googleAccount.providerId().equals(account.getGoogleProviderId())) {
+            return account;
+        }
+
+        ensureLocalAccountCanLinkGoogle(account);
+        if (!StringUtils.hasText(password)) {
+            throw new AuthException(
+                    ErrorCode.GOOGLE_LINK_PASSWORD_REQUIRED,
+                    "This email is registered with email and password. Enter your password to link Google.",
+                    HttpStatus.CONFLICT);
+        }
+        if (account.getPasswordHash() == null || !passwordEncoder.matches(password, account.getPasswordHash())) {
+            recordFailedLogin(account);
+            throw new AuthException(
+                    ErrorCode.INVALID_CREDENTIALS,
+                    "Invalid email or password",
+                    HttpStatus.UNAUTHORIZED);
+        }
+
+        linkGoogleIdentity(account, googleAccount);
+        account.setEmailVerified(true);
+        account.setStatus(AccountStatus.ACTIVE);
+        resetFailedLoginState(account);
+        return account;
+    }
+
+    private void linkGoogleIdentity(UserAccount account, GoogleTokenVerifier.GoogleAccountInfo googleAccount) {
+        account.setGoogleProviderId(googleAccount.providerId());
+        account.setGoogleLinkedAt(LocalDateTime.now());
+        if (account.getProvider() == AuthProvider.GOOGLE) {
+            account.setProviderId(googleAccount.providerId());
+        }
+    }
+
+    private void ensureLocalAccountCanLinkGoogle(UserAccount account) {
+        if (account.getProvider() != AuthProvider.LOCAL || account.getPasswordHash() == null) {
+            throw new AuthException(
+                    ErrorCode.AUTH_PROVIDER_MISMATCH,
+                    "This email is already registered with another provider.",
+                    HttpStatus.CONFLICT);
+        }
+        if (account.getLockedUntil() != null && LocalDateTime.now().isBefore(account.getLockedUntil())) {
+            throw new AuthException(
+                    ErrorCode.ACCOUNT_LOCKED,
+                    "Account is temporarily locked. Please try again later.",
+                    HttpStatus.FORBIDDEN);
+        }
+        if (account.getLockedUntil() != null && !LocalDateTime.now().isBefore(account.getLockedUntil())) {
+            resetFailedLoginState(account);
+        }
+        if (account.getStatus() == AccountStatus.LOCKED) {
+            throw new AuthException(
+                    ErrorCode.ACCOUNT_LOCKED,
+                    "Account is locked",
+                    HttpStatus.FORBIDDEN);
+        }
+        if (account.getStatus() != AccountStatus.ACTIVE && account.getStatus() != AccountStatus.INACTIVE) {
+            throw new AuthException(
+                    ErrorCode.ACCOUNT_DISABLED,
+                    "Your account is not active.",
+                    HttpStatus.FORBIDDEN);
+        }
     }
 
     private void createAndSendPasswordResetToken(UserAccount account) {
@@ -525,6 +605,7 @@ public class AuthService {
                 .status(account.getStatus())
                 .emailVerified(account.getEmailVerified())
                 .provider(account.getProvider())
+                .googleLinked(StringUtils.hasText(account.getGoogleProviderId()))
                 .createdAt(account.getCreatedAt())
                 .updatedAt(account.getUpdatedAt())
                 .build();

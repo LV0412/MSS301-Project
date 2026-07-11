@@ -7,6 +7,7 @@ class Account {
     required this.status,
     required this.emailVerified,
     required this.provider,
+    required this.googleLinked,
   });
 
   factory Account.fromJson(Map<String, dynamic> json) {
@@ -18,6 +19,7 @@ class Account {
       status: json['status']?.toString() ?? '',
       emailVerified: json['emailVerified'] == true,
       provider: json['provider']?.toString() ?? '',
+      googleLinked: json['googleLinked'] == true,
     );
   }
 
@@ -28,4 +30,5 @@ class Account {
   final String status;
   final bool emailVerified;
   final String provider;
+  final bool googleLinked;
 }
