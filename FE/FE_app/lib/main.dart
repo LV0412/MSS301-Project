@@ -1229,7 +1229,15 @@ class SignUpScreen extends StatelessWidget {
   }
 }
 
-class LifestyleScreen extends StatelessWidget {
+class _HealthProfileSetupDraft {
+  String height = '';
+  String weight = '';
+  String activityLevel = 'LIGHT';
+}
+
+final _healthProfileSetupDraft = _HealthProfileSetupDraft();
+
+class LifestyleScreen extends StatefulWidget {
   const LifestyleScreen({
     super.key,
     this.completeDestination = const HomeScreen(),
@@ -1238,78 +1246,75 @@ class LifestyleScreen extends StatelessWidget {
   final Widget completeDestination;
 
   @override
+  State<LifestyleScreen> createState() => _LifestyleScreenState();
+}
+
+class _LifestyleScreenState extends State<LifestyleScreen> {
+  late final TextEditingController _heightController = TextEditingController(
+    text: _healthProfileSetupDraft.height,
+  );
+  late final TextEditingController _weightController = TextEditingController(
+    text: _healthProfileSetupDraft.weight,
+  );
+
+  @override
+  void dispose() {
+    _heightController.dispose();
+    _weightController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return OnboardingScaffold(
       step: 1,
       progress: .25,
-      title: 'Thông tin cơ bản',
+      title: 'Chỉ số cơ thể',
       subtitle:
-          'Hãy cho NutriChef AI biết một chút về bạn để chúng tôi có thể cá nhân hóa hành trình dinh dưỡng của bạn.',
-      next: HealthStatusScreen(completeDestination: completeDestination),
+          'Nhập chiều cao và cân nặng để cập nhật hồ sơ sức khỏe trong user-service.',
+      next: HealthStatusScreen(completeDestination: widget.completeDestination),
       children: [
-        const SelectField(label: 'Quốc gia / Khu vực', value: 'Việt Nam'),
-        const SizedBox(height: 14),
-        const Row(
-          children: [
-            Expanded(
-              child: AppTextField(label: 'Tuổi', hint: '25', compact: true),
-            ),
-            SizedBox(width: 12),
-            Expanded(child: GenderToggle()),
-          ],
-        ),
-        const SizedBox(height: 14),
-        const Row(
+        Row(
           children: [
             Expanded(
               child: AppTextField(
                 label: 'Chiều cao (cm)',
                 hint: '170',
                 compact: true,
+                controller: _heightController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                onChanged: (value) => _healthProfileSetupDraft.height = value,
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
               child: AppTextField(
                 label: 'Cân nặng (kg)',
                 hint: '65',
                 compact: true,
+                controller: _weightController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                onChanged: (value) => _healthProfileSetupDraft.weight = value,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 22),
-        const SectionLabel('Lối sống & Vận động'),
-        const SizedBox(height: 10),
-        ChoiceCard(
-          icon: Icons.weekend_outlined,
-          title: 'Ít vận động',
-          subtitle: 'Làm việc văn phòng, ít tập thể dục',
+        const SizedBox(height: 16),
+        const InfoPanel(
+          title: 'Field API',
+          text:
+              'Health profile API chỉ nhận height, weight và activityLevel. Các ô tuổi, giới tính, quốc gia đã được bỏ khỏi flow này.',
         ),
-        const ChoiceCard(
-          icon: Icons.directions_walk,
-          title: 'Vận động nhẹ',
-          subtitle: 'Đi bộ nhẹ nhàng, 1-2 buổi/tuần',
-          selected: true,
-        ),
-        const ChoiceCard(
-          icon: Icons.fitness_center_outlined,
-          title: 'Vận động vừa',
-          subtitle: 'Tập luyện 3-5 ngày mỗi tuần',
-        ),
-        const ChoiceCard(
-          icon: Icons.flash_on_outlined,
-          title: 'Vận động nhiều',
-          subtitle: 'Vận động viên hoặc làm việc nặng',
-        ),
-        const SizedBox(height: 10),
-        const PromoImage(),
       ],
     );
   }
 }
 
-class HealthStatusScreen extends StatelessWidget {
+class HealthStatusScreen extends StatefulWidget {
   const HealthStatusScreen({
     super.key,
     this.completeDestination = const HomeScreen(),
@@ -1318,53 +1323,68 @@ class HealthStatusScreen extends StatelessWidget {
   final Widget completeDestination;
 
   @override
+  State<HealthStatusScreen> createState() => _HealthStatusScreenState();
+}
+
+class _HealthStatusScreenState extends State<HealthStatusScreen> {
+  @override
   Widget build(BuildContext context) {
     final items = [
-      (Icons.bloodtype_outlined, 'Tiểu đường', 'Kiểm soát chỉ số đường huyết'),
-      (Icons.spa_outlined, 'Cao huyết áp', 'Chế độ ăn giảm muối Natri'),
       (
-        Icons.monitor_heart_outlined,
-        'Cholesterol cao',
-        'Ưu tiên chất béo lành mạnh',
+        'SEDENTARY',
+        Icons.weekend_outlined,
+        'Ít vận động',
+        'Làm việc văn phòng, ít tập thể dục',
       ),
       (
-        Icons.favorite_border,
-        'Sức khỏe tim mạch',
-        'Tăng cường sức mạnh trái tim',
+        'LIGHT',
+        Icons.directions_walk,
+        'Vận động nhẹ',
+        'Đi bộ nhẹ nhàng, 1-2 buổi/tuần',
       ),
       (
-        Icons.inventory_2_outlined,
-        'Vấn đề tiêu hóa',
-        'Linh hoạt cho dạ dày nhạy cảm',
-      ),
-      (Icons.child_friendly_outlined, 'Mang thai', 'Dinh dưỡng cho mẹ và bé'),
-      (
-        Icons.psychology_outlined,
-        'Cải thiện thể hình',
-        'Tăng cơ và giảm mỡ thừa',
+        'MODERATE',
+        Icons.fitness_center_outlined,
+        'Vận động vừa',
+        'Tập luyện 3-5 ngày mỗi tuần',
       ),
       (
-        Icons.check_circle_outline,
-        'Không có tình trạng đặc biệt',
-        'Tôi chỉ muốn ăn uống lành mạnh',
+        'ACTIVE',
+        Icons.flash_on_outlined,
+        'Vận động nhiều',
+        'Tập luyện nặng hoặc làm việc vận động',
+      ),
+      (
+        'VERY_ACTIVE',
+        Icons.local_fire_department_outlined,
+        'Rất năng động',
+        'Vận động viên hoặc lịch tập cường độ cao',
       ),
     ];
 
     return OnboardingScaffold(
       step: 2,
       progress: .50,
-      title: 'Tình trạng sức khỏe',
+      title: 'Mức vận động',
       subtitle:
-          'Chọn bất kỳ tình trạng nào bạn có để NutriChef AI có thể tinh chỉnh các công thức nấu ăn phù hợp nhất với thể trạng của bạn.',
-      next: GoalsScreen(completeDestination: completeDestination),
+          'Chọn activityLevel đúng với enum backend: SEDENTARY, LIGHT, MODERATE, ACTIVE hoặc VERY_ACTIVE.',
+      next: GoalsScreen(completeDestination: widget.completeDestination),
       children: [
         for (final item in items)
-          ChoiceCard(icon: item.$1, title: item.$2, subtitle: item.$3),
-        const SizedBox(height: 10),
+          ChoiceCard(
+            icon: item.$2,
+            title: item.$3,
+            subtitle: item.$4,
+            selected: _healthProfileSetupDraft.activityLevel == item.$1,
+            onTap: () => setState(
+              () => _healthProfileSetupDraft.activityLevel = item.$1,
+            ),
+          ),
+        const SizedBox(height: 8),
         const InfoPanel(
-          title: 'Ghi chú từ AI Chef',
+          title: 'Field API',
           text:
-              'Dữ liệu này được mã hóa bảo mật. NutriChef AI sử dụng thông tin này để tự động lọc các thành phần có thể ảnh hưởng tiêu cực đến tình trạng của bạn và đề xuất các siêu thực phẩm thay thế.',
+              'Các tình trạng bệnh nền không có trong health-profile API hiện tại nên không còn hiển thị ở bước này.',
         ),
       ],
     );
@@ -1381,60 +1401,24 @@ class GoalsScreen extends StatelessWidget {
     return OnboardingScaffold(
       step: 3,
       progress: .75,
-      title: 'Mục tiêu ăn uống',
+      title: 'Kiểm tra dữ liệu',
       subtitle:
-          'Chọn mục tiêu chính để AI của chúng tôi tối ưu hóa thực đơn cá nhân hóa cho bạn.',
+          'Đây là payload sẽ gửi tới user-service để cập nhật hồ sơ sức khỏe.',
       next: PreferencesScreen(completeDestination: completeDestination),
       children: [
-        const ChoiceCard(
-          icon: Icons.crop_square_outlined,
-          title: 'Giảm cân',
-          subtitle: 'Đốt mỡ hiệu quả',
-          selected: true,
+        _HealthProfilePayloadPreview(draft: _healthProfileSetupDraft),
+        const SizedBox(height: 16),
+        const InfoPanel(
+          title: 'API mapping',
+          text:
+              'Payload chỉ gồm height, weight và activityLevel. Các field mục tiêu ăn uống không thuộc health-profile nên đã được bỏ khỏi bước này.',
         ),
-        const ChoiceCard(
-          icon: Icons.fitness_center_outlined,
-          title: 'Tăng cơ',
-          subtitle: 'Phục hồi và tăng cơ',
-        ),
-        const ChoiceCard(
-          icon: Icons.timelapse_outlined,
-          title: 'Duy trì cân nặng',
-          subtitle: 'Cân bằng năng lượng',
-        ),
-        const ChoiceCard(
-          icon: Icons.eco_outlined,
-          title: 'Ăn uống lành mạnh',
-          subtitle: 'Không cần giảm cân',
-        ),
-        const ChoiceCard(
-          icon: Icons.water_drop_outlined,
-          title: 'Kiểm soát đường huyết',
-          subtitle: 'Ổn định insulin',
-        ),
-        const ChoiceCard(
-          icon: Icons.opacity,
-          title: 'Ăn ít muối',
-          subtitle: 'Bảo vệ tim mạch',
-        ),
-        const ChoiceCard(
-          icon: Icons.rice_bowl_outlined,
-          title: 'Ăn nhiều đạm',
-          subtitle: 'Tối ưu lượng protein mỗi ngày',
-        ),
-        const ChoiceCard(
-          icon: Icons.restaurant_menu,
-          title: 'Cải thiện tiêu hóa',
-          subtitle: 'Nhẹ nhàng cho ruột',
-        ),
-        const SizedBox(height: 10),
-        const GoalMetricsCard(),
       ],
     );
   }
 }
 
-class PreferencesScreen extends StatelessWidget {
+class PreferencesScreen extends StatefulWidget {
   const PreferencesScreen({
     super.key,
     this.completeDestination = const HomeScreen(),
@@ -1443,42 +1427,96 @@ class PreferencesScreen extends StatelessWidget {
   final Widget completeDestination;
 
   @override
+  State<PreferencesScreen> createState() => _PreferencesScreenState();
+}
+
+class _PreferencesScreenState extends State<PreferencesScreen> {
+  Future<void> _saveHealthProfile(BuildContext context) async {
+    final height = double.tryParse(
+      _healthProfileSetupDraft.height.replaceAll(',', '.'),
+    );
+    final weight = double.tryParse(
+      _healthProfileSetupDraft.weight.replaceAll(',', '.'),
+    );
+
+    if (height == null || weight == null) {
+      throw const ApiException(
+        message: 'Nhập chiều cao và cân nặng hợp lệ trước khi hoàn tất.',
+      );
+    }
+
+    final auth = AuthDependencies.instance.repository;
+    final users = AuthDependencies.instance.userRepository;
+    final account = await auth.me();
+    var userProfile = await users.findByEmail(account.email);
+    userProfile ??= await users.createFromAccount(account);
+
+    await users.saveHealthProfile(
+      userId: userProfile.userId,
+      height: height,
+      weight: weight,
+      activityLevel: _healthProfileSetupDraft.activityLevel,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return OnboardingScaffold(
       step: 4,
       progress: 1,
-      title: 'Dị ứng & Sở thích',
+      title: 'Cập nhật hồ sơ',
       subtitle:
-          'Hãy cho chúng tôi biết thói quen ăn uống của bạn để AI có thể thiết kế thực đơn cân bằng hoàn hảo nhất.',
-      buttonLabel: 'Hoàn tất thiết lập',
+          'Bấm hoàn tất để lưu health-profile vào backend cho người dùng hiện tại.',
+      buttonLabel: 'Lưu hồ sơ sức khỏe',
       complete: true,
-      completeDestination: completeDestination,
-      children: const [
-        TagPanel(
-          title: 'Dị ứng thực phẩm',
-          icon: Icons.warning_amber_rounded,
-          tags: [
-            'Đậu phộng',
-            'Hải sản',
-            'Trứng',
-            'Sữa & Chế phẩm',
-            'Gluten',
-            'Đậu nành',
-          ],
-        ),
-        SizedBox(height: 16),
-        DietPanel(),
-        SizedBox(height: 16),
-        CuisinePanel(),
-        SizedBox(height: 16),
-        InfoPanel(
-          title: 'AI Insight',
+      completeDestination: widget.completeDestination,
+      onComplete: _saveHealthProfile,
+      children: [
+        _HealthProfilePayloadPreview(draft: _healthProfileSetupDraft),
+        const SizedBox(height: 16),
+        const InfoPanel(
+          title: 'Endpoint',
           text:
-              'Việc chọn "Địa Trung Hải" là một lựa chọn tuyệt vời cho mục tiêu giảm cân bền vững. Việt Nam sẽ tạo ra những thực đơn giàu chất xơ và Omega-3, giúp cải thiện sức khỏe tim mạch đáng kể.',
+              'Ứng dụng sẽ PUT /api/v1/users/{userId}/health-profile. Nếu chưa có hồ sơ, ứng dụng tự POST để tạo mới.',
         ),
-        SizedBox(height: 16),
-        SummaryPanel(),
       ],
+    );
+  }
+}
+
+class _HealthProfilePayloadPreview extends StatelessWidget {
+  const _HealthProfilePayloadPreview({required this.draft});
+
+  final _HealthProfileSetupDraft draft;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Payload health-profile',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 14),
+          _SummaryRow(
+            label: 'height',
+            value: draft.height.isEmpty ? '-' : draft.height,
+          ),
+          _SummaryRow(
+            label: 'weight',
+            value: draft.weight.isEmpty ? '-' : draft.weight,
+          ),
+          _SummaryRow(label: 'activityLevel', value: draft.activityLevel),
+        ],
+      ),
     );
   }
 }
@@ -1495,6 +1533,7 @@ class OnboardingScaffold extends StatelessWidget {
     this.buttonLabel = 'Tiếp tục',
     this.complete = false,
     this.completeDestination = const HomeScreen(),
+    this.onComplete,
   });
 
   final int step;
@@ -1506,6 +1545,7 @@ class OnboardingScaffold extends StatelessWidget {
   final String buttonLabel;
   final bool complete;
   final Widget completeDestination;
+  final Future<void> Function(BuildContext context)? onComplete;
 
   @override
   Widget build(BuildContext context) {
@@ -1614,8 +1654,26 @@ class OnboardingScaffold extends StatelessWidget {
                 PrimaryButton(
                   label: buttonLabel,
                   icon: Icons.arrow_forward,
-                  onPressed: () {
+                  onPressed: () async {
                     if (complete) {
+                      try {
+                        await onComplete?.call(context);
+                      } on ApiException catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(error.message)));
+                        return;
+                      } catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Không thể lưu hồ sơ: $error'),
+                          ),
+                        );
+                        return;
+                      }
+                      if (!context.mounted) return;
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (_) => completeDestination),
@@ -1720,6 +1778,9 @@ class AppTextField extends StatelessWidget {
     this.icon,
     this.trailing,
     this.compact = false,
+    this.controller,
+    this.keyboardType,
+    this.onChanged,
   });
 
   final String label;
@@ -1727,6 +1788,9 @@ class AppTextField extends StatelessWidget {
   final IconData? icon;
   final IconData? trailing;
   final bool compact;
+  final TextEditingController? controller;
+  final TextInputType? keyboardType;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -1756,12 +1820,25 @@ class AppTextField extends StatelessWidget {
                 const SizedBox(width: 9),
               ],
               Expanded(
-                child: Text(
-                  hint,
-                  overflow: TextOverflow.ellipsis,
+                child: TextField(
+                  controller: controller,
+                  keyboardType: keyboardType,
+                  onChanged: onChanged,
+                  textInputAction: TextInputAction.next,
                   style: TextStyle(
                     fontSize: compact ? 14 : 13,
-                    color: compact ? AppColors.darkGreen : AppColors.muted,
+                    color: AppColors.ink,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    hintText: hint,
+                    hintStyle: TextStyle(
+                      fontSize: compact ? 14 : 13,
+                      color: compact ? AppColors.darkGreen : AppColors.muted,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
@@ -1808,8 +1885,15 @@ class SelectField extends StatelessWidget {
   }
 }
 
-class GenderToggle extends StatelessWidget {
+class GenderToggle extends StatefulWidget {
   const GenderToggle({super.key});
+
+  @override
+  State<GenderToggle> createState() => _GenderToggleState();
+}
+
+class _GenderToggleState extends State<GenderToggle> {
+  bool _isMale = true;
 
   @override
   Widget build(BuildContext context) {
@@ -1828,26 +1912,42 @@ class GenderToggle extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Container(
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.green,
-                    borderRadius: BorderRadius.circular(7),
-                  ),
-                  child: const Text(
-                    'Nam',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(7),
+                  onTap: () => setState(() => _isMale = true),
+                  child: Container(
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _isMale ? AppColors.green : Colors.transparent,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Text(
+                      'Nam',
+                      style: TextStyle(
+                        color: _isMale ? Colors.white : AppColors.ink,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ),
               ),
-              const Expanded(
-                child: Center(
-                  child: Text(
-                    'Nữ',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(7),
+                  onTap: () => setState(() => _isMale = false),
+                  child: Container(
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _isMale ? Colors.transparent : AppColors.green,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Text(
+                      'Nữ',
+                      style: TextStyle(
+                        color: _isMale ? AppColors.ink : Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1859,71 +1959,98 @@ class GenderToggle extends StatelessWidget {
   }
 }
 
-class ChoiceCard extends StatelessWidget {
+class ChoiceCard extends StatefulWidget {
   const ChoiceCard({
     super.key,
     required this.icon,
     required this.title,
     required this.subtitle,
     this.selected = false,
+    this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  State<ChoiceCard> createState() => _ChoiceCardState();
+}
+
+class _ChoiceCardState extends State<ChoiceCard> {
+  late bool _selected = widget.selected;
+
+  @override
+  void didUpdateWidget(covariant ChoiceCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selected != widget.selected) {
+      _selected = widget.selected;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: selected ? AppColors.mint : AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: selected ? AppColors.green : AppColors.line,
-          width: selected ? 1.5 : 1,
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () {
+        if (widget.onTap != null) {
+          widget.onTap!();
+        } else {
+          setState(() => _selected = !_selected);
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: _selected ? AppColors.mint : AppColors.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _selected ? AppColors.green : AppColors.line,
+            width: _selected ? 1.5 : 1,
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: selected ? Colors.white : AppColors.field,
-            child: Icon(icon, size: 19, color: AppColors.green),
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.ink,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    height: 1.25,
-                    color: AppColors.muted,
-                  ),
-                ),
-              ],
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: _selected ? Colors.white : AppColors.field,
+              child: Icon(widget.icon, size: 19, color: AppColors.green),
             ),
-          ),
-          Icon(
-            selected ? Icons.check_circle : Icons.radio_button_unchecked,
-            size: 19,
-            color: selected ? AppColors.green : const Color(0xFFB9C1B5),
-          ),
-        ],
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    widget.subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      height: 1.25,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              _selected ? Icons.check_circle : Icons.radio_button_unchecked,
+              size: 19,
+              color: _selected ? AppColors.green : const Color(0xFFB9C1B5),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2320,7 +2447,7 @@ class _MacroBox extends StatelessWidget {
   }
 }
 
-class TagPanel extends StatelessWidget {
+class TagPanel extends StatefulWidget {
   const TagPanel({
     super.key,
     required this.title,
@@ -2331,6 +2458,13 @@ class TagPanel extends StatelessWidget {
   final String title;
   final IconData icon;
   final List<String> tags;
+
+  @override
+  State<TagPanel> createState() => _TagPanelState();
+}
+
+class _TagPanelState extends State<TagPanel> {
+  final Set<String> _selectedTags = {};
 
   @override
   Widget build(BuildContext context) {
@@ -2346,10 +2480,10 @@ class TagPanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: AppColors.green),
+              Icon(widget.icon, size: 18, color: AppColors.green),
               const SizedBox(width: 8),
               Text(
-                title,
+                widget.title,
                 style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w900,
@@ -2362,12 +2496,25 @@ class TagPanel extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final tag in tags)
-                Chip(
-                  avatar: const Icon(Icons.close, size: 14),
+              for (final tag in widget.tags)
+                FilterChip(
+                  selected: _selectedTags.contains(tag),
+                  onSelected: (selected) => setState(() {
+                    if (selected) {
+                      _selectedTags.add(tag);
+                    } else {
+                      _selectedTags.remove(tag);
+                    }
+                  }),
+                  avatar: Icon(
+                    _selectedTags.contains(tag) ? Icons.check : Icons.add,
+                    size: 14,
+                  ),
                   label: Text(tag),
                   visualDensity: VisualDensity.compact,
                   backgroundColor: AppColors.field,
+                  selectedColor: AppColors.mint,
+                  checkmarkColor: AppColors.green,
                   side: BorderSide.none,
                   labelStyle: const TextStyle(
                     fontSize: 12,
@@ -2382,8 +2529,15 @@ class TagPanel extends StatelessWidget {
   }
 }
 
-class DietPanel extends StatelessWidget {
+class DietPanel extends StatefulWidget {
   const DietPanel({super.key});
+
+  @override
+  State<DietPanel> createState() => _DietPanelState();
+}
+
+class _DietPanelState extends State<DietPanel> {
+  final Set<String> _selectedDiets = {};
 
   @override
   Widget build(BuildContext context) {
@@ -2429,25 +2583,39 @@ class DietPanel extends StatelessWidget {
             ),
             itemBuilder: (context, index) {
               final diet = diets[index];
-              return Container(
-                decoration: BoxDecoration(
-                  color: AppColors.field,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(diet.$1, size: 17, color: AppColors.darkGreen),
-                    const SizedBox(height: 4),
-                    Text(
-                      diet.$2,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
+              final selected = _selectedDiets.contains(diet.$2);
+              return InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => setState(() {
+                  if (!selected) {
+                    _selectedDiets.add(diet.$2);
+                  } else {
+                    _selectedDiets.remove(diet.$2);
+                  }
+                }),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: selected ? AppColors.mint : AppColors.field,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: selected ? AppColors.green : Colors.transparent,
                     ),
-                  ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(diet.$1, size: 17, color: AppColors.darkGreen),
+                      const SizedBox(height: 4),
+                      Text(
+                        diet.$2,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -2458,8 +2626,15 @@ class DietPanel extends StatelessWidget {
   }
 }
 
-class CuisinePanel extends StatelessWidget {
+class CuisinePanel extends StatefulWidget {
   const CuisinePanel({super.key});
+
+  @override
+  State<CuisinePanel> createState() => _CuisinePanelState();
+}
+
+class _CuisinePanelState extends State<CuisinePanel> {
+  final Set<String> _selectedCuisines = {};
 
   @override
   Widget build(BuildContext context) {
@@ -2496,22 +2671,54 @@ class CuisinePanel extends StatelessWidget {
               crossAxisSpacing: 10,
               childAspectRatio: 1.85,
             ),
-            itemBuilder: (context, index) => Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
+            itemBuilder: (context, index) {
+              final cuisine = cuisines[index];
+              final selected = _selectedCuisines.contains(cuisine);
+              return InkWell(
                 borderRadius: BorderRadius.circular(10),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1E2B22), Color(0xFF8A6C37)],
+                onTap: () => setState(() {
+                  if (!selected) {
+                    _selectedCuisines.add(cuisine);
+                  } else {
+                    _selectedCuisines.remove(cuisine);
+                  }
+                }),
+                child: Container(
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: selected ? AppColors.green : Colors.transparent,
+                      width: 2,
+                    ),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1E2B22), Color(0xFF8A6C37)],
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (selected) ...[
+                        const Icon(
+                          Icons.check_circle,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Text(
+                        cuisine,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              child: Text(
-                cuisines[index],
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
+              );
+            },
           ),
         ],
       ),

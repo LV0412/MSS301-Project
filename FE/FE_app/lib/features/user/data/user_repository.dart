@@ -62,6 +62,38 @@ class UserRepository {
     return _getOptionalMap('/users/$userId/health-profile');
   }
 
+  Future<Map<String, dynamic>> saveHealthProfile({
+    required int userId,
+    required double height,
+    required double weight,
+    required String activityLevel,
+  }) async {
+    final data = {
+      'height': height,
+      'weight': weight,
+      'activityLevel': activityLevel,
+    };
+
+    try {
+      final response = await _request(
+        () => _apiClient.dio.put<Map<String, dynamic>>(
+          '/users/$userId/health-profile',
+          data: data,
+        ),
+      );
+      return response.data ?? const {};
+    } on ApiException catch (error) {
+      if (error.statusCode != 404) rethrow;
+      final response = await _request(
+        () => _apiClient.dio.post<Map<String, dynamic>>(
+          '/users/$userId/health-profile',
+          data: data,
+        ),
+      );
+      return response.data ?? const {};
+    }
+  }
+
   Future<Map<String, dynamic>?> getNutritionGoal(int userId) {
     return _getOptionalMap('/users/$userId/nutrition-goal');
   }
