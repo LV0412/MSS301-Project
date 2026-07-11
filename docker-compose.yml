@@ -12,7 +12,15 @@ services:
     volumes:
       - auth_mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${AUTH_MYSQL_ROOT_PASSWORD:-root}"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-p${AUTH_MYSQL_ROOT_PASSWORD:-root}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -66,7 +74,15 @@ services:
     volumes:
       - user_mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${USER_MYSQL_ROOT_PASSWORD:-root}"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-p${USER_MYSQL_ROOT_PASSWORD:-root}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -100,7 +116,11 @@ services:
     volumes:
       - recipe_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${RECIPE_DATABASE_USERNAME:-postgres} -d recipe_service"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${RECIPE_DATABASE_USERNAME:-postgres} -d recipe_service",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10

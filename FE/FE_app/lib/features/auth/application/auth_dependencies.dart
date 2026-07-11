@@ -3,6 +3,7 @@ import '../../../core/storage/auth_session_storage.dart';
 import '../../recipe/data/recipe_repository.dart';
 import '../../user/data/user_repository.dart';
 import '../data/auth_repository.dart';
+import '../data/google_auth_service.dart';
 
 class AuthDependencies {
   AuthDependencies._();
@@ -17,6 +18,7 @@ class AuthDependencies {
     apiClient: apiClient,
     sessionStorage: sessionStorage,
   );
+  late final GoogleAuthService googleAuthService = GoogleAuthService();
   late final UserRepository userRepository = UserRepository(
     apiClient: apiClient,
   );
