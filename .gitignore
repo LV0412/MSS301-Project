@@ -28,6 +28,13 @@ desktop.ini
 **/coverage/
 **/doc/api/
 
+# Flutter FE desktop generated plugin registration
+FE/FE_app/linux/flutter/generated_plugin_registrant.*
+FE/FE_app/linux/flutter/generated_plugins.cmake
+FE/FE_app/macos/Flutter/GeneratedPluginRegistrant.swift
+FE/FE_app/windows/flutter/generated_plugin_registrant.*
+FE/FE_app/windows/flutter/generated_plugins.cmake
+
 # Local environment and secrets
 .env
 .env.*
