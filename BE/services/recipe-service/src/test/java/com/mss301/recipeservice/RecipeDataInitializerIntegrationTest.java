@@ -13,7 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(properties = {
         "app.seed-data.enabled=true",
-        "spring.datasource.url=jdbc:h2:mem:recipe_seed_service;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE"
+        "spring.datasource.url=jdbc:h2:mem:recipe_seed_service;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE"
 })
 @ActiveProfiles("test")
 class RecipeDataInitializerIntegrationTest {
@@ -22,17 +22,32 @@ class RecipeDataInitializerIntegrationTest {
     @Autowired private JdbcTemplate jdbcTemplate;
 
     @Test
-    void seedsEveryRecipeTableAndIsIdempotent() {
+    void reseedsEveryRecipeTableAndRestoresCanonicalData() {
         Map<String, Integer> initialCounts = tableCounts();
 
         assertThat(initialCounts)
-                .allSatisfy((tableName, rowCount) -> assertThat(rowCount)
-                        .as("expected seeded rows in table %s", tableName)
-                        .isGreaterThan(0));
+                .containsExactlyInAnyOrderEntriesOf(Map.of(
+                        "categories", 10,
+                        "allergens", 9,
+                        "ingredients", 100,
+                        "ingredient_allergens", 79,
+                        "recipes", 50,
+                        "recipe_diet_types", 50,
+                        "recipe_ingredients", 228,
+                        "recipe_steps", 232,
+                        "nutrition_info", 50));
+        assertThat(jdbcTemplate.queryForObject(
+                        "select title from recipes where recipe_id = 1", String.class))
+                .isEqualTo("Cháo yến mạch chuối sữa");
+
+        jdbcTemplate.update("update recipes set title = ? where recipe_id = 1", "legacy title");
 
         recipeDataInitializer.run(new DefaultApplicationArguments(new String[0]));
 
         assertThat(tableCounts()).isEqualTo(initialCounts);
+        assertThat(jdbcTemplate.queryForObject(
+                        "select title from recipes where recipe_id = 1", String.class))
+                .isEqualTo("Cháo yến mạch chuối sữa");
     }
 
     private Map<String, Integer> tableCounts() {
