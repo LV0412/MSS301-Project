@@ -1,0 +1,9 @@
+DELETE FROM nutrition_info;
+DELETE FROM recipe_steps;
+DELETE FROM recipe_ingredients;
+DELETE FROM recipe_diet_types;
+DELETE FROM recipes;
+DELETE FROM ingredient_allergens;
+DELETE FROM ingredients;
+DELETE FROM categories;
+DELETE FROM allergens;
