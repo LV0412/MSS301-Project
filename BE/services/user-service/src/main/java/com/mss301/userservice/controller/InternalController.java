@@ -8,7 +8,11 @@ import com.mss301.userservice.dto.internal.InternalHealthProfileStatusResponse;
 import com.mss301.userservice.dto.internal.InternalNutritionGoalResponse;
 import com.mss301.userservice.dto.internal.InternalUserAllergyResponse;
 import com.mss301.userservice.dto.internal.InternalUserResponse;
+import com.mss301.userservice.dto.internal.InternalUserProvisionRequest;
+import com.mss301.userservice.dto.UserResponse;
 import com.mss301.userservice.service.InternalUserService;
+import com.mss301.userservice.service.UserManagementService;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,6 +20,8 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,6 +32,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class InternalController {
 
     private final InternalUserService internalUserService;
+    private final UserManagementService userManagementService;
+
+    @PostMapping("/users/provision")
+    @Operation(summary = "Provision user from auth account", description = "Idempotently link or create a user profile for an auth account.")
+    @ApiResponse(responseCode = "200", description = "User profile linked or created")
+    public UserResponse provisionUser(@Valid @RequestBody InternalUserProvisionRequest request) {
+        return userManagementService.provisionFromAuth(request);
+    }
 
     @GetMapping("/users/{userId}")
     @Operation(summary = "Get internal user profile", description = "Return minimal user profile for internal services.")

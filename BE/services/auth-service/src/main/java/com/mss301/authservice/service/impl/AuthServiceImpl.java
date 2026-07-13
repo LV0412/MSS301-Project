@@ -1,5 +1,7 @@
 package com.mss301.authservice.service.impl;
 
+import com.mss301.authservice.client.UserProfileClient;
+
 import com.mss301.authservice.config.AuthSecurityProperties;
 import com.mss301.authservice.config.JwtProperties;
 import com.mss301.authservice.config.PasswordResetProperties;
@@ -67,6 +69,7 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final GoogleTokenVerifier googleTokenVerifier;
     private final RateLimiter rateLimiter;
+    private final UserProfileClient userProfileClient;
 
     @Override
     public MessageResponse register(RegisterRequest request) {
@@ -613,8 +616,10 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private AccountResponse toAccountResponse(UserAccount account) {
+        Long userId = userProfileClient.ensureUser(account);
         return AccountResponse.builder()
                 .accountId(account.getAccountId())
+                .userId(userId)
                 .email(account.getEmail())
                 .fullName(account.getFullName())
                 .role(account.getRole())
