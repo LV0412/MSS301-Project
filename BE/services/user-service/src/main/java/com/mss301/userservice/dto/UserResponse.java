@@ -11,6 +11,7 @@ import lombok.Builder;
 @Builder
 public record UserResponse(
         Long userId,
+        Long authAccountId,
         String email,
         String fullName,
         LocalDate dob,

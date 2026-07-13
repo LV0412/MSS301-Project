@@ -3,6 +3,8 @@ package com.mss301.userservice.service;
 import com.mss301.userservice.dto.CreateUserRequest;
 import com.mss301.userservice.dto.UpdateUserRequest;
 import com.mss301.userservice.dto.UserResponse;
+import com.mss301.userservice.dto.internal.InternalUserProvisionRequest;
+import com.mss301.userservice.entity.Gender;
 import com.mss301.userservice.entity.User;
 import com.mss301.userservice.exception.DuplicateEmailException;
 import com.mss301.userservice.exception.UserNotFoundException;
@@ -32,6 +34,24 @@ public class UserManagementService {
                 .dob(request.dob())
                 .gender(request.gender())
                 .build();
+
+        return toResponse(userRepository.save(user));
+    }
+
+    public UserResponse provisionFromAuth(InternalUserProvisionRequest request) {
+        User user = userRepository.findByAuthAccountId(request.authAccountId())
+                .orElseGet(() -> userRepository.findByEmailIgnoreCase(request.email())
+                        .map(existing -> {
+                            existing.setAuthAccountId(request.authAccountId());
+                            return existing;
+                        })
+                        .orElseGet(() -> User.builder()
+                                .authAccountId(request.authAccountId())
+                                .email(request.email())
+                                .passwordHash("managed-by-auth-service")
+                                .fullName(request.fullName())
+                                .gender(Gender.OTHER)
+                                .build()));
 
         return toResponse(userRepository.save(user));
     }
@@ -90,6 +110,7 @@ public class UserManagementService {
     private UserResponse toResponse(User user) {
         return UserResponse.builder()
                 .userId(user.getUserId())
+                .authAccountId(user.getAuthAccountId())
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .dob(user.getDob())
