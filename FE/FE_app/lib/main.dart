@@ -3747,8 +3747,124 @@ class _FavoriteButtonState extends State<FavoriteButton> {
   }
 }
 
-class ExploreRecipesScreen extends StatelessWidget {
+class ExploreRecipesScreen extends StatefulWidget {
   const ExploreRecipesScreen({super.key});
+
+  @override
+  State<ExploreRecipesScreen> createState() => _ExploreRecipesScreenState();
+}
+
+class _ExploreRecipesScreenState extends State<ExploreRecipesScreen> {
+  final _searchController = TextEditingController();
+  Timer? _searchDebounce;
+  List<Recipe> _recipes = const [];
+  String? _dietType;
+  _RecipeAdvancedFilters _advancedFilters = const _RecipeAdvancedFilters();
+  int _page = -1;
+  int _totalElements = 0;
+  int _requestId = 0;
+  bool _lastPage = false;
+  bool _isLoading = false;
+  Object? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecipes(reset: true);
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String _) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => _loadRecipes(reset: true),
+    );
+    setState(() {});
+  }
+
+  void _clearSearch() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    _loadRecipes(reset: true);
+  }
+
+  void _selectDiet(String? dietType) {
+    setState(() => _dietType = _dietType == dietType ? null : dietType);
+    _loadRecipes(reset: true);
+  }
+
+  Future<void> _openAdvancedFilters() async {
+    final result = await showModalBottomSheet<_RecipeAdvancedFilters>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.cream,
+      builder: (_) => _RecipeAdvancedFiltersSheet(initial: _advancedFilters),
+    );
+    if (result == null || !mounted) return;
+    setState(() => _advancedFilters = result);
+    await _loadRecipes(reset: true);
+  }
+
+  void _resetFilters() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    setState(() {
+      _dietType = null;
+      _advancedFilters = const _RecipeAdvancedFilters();
+    });
+    _loadRecipes(reset: true);
+  }
+
+  Future<void> _loadRecipes({required bool reset}) async {
+    if (_isLoading && !reset) return;
+    final requestId = ++_requestId;
+    final requestedPage = reset ? 0 : _page + 1;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+      if (reset) {
+        _lastPage = false;
+      }
+    });
+
+    try {
+      final result = await AuthDependencies.instance.recipeRepository
+          .searchRecipes(
+            page: requestedPage,
+            size: 6,
+            query: _searchController.text,
+            categoryId: _advancedFilters.categoryId,
+            ingredientIds: _advancedFilters.ingredientIds,
+            ingredient: _advancedFilters.ingredient,
+            minCalories: _advancedFilters.minCalories,
+            maxCalories: _advancedFilters.maxCalories,
+            dietType: _dietType,
+            excludedAllergenIds: _advancedFilters.excludedAllergenIds,
+            sort: _advancedFilters.sort,
+          );
+      if (!mounted || requestId != _requestId) return;
+      setState(() {
+        _recipes = reset ? result.content : [..._recipes, ...result.content];
+        _page = result.page;
+        _totalElements = result.totalElements;
+        _lastPage = result.last;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted || requestId != _requestId) return;
+      setState(() {
+        _error = error;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -3763,38 +3879,56 @@ class ExploreRecipesScreen extends StatelessWidget {
               children: [
                 const HomeHeader(openScanner: true),
                 const SizedBox(height: 24),
-                const RecipeSearchBox(),
+                RecipeSearchBox(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  onClear: _clearSearch,
+                ),
                 const SizedBox(height: 18),
-                const RecipeFilters(),
+                RecipeFilters(
+                  selectedDietType: _dietType,
+                  advancedFilterCount: _advancedFilters.activeCount,
+                  onDietSelected: _selectDiet,
+                  onAdvancedPressed: _openAdvancedFilters,
+                  onReset: _resetFilters,
+                ),
                 const SizedBox(height: 28),
-                const Text(
-                  'Hot Picks',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.ink,
+                if (_recipes.isNotEmpty) ...[
+                  const Text(
+                    'Món nổi bật',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.ink,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 18),
-                const HotPickCard(
-                  label: "EDITOR'S CHOICE",
-                  title:
-                      'Món Việt Nam cân bằng\nSự kết hợp hoàn hảo giữa đạm, xơ và tinh bột.',
-                  palette: MealPalette.dinner,
-                ),
-                const SizedBox(height: 20),
-                const HotPickCard(
-                  label: 'PROTEIN BOOST',
-                  title:
-                      'Bowl Hàn Quốc giàu protein\nTiếp thêm năng lượng cho ngày dài bận rộn.',
-                  palette: MealPalette.lunch,
-                ),
-                const SizedBox(height: 64),
-                const RecommendedHeader(),
+                  const SizedBox(height: 18),
+                  for (
+                    var index = 0;
+                    index < _recipes.take(2).length;
+                    index++
+                  ) ...[
+                    HotPickCard.fromRecipe(
+                      recipe: _recipes[index],
+                      palette: _paletteForIndex(index),
+                    ),
+                    if (index != _recipes.take(2).length - 1)
+                      const SizedBox(height: 20),
+                  ],
+                  const SizedBox(height: 64),
+                ],
+                RecommendedHeader(totalElements: _totalElements),
                 const SizedBox(height: 14),
-                const ApiRecipeRecommendationList(),
+                ApiRecipeRecommendationList(
+                  recipes: _recipes,
+                  isLoading: _isLoading,
+                  hasError: _error != null,
+                  isFirstPage: _recipes.isEmpty,
+                  lastPage: _lastPage,
+                  onRetry: () => _loadRecipes(reset: _recipes.isEmpty),
+                  onLoadMore: () => _loadRecipes(reset: false),
+                ),
                 const SizedBox(height: 78),
-                const ExploreInsightCard(),
               ],
             ),
             const Positioned(
@@ -3811,7 +3945,16 @@ class ExploreRecipesScreen extends StatelessWidget {
 }
 
 class RecipeSearchBox extends StatelessWidget {
-  const RecipeSearchBox({super.key});
+  const RecipeSearchBox({
+    super.key,
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -3822,17 +3965,27 @@ class RecipeSearchBox extends StatelessWidget {
         color: AppColors.field,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.search, size: 22, color: AppColors.darkGreen),
-          SizedBox(width: 12),
+          const Icon(Icons.search, size: 22, color: AppColors.darkGreen),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              'Tìm theo nguyên liệu, chế độ ăn...',
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 15, color: Color(0xFFB8BFB1)),
+            child: TextField(
+              controller: controller,
+              onChanged: onChanged,
+              textInputAction: TextInputAction.search,
+              decoration: const InputDecoration(
+                hintText: 'Tìm công thức, nguyên liệu...',
+                border: InputBorder.none,
+              ),
             ),
           ),
+          if (controller.text.isNotEmpty)
+            IconButton(
+              tooltip: 'Xóa tìm kiếm',
+              onPressed: onClear,
+              icon: const Icon(Icons.close, size: 20),
+            ),
         ],
       ),
     );
@@ -3840,15 +3993,32 @@ class RecipeSearchBox extends StatelessWidget {
 }
 
 class RecipeFilters extends StatelessWidget {
-  const RecipeFilters({super.key});
+  const RecipeFilters({
+    super.key,
+    required this.selectedDietType,
+    required this.advancedFilterCount,
+    required this.onDietSelected,
+    required this.onAdvancedPressed,
+    required this.onReset,
+  });
+
+  final String? selectedDietType;
+  final int advancedFilterCount;
+  final ValueChanged<String?> onDietSelected;
+  final VoidCallback onAdvancedPressed;
+  final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
-    const filters = [
-      (Icons.tune, 'Bộ lọc', true),
-      (Icons.ramen_dining_outlined, 'Ẩm thực Việt', false),
-      (Icons.bolt_outlined, 'Keto', false),
-      (Icons.eco_outlined, 'Chay', false),
+    final filters = [
+      (
+        Icons.tune,
+        advancedFilterCount == 0 ? 'Bộ lọc' : 'Bộ lọc ($advancedFilterCount)',
+        null,
+      ),
+      (Icons.bolt_outlined, 'Keto', 'KETO'),
+      (Icons.eco_outlined, 'Chay', 'VEGETARIAN'),
+      (Icons.restart_alt, 'Đặt lại', 'RESET'),
     ];
 
     return SizedBox(
@@ -3859,34 +4029,318 @@ class RecipeFilters extends StatelessWidget {
         separatorBuilder: (context, index) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final filter = filters[index];
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            decoration: BoxDecoration(
-              color: filter.$3 ? AppColors.green : AppColors.sand,
-              borderRadius: BorderRadius.circular(99),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  filter.$1,
-                  size: 16,
-                  color: filter.$3 ? Colors.white : AppColors.darkGreen,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  filter.$2,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: filter.$3 ? Colors.white : AppColors.darkGreen,
+          final selected = filter.$3 != null && filter.$3 == selectedDietType;
+          final highlighted =
+              selected || (index == 0 && advancedFilterCount > 0);
+          return InkWell(
+            borderRadius: BorderRadius.circular(99),
+            onTap: () {
+              if (index == 0) {
+                onAdvancedPressed();
+              } else if (filter.$3 == 'RESET') {
+                onReset();
+              } else {
+                onDietSelected(filter.$3);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              decoration: BoxDecoration(
+                color: highlighted ? AppColors.green : AppColors.sand,
+                borderRadius: BorderRadius.circular(99),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    filter.$1,
+                    size: 16,
+                    color: highlighted ? Colors.white : AppColors.darkGreen,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 6),
+                  Text(
+                    filter.$2,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: highlighted ? Colors.white : AppColors.darkGreen,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
       ),
     );
+  }
+}
+
+class _RecipeAdvancedFilters {
+  const _RecipeAdvancedFilters({
+    this.categoryId,
+    this.ingredientIds = const [],
+    this.ingredient,
+    this.minCalories,
+    this.maxCalories,
+    this.excludedAllergenIds = const [],
+    this.sort = 'createdAt,desc',
+  });
+
+  final int? categoryId;
+  final List<int> ingredientIds;
+  final String? ingredient;
+  final double? minCalories;
+  final double? maxCalories;
+  final List<int> excludedAllergenIds;
+  final String sort;
+
+  int get activeCount => [
+    categoryId != null,
+    ingredientIds.isNotEmpty,
+    ingredient?.trim().isNotEmpty == true,
+    minCalories != null,
+    maxCalories != null,
+    excludedAllergenIds.isNotEmpty,
+    sort != 'createdAt,desc',
+  ].where((active) => active).length;
+}
+
+class _RecipeAdvancedFiltersSheet extends StatefulWidget {
+  const _RecipeAdvancedFiltersSheet({required this.initial});
+
+  final _RecipeAdvancedFilters initial;
+
+  @override
+  State<_RecipeAdvancedFiltersSheet> createState() =>
+      _RecipeAdvancedFiltersSheetState();
+}
+
+class _RecipeAdvancedFiltersSheetState
+    extends State<_RecipeAdvancedFiltersSheet> {
+  late final TextEditingController _categoryController;
+  late final TextEditingController _ingredientIdsController;
+  late final TextEditingController _ingredientController;
+  late final TextEditingController _minCaloriesController;
+  late final TextEditingController _maxCaloriesController;
+  late final TextEditingController _excludedAllergenIdsController;
+  late String _sort;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initial;
+    _categoryController = TextEditingController(
+      text: initial.categoryId?.toString() ?? '',
+    );
+    _ingredientIdsController = TextEditingController(
+      text: initial.ingredientIds.join(','),
+    );
+    _ingredientController = TextEditingController(
+      text: initial.ingredient ?? '',
+    );
+    _minCaloriesController = TextEditingController(
+      text: initial.minCalories?.toString() ?? '',
+    );
+    _maxCaloriesController = TextEditingController(
+      text: initial.maxCalories?.toString() ?? '',
+    );
+    _excludedAllergenIdsController = TextEditingController(
+      text: initial.excludedAllergenIds.join(','),
+    );
+    _sort = initial.sort;
+  }
+
+  @override
+  void dispose() {
+    _categoryController.dispose();
+    _ingredientIdsController.dispose();
+    _ingredientController.dispose();
+    _minCaloriesController.dispose();
+    _maxCaloriesController.dispose();
+    _excludedAllergenIdsController.dispose();
+    super.dispose();
+  }
+
+  void _apply() {
+    final minCalories = double.tryParse(_minCaloriesController.text.trim());
+    final maxCalories = double.tryParse(_maxCaloriesController.text.trim());
+    if (minCalories != null &&
+        maxCalories != null &&
+        minCalories > maxCalories) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Calories tối thiểu không được lớn hơn tối đa.'),
+        ),
+      );
+      return;
+    }
+    Navigator.pop(
+      context,
+      _RecipeAdvancedFilters(
+        categoryId: int.tryParse(_categoryController.text.trim()),
+        ingredientIds: _parseIds(_ingredientIdsController.text),
+        ingredient: _emptyToNull(_ingredientController.text),
+        minCalories: minCalories,
+        maxCalories: maxCalories,
+        excludedAllergenIds: _parseIds(_excludedAllergenIdsController.text),
+        sort: _sort,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          18,
+          20,
+          20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Bộ lọc công thức',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 18),
+              _filterField(
+                controller: _categoryController,
+                label: 'Category ID',
+                hint: 'Ví dụ: 1',
+                keyboardType: TextInputType.number,
+              ),
+              _filterField(
+                controller: _ingredientIdsController,
+                label: 'Ingredient IDs',
+                hint: 'Ví dụ: 1, 2, 3',
+              ),
+              _filterField(
+                controller: _ingredientController,
+                label: 'Tên nguyên liệu',
+                hint: 'Ví dụ: chicken',
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _filterField(
+                      controller: _minCaloriesController,
+                      label: 'Calories tối thiểu',
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _filterField(
+                      controller: _maxCaloriesController,
+                      label: 'Calories tối đa',
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              _filterField(
+                controller: _excludedAllergenIdsController,
+                label: 'Allergen IDs cần loại trừ',
+                hint: 'Ví dụ: 1, 4',
+              ),
+              const Text(
+                'Sắp xếp',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 6),
+              DropdownButtonFormField<String>(
+                initialValue: _sort,
+                decoration: const InputDecoration(
+                  filled: true,
+                  fillColor: AppColors.field,
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'createdAt,desc',
+                    child: Text('Mới nhất'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'createdAt,asc',
+                    child: Text('Cũ nhất'),
+                  ),
+                  DropdownMenuItem(value: 'title,asc', child: Text('Tên A–Z')),
+                  DropdownMenuItem(value: 'title,desc', child: Text('Tên Z–A')),
+                ],
+                onChanged: (value) => setState(() => _sort = value ?? _sort),
+              ),
+              const SizedBox(height: 22),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(
+                        context,
+                        const _RecipeAdvancedFilters(),
+                      ),
+                      child: const Text('Xóa bộ lọc'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _apply,
+                      child: const Text('Áp dụng'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _filterField({
+    required TextEditingController controller,
+    required String label,
+    String? hint,
+    TextInputType? keyboardType,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          filled: true,
+          fillColor: AppColors.field,
+          border: const OutlineInputBorder(),
+        ),
+      ),
+    );
+  }
+
+  static List<int> _parseIds(String value) {
+    return value
+        .split(',')
+        .map((part) => int.tryParse(part.trim()))
+        .whereType<int>()
+        .where((id) => id > 0)
+        .toSet()
+        .toList();
+  }
+
+  static String? _emptyToNull(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 }
 
@@ -3896,72 +4350,101 @@ class HotPickCard extends StatelessWidget {
     required this.label,
     required this.title,
     required this.palette,
+    this.recipeId,
+    this.imageUrl,
   });
+
+  factory HotPickCard.fromRecipe({
+    required Recipe recipe,
+    required MealPalette palette,
+  }) {
+    return HotPickCard(
+      recipeId: recipe.recipeId,
+      label: recipe.categoryName ?? 'RECIPE SERVICE',
+      title: recipe.title,
+      palette: palette,
+      imageUrl: recipe.imageUrl,
+    );
+  }
 
   final String label;
   final String title;
   final MealPalette palette;
+  final int? recipeId;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 286,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            blurRadius: 14,
-            offset: const Offset(0, 9),
-            color: Colors.black.withValues(alpha: .18),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          MealArt(palette: palette),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: .78),
+    return GestureDetector(
+      onTap: recipeId == null
+          ? null
+          : () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => RecipeDetailsScreen(recipeId: recipeId),
+              ),
+            ),
+      child: Container(
+        height: 286,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              blurRadius: 14,
+              offset: const Offset(0, 9),
+              color: Colors.black.withValues(alpha: .18),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            RecipeApiImage(imageUrl: imageUrl, palette: palette),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: .78),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              left: 24,
+              right: 24,
+              bottom: 24,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ExploreTag(label: label, dark: true),
+                  const SizedBox(height: 10),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      height: 1.32,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: 24,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ExploreTag(label: label, dark: true),
-                const SizedBox(height: 10),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    height: 1.32,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
 class RecommendedHeader extends StatelessWidget {
-  const RecommendedHeader({super.key});
+  const RecommendedHeader({super.key, this.totalElements = 0});
+
+  final int totalElements;
 
   @override
   Widget build(BuildContext context) {
@@ -3976,15 +4459,12 @@ class RecommendedHeader extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        TextButton(
-          onPressed: () {},
-          child: const Text(
-            'Xem tất cả',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              color: AppColors.darkGreen,
-            ),
+        Text(
+          '$totalElements kết quả',
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: AppColors.darkGreen,
           ),
         ),
       ],
@@ -4000,9 +4480,9 @@ class RecipeRecommendationCard extends StatelessWidget {
     required this.subtitle,
     required this.calories,
     required this.time,
-    required this.rating,
     required this.palette,
     required this.tags,
+    this.imageUrl,
   });
 
   factory RecipeRecommendationCard.fromRecipe({
@@ -4024,9 +4504,9 @@ class RecipeRecommendationCard extends StatelessWidget {
           '${recipe.categoryName ?? 'Recipe service'} • ${_difficultyLabel(recipe.difficulty)}',
       calories: calories,
       time: '${recipe.totalMinutes} phút',
-      rating: '4.${(recipe.recipeId + 5).clamp(5, 9)}',
       palette: palette,
       tags: tags,
+      imageUrl: recipe.imageUrl,
     );
   }
 
@@ -4035,9 +4515,9 @@ class RecipeRecommendationCard extends StatelessWidget {
   final String subtitle;
   final String calories;
   final String time;
-  final String rating;
   final MealPalette palette;
   final List<String> tags;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -4062,7 +4542,7 @@ class RecipeRecommendationCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                MealArt(palette: palette),
+                RecipeApiImage(imageUrl: imageUrl, palette: palette),
                 Positioned(
                   right: 14,
                   top: 14,
@@ -4084,29 +4564,14 @@ class RecipeRecommendationCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          height: 1.05,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.ink,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '$rating★',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.green,
-                      ),
-                    ),
-                  ],
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    height: 1.05,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.ink,
+                  ),
                 ),
                 const SizedBox(height: 9),
                 Text(
@@ -4163,50 +4628,76 @@ class RecipeRecommendationCard extends StatelessWidget {
 }
 
 class ApiRecipeRecommendationList extends StatelessWidget {
-  const ApiRecipeRecommendationList({super.key, this.limit = 3});
+  const ApiRecipeRecommendationList({
+    super.key,
+    required this.recipes,
+    required this.isLoading,
+    required this.hasError,
+    required this.isFirstPage,
+    required this.lastPage,
+    required this.onRetry,
+    required this.onLoadMore,
+  });
 
-  final int limit;
+  final List<Recipe> recipes;
+  final bool isLoading;
+  final bool hasError;
+  final bool isFirstPage;
+  final bool lastPage;
+  final VoidCallback onRetry;
+  final VoidCallback onLoadMore;
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Recipe>>(
-      future: AuthDependencies.instance.recipeRepository.getRecipes(
-        size: limit,
-      ),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 28),
-              child: CircularProgressIndicator(color: AppColors.green),
+    if (isLoading && recipes.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 28),
+          child: CircularProgressIndicator(color: AppColors.green),
+        ),
+      );
+    }
+    if (hasError && recipes.isEmpty) {
+      return Column(
+        children: [
+          const ApiMessageBanner(message: 'Không thể tải danh sách công thức.'),
+          const SizedBox(height: 12),
+          FilledButton(onPressed: onRetry, child: const Text('Thử lại')),
+        ],
+      );
+    }
+    if (recipes.isEmpty) {
+      return const ApiMessageBanner(
+        message: 'Không tìm thấy công thức phù hợp với bộ lọc.',
+      );
+    }
+
+    return Column(
+      children: [
+        for (var index = 0; index < recipes.length; index++) ...[
+          RecipeRecommendationCard.fromRecipe(
+            recipe: recipes[index],
+            palette: _paletteForIndex(index),
+          ),
+          if (index != recipes.length - 1) const SizedBox(height: 20),
+        ],
+        if (!lastPage || isLoading || hasError) ...[
+          const SizedBox(height: 20),
+          if (isLoading)
+            const CircularProgressIndicator(color: AppColors.green)
+          else if (hasError && !isFirstPage)
+            OutlinedButton(
+              onPressed: onRetry,
+              child: const Text('Thử tải trang tiếp theo'),
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: onLoadMore,
+              icon: const Icon(Icons.expand_more),
+              label: const Text('Tải thêm'),
             ),
-          );
-        }
-
-        final recipes = snapshot.data ?? const [];
-        if (recipes.isEmpty) {
-          return const ApiMessageBanner(
-            message: 'Recipe service chưa có dữ liệu công thức.',
-          );
-        }
-
-        return Column(
-          children: [
-            for (
-              var index = 0;
-              index < recipes.take(limit).length;
-              index++
-            ) ...[
-              RecipeRecommendationCard.fromRecipe(
-                recipe: recipes[index],
-                palette: _paletteForIndex(index),
-              ),
-              if (index != recipes.take(limit).length - 1)
-                const SizedBox(height: 20),
-            ],
-          ],
-        );
-      },
+        ],
+      ],
     );
   }
 }
@@ -4331,7 +4822,7 @@ class PersonalizedSuggestionsScreen extends StatelessWidget {
                 const HomeHeader(),
                 const SizedBox(height: 30),
                 const Text(
-                  'Gợi ý dành cho bạn',
+                  'Công thức mới',
                   style: TextStyle(
                     fontSize: 28,
                     height: 1.05,
@@ -4341,15 +4832,11 @@ class PersonalizedSuggestionsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Dựa trên hồ sơ sức khỏe và mục tiêu của bạn',
+                  'Danh sách mới nhất từ Recipe Service',
                   style: TextStyle(fontSize: 15, color: AppColors.darkGreen),
                 ),
                 const SizedBox(height: 24),
-                const FeaturedSuggestionCard(),
-                const SizedBox(height: 34),
                 const ApiSuggestionRecipeList(),
-                const SizedBox(height: 44),
-                const SuggestionsAnalysisCard(),
               ],
             ),
             const Positioned(
@@ -4567,14 +5054,13 @@ class SuggestionMiniCard extends StatelessWidget {
     required this.tags,
     required this.calories,
     required this.time,
-    required this.match,
     required this.palette,
+    this.imageUrl,
   });
 
   factory SuggestionMiniCard.fromRecipe({
     required Recipe recipe,
     required MealPalette palette,
-    required int index,
   }) {
     final nutrition = recipe.nutrition;
     final tags = recipe.dietTypes.isEmpty
@@ -4587,8 +5073,8 @@ class SuggestionMiniCard extends StatelessWidget {
       tags: tags,
       calories: nutrition == null ? '-' : _formatNumber(nutrition.calories),
       time: '${recipe.totalMinutes}’',
-      match: 'Phù hợp ${94 - index * 3}%',
       palette: palette,
+      imageUrl: recipe.imageUrl,
     );
   }
 
@@ -4597,8 +5083,8 @@ class SuggestionMiniCard extends StatelessWidget {
   final List<String> tags;
   final String calories;
   final String time;
-  final String match;
   final MealPalette palette;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -4631,33 +5117,11 @@ class SuggestionMiniCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  MealArt(palette: palette),
+                  RecipeApiImage(imageUrl: imageUrl, palette: palette),
                   Positioned(
                     left: 12,
                     top: 10,
                     child: FavoriteButton(recipeId: recipeId),
-                  ),
-                  Positioned(
-                    right: 12,
-                    top: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: .86),
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                      child: Text(
-                        match,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.green,
-                        ),
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -4764,7 +5228,6 @@ class ApiSuggestionRecipeList extends StatelessWidget {
               SuggestionMiniCard.fromRecipe(
                 recipe: recipes[index],
                 palette: _paletteForIndex(index),
-                index: index,
               ),
               if (index != recipes.length - 1) const SizedBox(height: 22),
             ],
@@ -4832,11 +5295,37 @@ class SuggestionsAnalysisCard extends StatelessWidget {
   }
 }
 
-class RecipeDetailsScreen extends StatelessWidget {
+class RecipeDetailsScreen extends StatefulWidget {
   const RecipeDetailsScreen({super.key, this.recipeId, this.recipeTitle});
 
   final int? recipeId;
   final String? recipeTitle;
+
+  @override
+  State<RecipeDetailsScreen> createState() => _RecipeDetailsScreenState();
+}
+
+class _RecipeDetailsScreenState extends State<RecipeDetailsScreen> {
+  late Future<Recipe> _recipeFuture = _loadRecipe();
+
+  Future<Recipe> _loadRecipe() async {
+    final repository = AuthDependencies.instance.recipeRepository;
+    var recipeId = widget.recipeId;
+    if (recipeId == null) {
+      final recipes = await repository.getRecipes(size: 1);
+      if (recipes.isEmpty) {
+        throw const ApiException(
+          message: 'Recipe service chưa có dữ liệu công thức.',
+        );
+      }
+      recipeId = recipes.first.recipeId;
+    }
+    return repository.getRecipe(recipeId);
+  }
+
+  void _retry() {
+    setState(() => _recipeFuture = _loadRecipe());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -4846,51 +5335,47 @@ class RecipeDetailsScreen extends StatelessWidget {
         bottom: false,
         child: Stack(
           children: [
-            ListView(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 110),
-              children: [
-                const RecipeDetailsHeader(),
-                const SizedBox(height: 12),
-                const RecipeHeroPanel(),
-                const SizedBox(height: 18),
-                RecipeMetaLine(recipeId: recipeId, recipeTitle: recipeTitle),
-                const SizedBox(height: 18),
-                const DetailAiInsightCard(),
-                const SizedBox(height: 20),
-                const NutritionFactsCard(),
-                const SizedBox(height: 22),
-                const IngredientsCard(),
-                const SizedBox(height: 26),
-                const Text(
-                  'Cooking Instructions',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.ink,
-                  ),
-                ),
-                const SizedBox(height: 22),
-                const CookingStep(
-                  step: '1',
-                  title: 'Prepare the Salmon',
-                  body:
-                      'Pat the salmon fillets dry and season both sides with salt, black pepper, and a drizzle of lemon juice. AI Tip: For more flavor, add a pinch of smoked paprika.',
-                ),
-                const CookingStep(
-                  step: '2',
-                  title: 'Sear the Fish',
-                  body:
-                      'Heat a non-stick pan over medium-high heat. Sear salmon for 4-5 minutes per side until the edges are golden and crispy. Set aside to rest for 3 minutes.',
-                ),
-                const CookingStep(
-                  step: '3',
-                  title: 'Assemble the Bowl',
-                  body:
-                      'Divide cooked quinoa into two bowls. Top with the seared salmon, sliced avocado, cucumber, and baby spinach. Drizzle with the lemon-yogurt dressing.',
-                ),
-                const SizedBox(height: 20),
-                const MealFeedbackCard(),
-              ],
+            FutureBuilder<Recipe>(
+              future: _recipeFuture,
+              builder: (context, snapshot) {
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 110),
+                  children: [
+                    const RecipeDetailsHeader(),
+                    const SizedBox(height: 12),
+                    if (snapshot.connectionState != ConnectionState.done)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 120),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.green,
+                          ),
+                        ),
+                      )
+                    else if (snapshot.hasError)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 80),
+                        child: Column(
+                          children: [
+                            Text(
+                              snapshot.error is ApiException
+                                  ? (snapshot.error! as ApiException).message
+                                  : 'Không thể tải chi tiết công thức.',
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton(
+                              onPressed: _retry,
+                              child: const Text('Thử lại'),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ..._buildRecipeContent(snapshot.requireData),
+                  ],
+                );
+              },
             ),
             const Positioned(
               left: 0,
@@ -4902,6 +5387,45 @@ class RecipeDetailsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildRecipeContent(Recipe recipe) {
+    final steps = [...recipe.steps]
+      ..sort((a, b) => a.stepOrder.compareTo(b.stepOrder));
+    return [
+      RecipeHeroPanel(recipe: recipe),
+      const SizedBox(height: 18),
+      RecipeMetaLine(recipe: recipe),
+      const SizedBox(height: 18),
+      NutritionFactsCard(
+        key: ValueKey(recipe.nutrition?.nutritionId),
+        nutrition: recipe.nutrition,
+      ),
+      const SizedBox(height: 22),
+      IngredientsCard(recipe: recipe),
+      const SizedBox(height: 26),
+      const Text(
+        'Hướng dẫn nấu ăn',
+        style: TextStyle(
+          fontSize: 26,
+          fontWeight: FontWeight.w800,
+          color: AppColors.ink,
+        ),
+      ),
+      const SizedBox(height: 22),
+      if (steps.isEmpty)
+        const ApiMessageBanner(message: 'Công thức chưa có bước hướng dẫn.')
+      else
+        for (final step in steps)
+          CookingStep(
+            key: ValueKey(step.stepId ?? step.stepOrder),
+            step: '${step.stepOrder}',
+            title: 'Bước ${step.stepOrder}',
+            body: step.instruction,
+          ),
+      const SizedBox(height: 20),
+      const MealFeedbackCard(),
+    ];
   }
 }
 
@@ -4934,7 +5458,9 @@ class RecipeDetailsHeader extends StatelessWidget {
 }
 
 class RecipeHeroPanel extends StatelessWidget {
-  const RecipeHeroPanel({super.key});
+  const RecipeHeroPanel({super.key, required this.recipe});
+
+  final Recipe recipe;
 
   @override
   Widget build(BuildContext context) {
@@ -4948,55 +5474,27 @@ class RecipeHeroPanel extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                const MealArt(palette: MealPalette.lunch),
-                Positioned(
-                  right: 14,
-                  top: 14,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 13,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: .9),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.track_changes,
-                          size: 15,
-                          color: AppColors.green,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          '98% Match',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                RecipeApiImage(
+                  imageUrl: recipe.imageUrl,
+                  palette: MealPalette.lunch,
                 ),
               ],
             ),
           ),
         ),
         const SizedBox(height: 14),
-        const Wrap(
+        Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: [
-            ExploreTag(label: 'HIGH\nPROTEIN'),
-            ExploreTag(label: 'LOW\nCARB'),
-            ExploreTag(label: 'KETO-\nFRIENDLY'),
-          ],
+          children: recipe.dietTypes.isEmpty
+              ? const [ExploreTag(label: 'CÔNG THỨC')]
+              : recipe.dietTypes
+                    .map((diet) => ExploreTag(label: _dietLabel(diet)))
+                    .toList(),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'Mediterranean Salmon\n& Avocado Bowl',
+        Text(
+          recipe.title,
           style: TextStyle(
             fontSize: 26,
             height: 1.04,
@@ -5010,43 +5508,64 @@ class RecipeHeroPanel extends StatelessWidget {
 }
 
 class RecipeMetaLine extends StatelessWidget {
-  const RecipeMetaLine({super.key, this.recipeId, this.recipeTitle});
+  const RecipeMetaLine({super.key, required this.recipe});
 
-  final int? recipeId;
-  final String? recipeTitle;
+  final Recipe recipe;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Row(
+        Row(
           children: [
-            Icon(Icons.schedule, size: 16, color: AppColors.darkGreen),
-            SizedBox(width: 5),
-            Text('25 mins', style: TextStyle(fontSize: 13)),
-            SizedBox(width: 14),
-            Icon(Icons.restaurant_menu, size: 16, color: AppColors.darkGreen),
-            SizedBox(width: 5),
-            Text('Intermediate', style: TextStyle(fontSize: 13)),
-            SizedBox(width: 14),
-            Icon(Icons.star, size: 16, color: AppColors.darkGreen),
-            SizedBox(width: 5),
-            Text('4.9 (1.2k)', style: TextStyle(fontSize: 13)),
+            const Icon(Icons.schedule, size: 16, color: AppColors.darkGreen),
+            const SizedBox(width: 5),
+            Text(
+              '${recipe.totalMinutes} phút',
+              style: const TextStyle(fontSize: 13),
+            ),
+            const SizedBox(width: 14),
+            const Icon(
+              Icons.restaurant_menu,
+              size: 16,
+              color: AppColors.darkGreen,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              _difficultyLabel(recipe.difficulty),
+              style: const TextStyle(fontSize: 13),
+            ),
+            const SizedBox(width: 14),
+            const Icon(
+              Icons.people_outline,
+              size: 16,
+              color: AppColors.darkGreen,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              '${recipe.servings} khẩu phần',
+              style: const TextStyle(fontSize: 13),
+            ),
           ],
         ),
         const SizedBox(height: 14),
         Row(
           children: [
-            if (recipeId != null) ...[
-              FoodLogButton(
-                recipeId: recipeId!,
-                recipeTitle: recipeTitle ?? 'Recipe #$recipeId',
-              ),
-              const SizedBox(width: 12),
-              FavoriteButton(recipeId: recipeId!),
-            ],
+            FoodLogButton(recipeId: recipe.recipeId, recipeTitle: recipe.title),
+            const SizedBox(width: 12),
+            FavoriteButton(recipeId: recipe.recipeId),
           ],
         ),
+        if (recipe.updatedAt != null || recipe.createdAt != null) ...[
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Cập nhật ${_formatRecipeDate(recipe.updatedAt ?? recipe.createdAt!)}',
+              style: const TextStyle(fontSize: 11, color: AppColors.muted),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -5100,7 +5619,9 @@ class DetailAiInsightCard extends StatelessWidget {
 }
 
 class NutritionFactsCard extends StatelessWidget {
-  const NutritionFactsCard({super.key});
+  const NutritionFactsCard({super.key, required this.nutrition});
+
+  final RecipeNutrition? nutrition;
 
   @override
   Widget build(BuildContext context) {
@@ -5110,10 +5631,10 @@ class NutritionFactsCard extends StatelessWidget {
         color: AppColors.card,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
               Expanded(
                 child: Text(
@@ -5132,56 +5653,80 @@ class NutritionFactsCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 22),
-          Row(
-            children: [
-              Expanded(
-                child: FactBar(
-                  label: 'CALORIES',
-                  value: '485 kcal',
-                  progress: .82,
+          const SizedBox(height: 22),
+          if (nutrition == null)
+            const ApiMessageBanner(message: 'Chưa có dữ liệu dinh dưỡng.')
+          else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: FactBar(
+                    label: 'CALORIES',
+                    value: '${_formatNumber(nutrition!.calories)} kcal',
+                    progress: (nutrition!.calories / 600)
+                        .clamp(0, 1)
+                        .toDouble(),
+                  ),
                 ),
-              ),
-              SizedBox(width: 20),
-              Expanded(
-                child: FactBar(label: 'PROTEIN', value: '34g', progress: .74),
-              ),
-            ],
-          ),
-          SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: FactBar(label: 'CARBS', value: '12g', progress: .28),
-              ),
-              SizedBox(width: 20),
-              Expanded(
-                child: FactBar(label: 'FAT', value: '28g', progress: .58),
-              ),
-            ],
-          ),
-          SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _FactSmall(label: 'Fiber', value: '8g'),
-              ),
-              Expanded(
-                child: _FactSmall(label: 'Sodium', value: '420mg'),
-              ),
-            ],
-          ),
-          SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _FactSmall(label: 'Sugar', value: '2g'),
-              ),
-              Expanded(
-                child: _FactSmall(label: 'Cholesterol', value: '65mg'),
-              ),
-            ],
-          ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: FactBar(
+                    label: 'PROTEIN',
+                    value: '${_formatNumber(nutrition!.protein)}g',
+                    progress: (nutrition!.protein / 50).clamp(0, 1).toDouble(),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: FactBar(
+                    label: 'CARBS',
+                    value: '${_formatNumber(nutrition!.carbs)}g',
+                    progress: (nutrition!.carbs / 75).clamp(0, 1).toDouble(),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: FactBar(
+                    label: 'FAT',
+                    value: '${_formatNumber(nutrition!.fat)}g',
+                    progress: (nutrition!.fat / 40).clamp(0, 1).toDouble(),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: _FactSmall(
+                    label: 'Fiber',
+                    value: '${_formatNumber(nutrition!.fiber)}g',
+                  ),
+                ),
+                Expanded(
+                  child: _FactSmall(
+                    label: 'Sodium',
+                    value: '${_formatNumber(nutrition!.sodium)}mg',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _FactSmall(
+                    label: 'Sugar',
+                    value: '${_formatNumber(nutrition!.sugar)}g',
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -5258,7 +5803,9 @@ class _FactSmall extends StatelessWidget {
 }
 
 class IngredientsCard extends StatelessWidget {
-  const IngredientsCard({super.key});
+  const IngredientsCard({super.key, required this.recipe});
+
+  final Recipe recipe;
 
   @override
   Widget build(BuildContext context) {
@@ -5268,46 +5815,52 @@ class IngredientsCard extends StatelessWidget {
         color: AppColors.card,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Expanded(
+              const Expanded(
                 child: Text(
                   'Ingredients',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
                 ),
               ),
-              ExploreTag(label: '2 SERVINGS'),
+              ExploreTag(label: '${recipe.servings} KHẨU PHẦN'),
             ],
           ),
-          SizedBox(height: 16),
-          IngredientRow(
-            icon: Icons.restaurant,
-            name: 'Fresh Salmon Fillet',
-            amount: '300g, skinless',
-          ),
-          IngredientRow(
-            icon: Icons.eco_outlined,
-            name: 'Ripe Avocado',
-            amount: '1 large, sliced',
-          ),
-          IngredientRow(
-            icon: Icons.local_drink_outlined,
-            name: 'Greek Yogurt',
-            amount: '1/2 cup (Dressing base)',
-            alert: true,
-          ),
-          AllergyNote(),
-          IngredientRow(
-            icon: Icons.grain_outlined,
-            name: 'Quinoa Mix',
-            amount: '1 cup, cooked',
-          ),
+          const SizedBox(height: 16),
+          if (recipe.ingredients.isEmpty)
+            const ApiMessageBanner(message: 'Công thức chưa có nguyên liệu.')
+          else
+            for (final ingredient in recipe.ingredients) ...[
+              IngredientRow(
+                key: ValueKey(ingredient.ingredientId ?? ingredient.name),
+                icon: Icons.restaurant_outlined,
+                name: ingredient.name,
+                amount: _ingredientAmount(ingredient),
+                alert: ingredient.allergens.isNotEmpty,
+              ),
+              if (ingredient.allergens.isNotEmpty)
+                AllergyNote(
+                  allergenNames: ingredient.allergens
+                      .map((allergen) => allergen.name)
+                      .where((name) => name.isNotEmpty)
+                      .toList(),
+                ),
+            ],
         ],
       ),
     );
+  }
+
+  static String _ingredientAmount(RecipeIngredient ingredient) {
+    final quantity = ingredient.quantity;
+    final amount = quantity == null ? '' : _formatNumber(quantity);
+    return [
+      amount,
+      ingredient.unit,
+    ].where((part) => part.trim().isNotEmpty).join(' ');
   }
 }
 
@@ -5372,7 +5925,9 @@ class IngredientRow extends StatelessWidget {
 }
 
 class AllergyNote extends StatelessWidget {
-  const AllergyNote({super.key});
+  const AllergyNote({super.key, required this.allergenNames});
+
+  final List<String> allergenNames;
 
   @override
   Widget build(BuildContext context) {
@@ -5383,9 +5938,11 @@ class AllergyNote extends StatelessWidget {
         color: const Color(0xFFF3E5D0),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: const Text(
-        '⚠ AI ALT: FOR DAIRY ALLERGY, USE TAHINI OR CASHEW CREAM',
-        style: TextStyle(
+      child: Text(
+        allergenNames.isEmpty
+            ? '⚠ Nguyên liệu có thông tin dị ứng.'
+            : '⚠ Có thể chứa: ${allergenNames.join(', ')}',
+        style: const TextStyle(
           fontSize: 9,
           height: 1.25,
           fontWeight: FontWeight.w900,
@@ -7827,6 +8384,7 @@ class PlannerMealCard extends StatelessWidget {
     required this.title,
     required this.meta,
     required this.palette,
+    this.imageUrl,
     this.warning = false,
   });
 
@@ -7845,6 +8403,7 @@ class PlannerMealCard extends StatelessWidget {
       title: recipe.title,
       meta: meta,
       palette: palette,
+      imageUrl: recipe.imageUrl,
     );
   }
 
@@ -7852,6 +8411,7 @@ class PlannerMealCard extends StatelessWidget {
   final String title;
   final String meta;
   final MealPalette palette;
+  final String? imageUrl;
   final bool warning;
 
   @override
@@ -7897,7 +8457,7 @@ class PlannerMealCard extends StatelessWidget {
                 child: SizedBox(
                   width: 70,
                   height: 70,
-                  child: MealArt(palette: palette),
+                  child: RecipeApiImage(imageUrl: imageUrl, palette: palette),
                 ),
               ),
               const SizedBox(width: 20),
@@ -7944,8 +8504,6 @@ class PlannerMealCard extends StatelessWidget {
 class ApiPlannerMealList extends StatelessWidget {
   const ApiPlannerMealList({super.key});
 
-  static const _meals = ['BỮA SÁNG', 'BỮA TRƯA', 'BỮA TỐI'];
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Recipe>>(
@@ -7972,7 +8530,7 @@ class ApiPlannerMealList extends StatelessWidget {
             for (var index = 0; index < recipes.length; index++) ...[
               PlannerMealCard.fromRecipe(
                 recipe: recipes[index],
-                meal: _meals[index % _meals.length],
+                meal: recipes[index].categoryName ?? 'CÔNG THỨC',
                 palette: _paletteForIndex(index),
               ),
               if (index != recipes.length - 1) const SizedBox(height: 18),
@@ -8082,15 +8640,12 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 28),
                 const DailyCaloriesCard(),
                 const SizedBox(height: 18),
-                const HomeAiInsightCard(),
-                const SizedBox(height: 18),
                 const MacroSummaryCard(),
                 const SizedBox(height: 26),
                 const TodayMenuHeader(),
                 const SizedBox(height: 12),
                 const ApiTodayMealList(),
                 const SizedBox(height: 18),
-                const EmptyMealPlanCard(),
               ],
             ),
             const Positioned(
@@ -8106,8 +8661,50 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class AiChefIngredientScannerScreen extends StatelessWidget {
+class AiChefIngredientScannerScreen extends StatefulWidget {
   const AiChefIngredientScannerScreen({super.key});
+
+  @override
+  State<AiChefIngredientScannerScreen> createState() =>
+      _AiChefIngredientScannerScreenState();
+}
+
+class _AiChefIngredientScannerScreenState
+    extends State<AiChefIngredientScannerScreen> {
+  final _ingredientController = TextEditingController();
+  Timer? _debounce;
+  late Future<List<Recipe>> _recipesFuture = _search();
+
+  Future<List<Recipe>> _search() {
+    return AuthDependencies.instance.recipeRepository.getRecipes(
+      size: 6,
+      ingredient: _ingredientController.text,
+    );
+  }
+
+  void _onIngredientChanged(String _) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 450), _refresh);
+    setState(() {});
+  }
+
+  void _refresh() {
+    if (!mounted) return;
+    setState(() => _recipesFuture = _search());
+  }
+
+  void _clear() {
+    _debounce?.cancel();
+    _ingredientController.clear();
+    _refresh();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _ingredientController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -8133,7 +8730,7 @@ class AiChefIngredientScannerScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Let AI craft the perfect healthy meal\nfrom your ingredients.',
+                  'Nhập một nguyên liệu để tìm công thức phù hợp.',
                   style: TextStyle(
                     fontSize: 14,
                     height: 1.25,
@@ -8141,15 +8738,16 @@ class AiChefIngredientScannerScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 18),
-                const IngredientInputCard(),
+                IngredientInputCard(
+                  controller: _ingredientController,
+                  onChanged: _onIngredientChanged,
+                  onSubmitted: (_) => _refresh(),
+                  onClear: _clear,
+                ),
                 const SizedBox(height: 16),
-                const ScannerProfileCard(),
-                const SizedBox(height: 16),
-                const AskChefCard(),
-                const SizedBox(height: 18),
                 const ScannerRecommendedHeader(),
                 const SizedBox(height: 10),
-                const ApiScannerRecipeList(),
+                ApiScannerRecipeList(future: _recipesFuture),
               ],
             ),
             const Positioned(
@@ -8197,7 +8795,18 @@ class ScannerHeader extends StatelessWidget {
 }
 
 class IngredientInputCard extends StatelessWidget {
-  const IngredientInputCard({super.key});
+  const IngredientInputCard({
+    super.key,
+    required this.controller,
+    required this.onChanged,
+    required this.onSubmitted,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final ValueChanged<String> onSubmitted;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -8216,76 +8825,39 @@ class IngredientInputCard extends StatelessWidget {
               color: Colors.white.withValues(alpha: .72),
               borderRadius: BorderRadius.circular(9),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.search, size: 16, color: AppColors.muted),
-                SizedBox(width: 8),
+                const Icon(Icons.search, size: 16, color: AppColors.muted),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    'Nhập nguyên liệu bạn đang có',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: AppColors.muted),
+                  child: TextField(
+                    controller: controller,
+                    onChanged: onChanged,
+                    onSubmitted: onSubmitted,
+                    textInputAction: TextInputAction.search,
+                    decoration: const InputDecoration(
+                      hintText: 'Ví dụ: chicken, salmon, spinach...',
+                      border: InputBorder.none,
+                      isDense: true,
+                    ),
                   ),
                 ),
+                if (controller.text.isNotEmpty)
+                  IconButton(
+                    tooltip: 'Xóa nguyên liệu',
+                    onPressed: onClear,
+                    icon: const Icon(Icons.close, size: 18),
+                  ),
               ],
             ),
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.photo_camera_outlined, size: 16),
-                  label: const Text('Photo\nScan'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.muted,
-                    backgroundColor: AppColors.sand,
-                    side: BorderSide.none,
-                    minimumSize: const Size(0, 42),
-                    textStyle: const TextStyle(
-                      fontSize: 9,
-                      height: 1,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.qr_code_scanner, size: 15),
-                  label: const Text('Camera'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.green,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(0, 42),
-                    textStyle: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          const Wrap(
-            spacing: 7,
-            runSpacing: 7,
-            children: [
-              IngredientTag('Chicken Breast'),
-              IngredientTag('Spinach'),
-              IngredientTag('Cherry Tomatoes'),
-              IngredientTag('+ Add More'),
-            ],
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Kết quả được lọc qua tham số ingredient của Recipe Service.',
+              style: TextStyle(fontSize: 10, color: AppColors.muted),
+            ),
           ),
         ],
       ),
@@ -8575,25 +9147,12 @@ class ScannerRecommendedHeader extends StatelessWidget {
       children: [
         const Expanded(
           child: Text(
-            'AI-Recommended\nRecipes',
+            'Công thức theo\nnguyên liệu',
             style: TextStyle(
               fontSize: 18,
               height: 1.05,
               fontWeight: FontWeight.w900,
               color: AppColors.ink,
-            ),
-          ),
-        ),
-        TextButton(
-          onPressed: () {},
-          child: const Text(
-            'Save\nResults',
-            textAlign: TextAlign.right,
-            style: TextStyle(
-              fontSize: 9,
-              height: 1.05,
-              fontWeight: FontWeight.w900,
-              color: AppColors.green,
             ),
           ),
         ),
@@ -8605,17 +9164,17 @@ class ScannerRecommendedHeader extends StatelessWidget {
 class ScannerRecipeCard extends StatelessWidget {
   const ScannerRecipeCard({
     super.key,
+    required this.recipeId,
     required this.title,
     required this.meta,
-    required this.match,
+    required this.tags,
     required this.palette,
-    this.compact = false,
+    this.imageUrl,
   });
 
   factory ScannerRecipeCard.fromRecipe({
     required Recipe recipe,
     required MealPalette palette,
-    required int index,
   }) {
     final nutrition = recipe.nutrition;
     final meta = nutrition == null
@@ -8623,19 +9182,21 @@ class ScannerRecipeCard extends StatelessWidget {
         : '${recipe.totalMinutes} phút • ${_formatNumber(nutrition.protein)}g protein';
 
     return ScannerRecipeCard(
+      recipeId: recipe.recipeId,
       title: recipe.title,
       meta: meta,
-      match: index == 0 ? '98%' : '${88 - index * 3}% phù hợp',
+      tags: recipe.dietTypes.map(_dietLabel).toList(),
       palette: palette,
-      compact: index > 0,
+      imageUrl: recipe.imageUrl,
     );
   }
 
+  final int recipeId;
   final String title;
   final String meta;
-  final String match;
+  final List<String> tags;
   final MealPalette palette;
-  final bool compact;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -8657,114 +9218,52 @@ class ScannerRecipeCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            height: compact ? 138 : 172,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                MealArt(palette: palette),
-                Positioned(
-                  left: 12,
-                  top: 10,
-                  child: ExploreTag(label: 'AI MATCH', dark: true),
-                ),
-                Positioned(
-                  right: 10,
-                  bottom: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: .9),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text(
-                      match,
-                      style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.green,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            height: 172,
+            child: RecipeApiImage(imageUrl: imageUrl, palette: palette),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          height: 1.08,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.ink,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      compact ? '' : '98%\nMATCH',
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        height: 1.1,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.green,
-                      ),
-                    ),
-                  ],
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    height: 1.08,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.ink,
+                  ),
                 ),
                 const SizedBox(height: 7),
                 Text(
                   meta,
                   style: const TextStyle(fontSize: 10, color: AppColors.muted),
                 ),
-                if (!compact) ...[
+                if (tags.isNotEmpty) ...[
                   const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.field,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'This recipe perfectly fits your protein goal for today while using 80% of your scanned ingredients.',
-                      style: TextStyle(
-                        fontSize: 9,
-                        height: 1.35,
-                        color: AppColors.green,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      const IngredientTag('KETO'),
-                      const SizedBox(width: 6),
-                      const IngredientTag('HIGH PROTEIN'),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          'Cook Now →',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.green,
-                          ),
-                        ),
-                      ),
-                    ],
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [for (final tag in tags) IngredientTag(tag)],
                   ),
                 ],
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => RecipeDetailsScreen(
+                          recipeId: recipeId,
+                          recipeTitle: title,
+                        ),
+                      ),
+                    ),
+                    child: const Text('Xem công thức →'),
+                  ),
+                ),
               ],
             ),
           ),
@@ -8775,12 +9274,14 @@ class ScannerRecipeCard extends StatelessWidget {
 }
 
 class ApiScannerRecipeList extends StatelessWidget {
-  const ApiScannerRecipeList({super.key});
+  const ApiScannerRecipeList({super.key, required this.future});
+
+  final Future<List<Recipe>> future;
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Recipe>>(
-      future: AuthDependencies.instance.recipeRepository.getRecipes(size: 2),
+      future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Center(
@@ -8804,7 +9305,6 @@ class ApiScannerRecipeList extends StatelessWidget {
               ScannerRecipeCard.fromRecipe(
                 recipe: recipes[index],
                 palette: _paletteForIndex(index),
-                index: index,
               ),
               if (index != recipes.length - 1) const SizedBox(height: 14),
             ],
@@ -9244,7 +9744,7 @@ class TodayMenuHeader extends StatelessWidget {
     return Row(
       children: [
         const Text(
-          'Thực đơn hôm nay',
+          'Công thức mới nhất',
           style: TextStyle(
             fontSize: 25,
             fontWeight: FontWeight.w900,
@@ -9279,6 +9779,7 @@ class MealCard extends StatelessWidget {
     required this.time,
     required this.calories,
     required this.palette,
+    this.imageUrl,
   });
 
   factory MealCard.fromRecipe({
@@ -9295,6 +9796,7 @@ class MealCard extends StatelessWidget {
           ? '- KCAL'
           : '${_formatNumber(nutrition.calories)} KCAL',
       palette: palette,
+      imageUrl: recipe.imageUrl,
     );
   }
 
@@ -9303,6 +9805,7 @@ class MealCard extends StatelessWidget {
   final String time;
   final String calories;
   final MealPalette palette;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -9327,7 +9830,7 @@ class MealCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                MealArt(palette: palette),
+                RecipeApiImage(imageUrl: imageUrl, palette: palette),
                 Positioned(
                   left: 18,
                   top: 15,
@@ -9407,8 +9910,6 @@ class MealCard extends StatelessWidget {
 class ApiTodayMealList extends StatelessWidget {
   const ApiTodayMealList({super.key});
 
-  static const _labels = ['BỮA SÁNG', 'BỮA TRƯA', 'BỮA TỐI'];
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Recipe>>(
@@ -9435,7 +9936,7 @@ class ApiTodayMealList extends StatelessWidget {
             for (var index = 0; index < recipes.length; index++) ...[
               MealCard.fromRecipe(
                 recipe: recipes[index],
-                label: _labels[index % _labels.length],
+                label: recipes[index].categoryName ?? 'CÔNG THỨC',
                 palette: _paletteForIndex(index),
               ),
               if (index != recipes.length - 1) const SizedBox(height: 18),
@@ -9445,6 +9946,57 @@ class ApiTodayMealList extends StatelessWidget {
       },
     );
   }
+}
+
+class RecipeApiImage extends StatelessWidget {
+  const RecipeApiImage({
+    super.key,
+    required this.imageUrl,
+    required this.palette,
+  });
+
+  final String? imageUrl;
+  final MealPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = imageUrl?.trim();
+    if (url == null || url.isEmpty) {
+      return MealArt(palette: palette);
+    }
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      gaplessPlayback: true,
+      errorBuilder: (_, _, _) => MealArt(palette: palette),
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            MealArt(palette: palette),
+            const Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.green,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+String _formatRecipeDate(DateTime value) {
+  final local = value.toLocal();
+  final day = local.day.toString().padLeft(2, '0');
+  final month = local.month.toString().padLeft(2, '0');
+  return '$day/$month/${local.year}';
 }
 
 class MealArt extends StatelessWidget {
