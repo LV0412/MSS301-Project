@@ -96,7 +96,8 @@ services:
       user-mysql:
         condition: service_healthy
     env_file:
-      - ./BE/services/user-service/.env
+      - path: ./BE/services/user-service/.env
+        required: false
     environment:
       APP_PORT: 8001
       DATABASE_URL: jdbc:mysql://user-mysql:3306/${USER_MYSQL_DATABASE:-user_service}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
@@ -104,6 +105,7 @@ services:
       DATABASE_PASSWORD: ${USER_MYSQL_ROOT_PASSWORD:-root}
       JPA_DDL_AUTO: ${USER_JPA_DDL_AUTO:-update}
       JPA_SHOW_SQL: ${USER_JPA_SHOW_SQL:-false}
+      APP_SEED_ENABLED: true
     ports:
       - "${USER_SERVICE_PORT:-8001}:8001"
 
@@ -139,7 +141,8 @@ services:
       recipe-mysql:
         condition: service_healthy
     env_file:
-      - ./BE/services/recipe-service/.env
+      - path: ./BE/services/recipe-service/.env
+        required: false
     environment:
       APP_PORT: 8002
       DATABASE_URL: jdbc:mysql://recipe-mysql:3306/${RECIPE_MYSQL_DATABASE:-recipe_service}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
