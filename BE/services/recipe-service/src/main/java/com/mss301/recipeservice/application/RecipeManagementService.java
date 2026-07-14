@@ -35,6 +35,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -154,6 +155,34 @@ public class RecipeManagementService {
     }
 
     private void validateRequest(RecipeRequest request) {
+        if (request == null) {
+            throw new BusinessRuleViolationException("Recipe request is required");
+        }
+        if (request.categoryId() == null) {
+            throw new BusinessRuleViolationException("A recipe must belong to a category");
+        }
+        if (!StringUtils.hasText(request.title())) {
+            throw new BusinessRuleViolationException("Recipe title is required");
+        }
+        if (!StringUtils.hasText(request.description())) {
+            throw new BusinessRuleViolationException("Recipe description is required");
+        }
+        if (request.ingredients() == null || request.ingredients().isEmpty()) {
+            throw new BusinessRuleViolationException("A recipe must contain at least one ingredient");
+        }
+        if (request.steps() == null || request.steps().isEmpty()) {
+            throw new BusinessRuleViolationException("A recipe must contain at least one step");
+        }
+        if (request.nutrition() == null) {
+            throw new BusinessRuleViolationException("A recipe must contain nutrition information");
+        }
+        if (request.ingredients().stream().anyMatch(item -> item == null || item.ingredientId() == null)) {
+            throw new BusinessRuleViolationException("Every recipe ingredient must reference an ingredient");
+        }
+        if (request.steps().stream().anyMatch(step -> step == null || step.stepOrder() == null)) {
+            throw new BusinessRuleViolationException("Every recipe step must define a step order");
+        }
+
         long ingredientCount = request.ingredients().stream()
                 .map(RecipeIngredientRequest::ingredientId).distinct().count();
         if (ingredientCount != request.ingredients().size()) {
