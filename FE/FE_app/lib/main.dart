@@ -1063,10 +1063,14 @@ class ApiMessageBanner extends StatelessWidget {
     super.key,
     required this.message,
     this.isError = false,
+    this.actionLabel,
+    this.onAction,
   });
 
   final String message;
   final bool isError;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -1077,14 +1081,22 @@ class ApiMessageBanner extends StatelessWidget {
         color: isError ? const Color(0xFFFFE8E6) : AppColors.mint,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
-        message,
-        style: TextStyle(
-          fontSize: 12,
-          height: 1.3,
-          fontWeight: FontWeight.w700,
-          color: isError ? const Color(0xFF9F2D20) : AppColors.darkGreen,
-        ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.3,
+                fontWeight: FontWeight.w700,
+                color: isError ? const Color(0xFF9F2D20) : AppColors.darkGreen,
+              ),
+            ),
+          ),
+          if (actionLabel != null && onAction != null)
+            TextButton(onPressed: onAction, child: Text(actionLabel!)),
+        ],
       ),
     );
   }
@@ -5824,8 +5836,6 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
                       onEdit: () => _editBasicProfile(state.userProfile),
                     ),
                     const SizedBox(height: 24),
-                    HealthScoreCard(healthProfile: state.healthProfile),
-                    const SizedBox(height: 16),
                     ProfileInsightCard(
                       profileMessage: state.profileMessage,
                       healthProfile: state.healthProfile,
@@ -5847,27 +5857,7 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
                       dietPreferences: state.dietPreferences,
                       allergies: state.allergies,
                     ),
-                    const SizedBox(height: 16),
-                    const CollapsedProfileSection(
-                      icon: Icons.devices_outlined,
-                      title: 'Thiết bị kết nối',
-                      preview: 'Đồng bộ sức khỏe',
-                      value: 'Chưa kết nối',
-                    ),
                     const SizedBox(height: 28),
-                    const Padding(
-                      padding: EdgeInsets.only(left: 18),
-                      child: Text(
-                        'CÀI ĐẶT ỨNG DỤNG',
-                        style: TextStyle(
-                          fontSize: 12,
-                          letterSpacing: 1,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.muted,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
                     SettingsCard(onLogout: _logout),
                   ],
                 );
@@ -5998,80 +5988,6 @@ MealPalette _paletteForIndex(int index) {
   };
 }
 
-class UserProfileScreen extends StatelessWidget {
-  const UserProfileScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.cream,
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            ListView(
-              padding: const EdgeInsets.fromLTRB(18, 20, 18, 112),
-              children: const [
-                ProfileTopBar(),
-                SizedBox(height: 46),
-                ProfileIdentity(),
-                SizedBox(height: 26),
-                HealthScoreCard(),
-                SizedBox(height: 18),
-                ProfileInsightCard(),
-                SizedBox(height: 44),
-                HealthProfileSection(),
-                SizedBox(height: 16),
-                CollapsedProfileSection(
-                  icon: Icons.track_changes,
-                  title: 'Nutrition Goals',
-                  preview: 'Daily Calories',
-                  value: '1,850 kcal',
-                ),
-                SizedBox(height: 16),
-                CollapsedProfileSection(
-                  icon: Icons.restaurant_menu,
-                  title: 'Dietary Preferences',
-                  preview: 'Mediterranean',
-                  value: 'Gluten-Free',
-                ),
-                SizedBox(height: 16),
-                CollapsedProfileSection(
-                  icon: Icons.devices_outlined,
-                  title: 'Connected Devices',
-                  preview: 'Apple Health',
-                  value: 'Connected',
-                ),
-                SizedBox(height: 38),
-                Padding(
-                  padding: EdgeInsets.only(left: 18),
-                  child: Text(
-                    'APP SETTINGS',
-                    style: TextStyle(
-                      fontSize: 12,
-                      letterSpacing: 1,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.muted,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16),
-                SettingsCard(),
-              ],
-            ),
-            const Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: HomeBottomNav(selected: HomeTab.profile),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class ProfileTopBar extends StatelessWidget {
   const ProfileTopBar({super.key, this.onLogout});
 
@@ -6198,75 +6114,6 @@ class ProfileIdentity extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class HealthScoreCard extends StatelessWidget {
-  const HealthScoreCard({super.key, this.healthProfile});
-
-  final Map<String, dynamic>? healthProfile;
-
-  @override
-  Widget build(BuildContext context) {
-    final bmi = _asDouble(healthProfile?['bmi']);
-    final score = bmi == null
-        ? 70
-        : (100 - ((bmi - 22).abs() * 4)).clamp(55, 95).round();
-    final scoreLabel = bmi == null ? 'Đang cập nhật' : _bmiLabel(bmi);
-
-    return ProfileCard(
-      child: Column(
-        children: [
-          const Text(
-            'ĐIỂM SỨC KHỎE',
-            style: TextStyle(
-              fontSize: 12,
-              letterSpacing: .9,
-              fontWeight: FontWeight.w900,
-              color: AppColors.muted,
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: 96,
-            height: 96,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 86,
-                  height: 86,
-                  child: CircularProgressIndicator(
-                    value: score / 100,
-                    strokeWidth: 4,
-                    strokeCap: StrokeCap.round,
-                    color: AppColors.green,
-                    backgroundColor: AppColors.line,
-                  ),
-                ),
-                Text(
-                  '$score',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.green,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            scoreLabel,
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
-              color: AppColors.green,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -6800,19 +6647,6 @@ class SettingsCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          const SettingsRow(icon: Icons.notifications_none, title: 'Thông báo'),
-          const Divider(height: 1, color: AppColors.line),
-          SettingsRow(
-            icon: Icons.dark_mode_outlined,
-            title: 'Chế độ tối',
-            toggle: true,
-          ),
-          const Divider(height: 1, color: AppColors.line),
-          const SettingsRow(
-            icon: Icons.privacy_tip_outlined,
-            title: 'Quyền riêng tư & bảo mật',
-          ),
-          const Divider(height: 1, color: AppColors.line),
           SettingsRow(
             icon: Icons.logout,
             title: 'Đăng xuất',
@@ -7626,74 +7460,6 @@ class _WeeklyTrendPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class MealPlannerScreen extends StatelessWidget {
-  const MealPlannerScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.cream,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 74),
-        child: FloatingActionButton(
-          onPressed: () {},
-          backgroundColor: AppColors.green,
-          foregroundColor: Colors.white,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add),
-        ),
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            ListView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 116),
-              children: [
-                const MealPlannerHeader(),
-                const SizedBox(height: 36),
-                const Text(
-                  'Dinh dưỡng tuần này',
-                  style: TextStyle(fontSize: 18, color: AppColors.ink),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Kế hoạch cá nhân hóa từ dữ liệu công thức hiện có',
-                  style: TextStyle(
-                    fontSize: 18,
-                    height: 1.35,
-                    color: AppColors.ink,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                const PlannerActionButtons(),
-                const SizedBox(height: 36),
-                const CalorieTargetPanel(),
-                const SizedBox(height: 24),
-                const MacroBalancePanel(),
-                const SizedBox(height: 26),
-                const PlannerInsightPanel(),
-                const SizedBox(height: 34),
-                const PlannerDaySelector(),
-                const SizedBox(height: 22),
-                const ApiPlannerMealList(),
-                const SizedBox(height: 18),
-                const AddSnackButton(),
-              ],
-            ),
-            const Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: HomeBottomNav(selected: HomeTab.mealPlan),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class MealPlannerHeader extends StatelessWidget {
@@ -9109,17 +8875,99 @@ class HomeHeader extends StatelessWidget {
   }
 }
 
-class DailyCaloriesCard extends StatelessWidget {
+class DailyCaloriesCard extends StatefulWidget {
   const DailyCaloriesCard({super.key});
 
   @override
+  State<DailyCaloriesCard> createState() => _DailyCaloriesCardState();
+}
+
+class _DailyCaloriesCardState extends State<DailyCaloriesCard> {
+  late Future<_DailyCaloriesData> _dataFuture = _loadData();
+
+  Future<_DailyCaloriesData> _loadData() async {
+    final dependencies = AuthDependencies.instance;
+    final account = await dependencies.repository.me();
+    final profile = await dependencies.userRepository.getUserById(
+      account.userId,
+    );
+    final nutritionGoal = await dependencies.userRepository.getNutritionGoal(
+      account.userId,
+    );
+    final logs = await dependencies.foodLogStore.load(
+      date: _foodLogIsoDate(DateTime.now()),
+    );
+    final consumedCalories = logs.fold<double>(0, (total, entry) {
+      final caloriesPerServing = entry.recipe?.nutrition?.calories;
+      if (caloriesPerServing == null) return total;
+      return total + (caloriesPerServing * entry.quantity);
+    });
+
+    return _DailyCaloriesData(
+      fullName: profile.fullName,
+      consumedCalories: consumedCalories,
+      targetCalories: _asDouble(nutritionGoal?['calories']),
+    );
+  }
+
+  void _reload() => setState(() => _dataFuture = _loadData());
+
+  @override
   Widget build(BuildContext context) {
+    return FutureBuilder<_DailyCaloriesData>(
+      future: _dataFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const SizedBox(
+            height: 300,
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.green),
+            ),
+          );
+        }
+        if (snapshot.hasError) {
+          return ApiMessageBanner(
+            message: 'Không thể tải dữ liệu calo hôm nay.',
+            isError: true,
+            actionLabel: 'Thử lại',
+            onAction: _reload,
+          );
+        }
+        return _DailyCaloriesContent(data: snapshot.data!);
+      },
+    );
+  }
+}
+
+class _DailyCaloriesContent extends StatelessWidget {
+  const _DailyCaloriesContent({required this.data});
+
+  final _DailyCaloriesData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final target = data.targetCalories;
+    final remaining = target == null
+        ? null
+        : (target - data.consumedCalories).clamp(0, double.infinity).toDouble();
+    final progress = target == null || target <= 0
+        ? 0.0
+        : (data.consumedCalories / target).clamp(0, 1).toDouble();
+    final displayName = data.fullName.trim().isEmpty
+        ? 'bạn'
+        : data.fullName.trim().split(RegExp(r'\s+')).last;
+    final statusText = target == null
+        ? 'Bạn chưa thiết lập mục tiêu calo trong hồ sơ.'
+        : remaining! > 0
+        ? 'Hôm nay bạn cần nạp thêm ${_formatCalories(remaining)} kcal\nđể đạt mục tiêu.'
+        : 'Bạn đã đạt mục tiêu calo hôm nay.';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Chào buổi sáng, Vy',
-          style: TextStyle(
+        Text(
+          '${_greetingFor(DateTime.now())}, $displayName',
+          style: const TextStyle(
             fontSize: 30,
             height: 1.05,
             fontWeight: FontWeight.w900,
@@ -9127,9 +8975,9 @@ class DailyCaloriesCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Hôm nay bạn cần nạp thêm 1,240 kcal\nđể đạt mục tiêu.',
-          style: TextStyle(
+        Text(
+          statusText,
+          style: const TextStyle(
             fontSize: 17,
             height: 1.35,
             color: AppColors.darkGreen,
@@ -9165,29 +9013,42 @@ class DailyCaloriesCard extends StatelessWidget {
                         width: 168,
                         height: 168,
                         child: CircularProgressIndicator(
-                          value: .50,
+                          value: 0,
                           strokeWidth: 8,
                           strokeCap: StrokeCap.round,
                           color: AppColors.green,
                           backgroundColor: AppColors.line,
                         ),
                       ),
+                      SizedBox(
+                        width: 168,
+                        height: 168,
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 8,
+                          strokeCap: StrokeCap.round,
+                          color: AppColors.green,
+                          backgroundColor: Colors.transparent,
+                        ),
+                      ),
                       Column(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
+                        children: [
                           Text(
-                            '1,254',
-                            style: TextStyle(
+                            _formatCalories(data.consumedCalories),
+                            style: const TextStyle(
                               fontSize: 44,
                               height: 1,
                               fontWeight: FontWeight.w900,
                               color: AppColors.ink,
                             ),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
-                            'Đã nạp / 2,494',
-                            style: TextStyle(
+                            target == null
+                                ? 'Đã nạp / Chưa có mục tiêu'
+                                : 'Đã nạp / ${_formatCalories(target)}',
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
                               color: AppColors.ink,
@@ -9205,6 +9066,34 @@ class DailyCaloriesCard extends StatelessWidget {
       ],
     );
   }
+}
+
+class _DailyCaloriesData {
+  const _DailyCaloriesData({
+    required this.fullName,
+    required this.consumedCalories,
+    required this.targetCalories,
+  });
+
+  final String fullName;
+  final double consumedCalories;
+  final double? targetCalories;
+}
+
+String _greetingFor(DateTime value) {
+  if (value.hour < 12) return 'Chào buổi sáng';
+  if (value.hour < 18) return 'Chào buổi chiều';
+  return 'Chào buổi tối';
+}
+
+String _formatCalories(double value) {
+  final digits = value.round().toString();
+  final buffer = StringBuffer();
+  for (var index = 0; index < digits.length; index++) {
+    if (index > 0 && (digits.length - index) % 3 == 0) buffer.write(',');
+    buffer.write(digits[index]);
+  }
+  return buffer.toString();
 }
 
 class HomeAiInsightCard extends StatelessWidget {
@@ -9679,7 +9568,6 @@ class HomeBottomNav extends StatelessWidget {
       (Icons.home_outlined, 'Trang chủ', HomeTab.home),
       (Icons.search, 'Khám phá', HomeTab.explore),
       (Icons.menu_book_outlined, 'Công thức', HomeTab.recipes),
-      (Icons.calendar_month_outlined, 'Thực đơn', HomeTab.mealPlan),
       (Icons.person_outline, 'Hồ sơ', HomeTab.profile),
     ];
 
@@ -9739,7 +9627,6 @@ class HomeBottomNav extends StatelessWidget {
       HomeTab.home => const HomeScreen(),
       HomeTab.explore => const ExploreRecipesScreen(),
       HomeTab.recipes => const PersonalizedSuggestionsScreen(),
-      HomeTab.mealPlan => const MealPlannerScreen(),
       HomeTab.profile => const ApiUserProfileScreen(),
     };
 
@@ -9750,7 +9637,7 @@ class HomeBottomNav extends StatelessWidget {
   }
 }
 
-enum HomeTab { home, explore, recipes, mealPlan, profile }
+enum HomeTab { home, explore, recipes, profile }
 
 class _MealArtPainter extends CustomPainter {
   _MealArtPainter(this.palette);
