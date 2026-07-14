@@ -97,9 +97,24 @@ class RecipeRepository {
   }
 
   Future<List<Map<String, dynamic>>> getAllergens({int size = 100}) async {
+    return _getCatalog('/allergens', size: size);
+  }
+
+  Future<List<Map<String, dynamic>>> getCategories({int size = 100}) {
+    return _getCatalog('/categories', size: size);
+  }
+
+  Future<List<Map<String, dynamic>>> getIngredients({int size = 200}) {
+    return _getCatalog('/ingredients', size: size);
+  }
+
+  Future<List<Map<String, dynamic>>> _getCatalog(
+    String path, {
+    required int size,
+  }) async {
     final response = await _request(
       () => _apiClient.dio.get<Map<String, dynamic>>(
-        '/allergens',
+        path,
         queryParameters: {'page': 0, 'size': size, 'sort': 'name,asc'},
       ),
     );
