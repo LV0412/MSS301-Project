@@ -43,6 +43,7 @@ class RecipeServiceIntegrationTest {
     private Long categoryId;
     private Long peanutAllergenId;
     private Long peanutIngredientId;
+    private Long riceIngredientId;
 
     @BeforeEach
     void setUpCatalog() {
@@ -50,6 +51,7 @@ class RecipeServiceIntegrationTest {
         peanutAllergenId = allergenService.create(new AllergenRequest("Peanut")).allergenId();
         peanutIngredientId = ingredientService.create(
                 new IngredientRequest("Peanut", Set.of(peanutAllergenId))).ingredientId();
+        riceIngredientId = ingredientService.create(new IngredientRequest("Rice", Set.of())).ingredientId();
     }
 
     @Test
@@ -77,6 +79,78 @@ class RecipeServiceIntegrationTest {
 
         assertThat(safeResults).isEmpty();
         assertThat(veganResults).hasSize(1);
+    }
+
+    @Test
+    void filtersByDietAndExcludedAllergensTogether() {
+        recipeService.create(validRequest(Set.of(DietType.VEGAN), peanutIngredientId, "Peanut noodles"));
+        recipeService.create(validRequest(Set.of(DietType.VEGAN), riceIngredientId, "Rice bowl"));
+        recipeService.create(validRequest(Set.of(DietType.NORMAL), riceIngredientId, "Plain rice"));
+
+        var results = recipeService.search(new RecipeSearchCriteria(
+                null, null, null, null, null, null, DietType.VEGAN, Set.of(peanutAllergenId)),
+                PageRequest.of(0, 10));
+
+        assertThat(results).hasSize(1);
+        assertThat(results.getContent().getFirst().title()).isEqualTo("Rice bowl");
+    }
+
+    @Test
+    void rejectsRecipeWithoutIngredients() {
+        RecipeRequest invalid = new RecipeRequest(
+                categoryId, "Rice bowl", "Simple rice bowl", null, 5, 10, Difficulty.EASY, 1,
+                Set.of(DietType.VEGAN),
+                List.of(),
+                List.of(new RecipeStepRequest(1, "Cook rice")),
+                nutrition());
+
+        assertThatThrownBy(() -> recipeService.create(invalid))
+                .isInstanceOf(BusinessRuleViolationException.class)
+                .hasMessageContaining("at least one ingredient");
+    }
+
+    @Test
+    void rejectsRecipeWithoutSteps() {
+        RecipeRequest invalid = new RecipeRequest(
+                categoryId, "Rice bowl", "Simple rice bowl", null, 5, 10, Difficulty.EASY, 1,
+                Set.of(DietType.VEGAN),
+                List.of(new RecipeIngredientRequest(riceIngredientId, new BigDecimal("100"), "g")),
+                List.of(),
+                nutrition());
+
+        assertThatThrownBy(() -> recipeService.create(invalid))
+                .isInstanceOf(BusinessRuleViolationException.class)
+                .hasMessageContaining("at least one step");
+    }
+
+    @Test
+    void rejectsRecipeWithoutNutrition() {
+        RecipeRequest invalid = new RecipeRequest(
+                categoryId, "Rice bowl", "Simple rice bowl", null, 5, 10, Difficulty.EASY, 1,
+                Set.of(DietType.VEGAN),
+                List.of(new RecipeIngredientRequest(riceIngredientId, new BigDecimal("100"), "g")),
+                List.of(new RecipeStepRequest(1, "Cook rice")),
+                null);
+
+        assertThatThrownBy(() -> recipeService.create(invalid))
+                .isInstanceOf(BusinessRuleViolationException.class)
+                .hasMessageContaining("nutrition");
+    }
+
+    @Test
+    void rejectsDuplicateIngredientsInRecipe() {
+        RecipeRequest invalid = new RecipeRequest(
+                categoryId, "Double rice bowl", "Rice listed twice", null, 5, 10, Difficulty.EASY, 1,
+                Set.of(DietType.VEGAN),
+                List.of(
+                        new RecipeIngredientRequest(riceIngredientId, new BigDecimal("100"), "g"),
+                        new RecipeIngredientRequest(riceIngredientId, new BigDecimal("50"), "g")),
+                List.of(new RecipeStepRequest(1, "Cook rice")),
+                nutrition());
+
+        assertThatThrownBy(() -> recipeService.create(invalid))
+                .isInstanceOf(BusinessRuleViolationException.class)
+                .hasMessageContaining("same ingredient");
     }
 
     @Test
@@ -118,10 +192,14 @@ class RecipeServiceIntegrationTest {
     }
 
     private RecipeRequest validRequest(Set<DietType> dietTypes) {
+        return validRequest(dietTypes, peanutIngredientId, "Peanut noodles");
+    }
+
+    private RecipeRequest validRequest(Set<DietType> dietTypes, Long ingredientId, String title) {
         return new RecipeRequest(
-                categoryId, "Peanut noodles", "Quick noodles", null, 5, 10, Difficulty.EASY, 1,
+                categoryId, title, "Quick noodles", null, 5, 10, Difficulty.EASY, 1,
                 dietTypes,
-                List.of(new RecipeIngredientRequest(peanutIngredientId, new BigDecimal("50"), "g")),
+                List.of(new RecipeIngredientRequest(ingredientId, new BigDecimal("50"), "g")),
                 List.of(
                         new RecipeStepRequest(1, "Boil noodles"),
                         new RecipeStepRequest(2, "Add peanut")),
