@@ -11,7 +11,8 @@ import java.util.List;
 
 public final class SeedDataFactory {
 
-    private static final String PASSWORD_HASH = "$2a$10$seededLocalDevelopmentPasswordHash";
+    // Plain test password: Password@123
+    private static final String PASSWORD_HASH = "$2a$10$8RnbbV3E/wtkJAq/9//8RunIpZS5Rf1sEWI.SD2vSHHbQikqfoOpO";
 
     private SeedDataFactory() {
     }
