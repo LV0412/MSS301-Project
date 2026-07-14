@@ -35,6 +35,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
         VerificationProperties.class,
         PasswordResetProperties.class,
         AuthSecurityProperties.class,
+        AdminAccountProperties.class,
         RateLimitProperties.class,
         CorsProperties.class
 })

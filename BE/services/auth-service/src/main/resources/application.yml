@@ -30,6 +30,8 @@ spring:
             enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
 
 auth:
+  admin-account:
+    default-password: ${ADMIN_DEFAULT_USER_PASSWORD:ChangeMe@123}
   jwt:
     secret: ${JWT_SECRET:change-this-secret-before-running-change-this-secret-before-running}
     access-token-expiration-minutes: ${JWT_ACCESS_TOKEN_EXPIRATION_MINUTES:15}

@@ -59,6 +59,7 @@ Required for local development:
 - `AUTH_DATABASE_PASSWORD`
 - `JWT_SECRET`
 - `CORS_ALLOWED_ORIGINS`
+- `ADMIN_DEFAULT_USER_PASSWORD` (required when admins create user accounts)
 
 Optional integrations:
 
@@ -75,6 +76,7 @@ Security defaults:
 - Failed password login attempts lock the account temporarily.
 - In-memory rate limiting protects login, OTP, and password reset flows.
 - Production startup validates JWT, DB password, and unsafe JPA `ddl-auto` settings.
+- Admin-created accounts use `ADMIN_DEFAULT_USER_PASSWORD`; replace the development default in every deployed environment.
 
 ## Run Locally
 
