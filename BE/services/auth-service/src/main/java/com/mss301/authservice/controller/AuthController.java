@@ -1,6 +1,7 @@
 package com.mss301.authservice.controller;
 
 import com.mss301.authservice.dto.AccountResponse;
+import com.mss301.authservice.dto.AdminCreateAccountRequest;
 import com.mss301.authservice.dto.AuthResponse;
 import com.mss301.authservice.dto.ChangePasswordRequest;
 import com.mss301.authservice.dto.EmailRequest;
@@ -22,6 +23,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,6 +49,22 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<MessageResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+    }
+
+    @Operation(summary = "Create user account as admin", description = "Create an inactive LOCAL account with the server-configured temporary password, provision its User Service profile, and send a verification OTP.")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Account and user profile created"),
+            @ApiResponse(responseCode = "400", description = "Invalid request"),
+            @ApiResponse(responseCode = "401", description = "Authentication required"),
+            @ApiResponse(responseCode = "403", description = "Admin role required"),
+            @ApiResponse(responseCode = "409", description = "Email already exists")
+    })
+    @PostMapping("/admin/accounts")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AccountResponse> createAccountByAdmin(
+            @Valid @RequestBody AdminCreateAccountRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.createAccountByAdmin(request));
     }
 
     @Operation(summary = "Login with email and password", description = "Authenticate a verified LOCAL account and return access and refresh tokens.")

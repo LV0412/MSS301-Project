@@ -1,346 +1,241 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { CirclePlus, Save, Trash2, X } from "lucide-react";
 import {
-  Archive,
-  Camera,
-  CheckCircle2,
-  CirclePlus,
-  Eye,
-  GripVertical,
-  Save,
-  ShieldAlert,
-  ShieldCheck,
-  Sparkles,
-  Timer,
-  Wand2,
-  X
-} from "lucide-react";
-import { recipes } from "../data/mockData.js";
-import { applyAiSuggestion, archiveRecipe, publishRecipe, runRecipeSafetyCheck, saveRecipeDraft } from "../api/recipeManagement.js";
+  createRecipe,
+  deleteRecipe,
+  getCategories,
+  getIngredients,
+  getRecipe,
+  updateRecipe
+} from "../api/recipeManagement.js";
 
-const editorSteps = [
-  { id: "basic-info", label: "Thông tin cơ bản", state: "Hoàn tất" },
-  { id: "ingredients", label: "Nguyên liệu", state: "Cảnh báo" },
-  { id: "instructions", label: "Hướng dẫn nấu", state: "Hoàn tất" },
-  { id: "nutrition", label: "Dinh dưỡng", state: "Hoàn tất" },
-  { id: "safety-tags", label: "Tags & an toàn", state: "Cảnh báo" },
-  { id: "publish", label: "Xem trước & xuất bản", state: "Chưa hoàn tất" }
+const DIET_TYPES = ["NORMAL", "VEGETARIAN", "VEGAN", "OVO_VEGETARIAN", "LACTO_VEGETARIAN", "KETO", "LOW_CARB"];
+const EMPTY_FORM = {
+  categoryId: "",
+  title: "",
+  description: "",
+  imageUrl: "",
+  preparationTime: 0,
+  cookTime: 0,
+  difficulty: "EASY",
+  servings: 1,
+  dietTypes: [],
+  ingredients: [{ ingredientId: "", quantity: 1, unit: "g" }],
+  steps: [{ stepOrder: 1, instruction: "" }],
+  nutrition: { calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0, sodium: 0 }
+};
+
+const NUTRITION_FIELDS = [
+  ["calories", "Calories", "kcal"],
+  ["protein", "Protein", "g"],
+  ["carbs", "Carb", "g"],
+  ["fat", "Fat", "g"],
+  ["fiber", "Fiber", "g"],
+  ["sugar", "Sugar", "g"],
+  ["sodium", "Sodium", "mg"]
 ];
 
-const ingredients = [
-  { name: "Quinoa", amount: "1", unit: "cup", note: "đã nấu", status: "Đã khớp DB" },
-  { name: "Đậu gà", amount: "200", unit: "g", note: "nướng nhẹ", status: "Đã khớp DB" },
-  { name: "Sốt tahini chanh", amount: "2", unit: "muỗng", note: "tự pha", status: "Chưa khớp DB" }
-];
+function toForm(recipe) {
+  return {
+    categoryId: String(recipe.category?.categoryId || ""),
+    title: recipe.title || "",
+    description: recipe.description || "",
+    imageUrl: recipe.imageUrl || "",
+    preparationTime: recipe.preparationTime ?? 0,
+    cookTime: recipe.cookTime ?? 0,
+    difficulty: recipe.difficulty || "EASY",
+    servings: recipe.servings ?? 1,
+    dietTypes: recipe.dietTypes || [],
+    ingredients: (recipe.ingredients || []).map((item) => ({
+      ingredientId: String(item.ingredientId), quantity: item.quantity, unit: item.unit
+    })),
+    steps: (recipe.steps || []).sort((a, b) => a.stepOrder - b.stepOrder).map((item, index) => ({
+      stepOrder: index + 1, instruction: item.instruction
+    })),
+    nutrition: {
+      calories: recipe.nutrition?.calories ?? 0,
+      protein: recipe.nutrition?.protein ?? 0,
+      fat: recipe.nutrition?.fat ?? 0,
+      carbs: recipe.nutrition?.carbs ?? 0,
+      fiber: recipe.nutrition?.fiber ?? 0,
+      sugar: recipe.nutrition?.sugar ?? 0,
+      sodium: recipe.nutrition?.sodium ?? 0
+    }
+  };
+}
 
-const instructionSteps = [
-  { order: 1, text: "Rửa quinoa dưới vòi nước lạnh và nấu với 2 cup nước muối nhẹ.", timer: "15" },
-  { order: 2, text: "Cắt cà chua bi, trộn với dầu olive, rau xanh và đậu gà nướng.", timer: "8" },
-  { order: 3, text: "Rưới sốt tahini chanh, thêm rau thơm và phục vụ khi còn ấm.", timer: "" }
-];
+function toPayload(form) {
+  return {
+    ...form,
+    categoryId: Number(form.categoryId),
+    preparationTime: Number(form.preparationTime),
+    cookTime: Number(form.cookTime),
+    servings: Number(form.servings),
+    imageUrl: form.imageUrl.trim() || null,
+    ingredients: form.ingredients.map((item) => ({
+      ingredientId: Number(item.ingredientId), quantity: Number(item.quantity), unit: item.unit.trim()
+    })),
+    steps: form.steps.map((item, index) => ({ stepOrder: index + 1, instruction: item.instruction.trim() })),
+    nutrition: Object.fromEntries(Object.entries(form.nutrition).map(([key, value]) => [key, Number(value)]))
+  };
+}
 
-const nutritionFields = [
-  { label: "Calories", value: 450, unit: "kcal" },
-  { label: "Protein", value: 24, unit: "g" },
-  { label: "Carb", value: 56, unit: "g" },
-  { label: "Fat", value: 12, unit: "g" },
-  { label: "Fiber", value: 9, unit: "g" },
-  { label: "Sodium", value: 420, unit: "mg" },
-  { label: "Sugar", value: 6, unit: "g" },
-  { label: "Cholesterol", value: 0, unit: "mg" }
-];
-
-const aiSuggestions = [
-  { id: "heart-tag", text: 'Gắn tag "Tốt cho tim mạch"', confidence: "86%" },
-  { id: "olive-oil", text: "Giảm 20% dầu olive", confidence: "78%" },
-  { id: "nut-check", text: 'Kiểm tra allergen "Hạt"', confidence: "91%" }
-];
-
-const publishChecklist = [
-  { label: "Có ảnh món ăn", state: "completed", help: "Đã có ảnh cover." },
-  { label: "Có tên và mô tả", state: "completed", help: "Thông tin cơ bản đã đủ." },
-  { label: "Có ít nhất 1 nguyên liệu", state: "completed", help: "Đã thêm 3 nguyên liệu." },
-  { label: "Tất cả nguyên liệu đã khớp Nutrition Database", state: "missing", help: "Sốt tahini chanh chưa khớp Nutrition Database." },
-  { label: "Có hướng dẫn nấu", state: "completed", help: "Đã có 3 bước nấu." },
-  { label: "Dinh dưỡng đã tính", state: "completed", help: "Tính từ 3/3 dòng nguyên liệu, 1 dòng cần xác nhận lại." },
-  { label: "Allergen tags đã xác nhận", state: "warning", help: "Cần xác nhận allergen Hạt." },
-  { label: "Safety check không có lỗi nghiêm trọng", state: "missing", help: "Critical: Có hạt, cần duyệt trước khi xuất bản." }
-];
-
-function confirmArchive(recipe) {
-  const reason = window.prompt(`Nhập lý do lưu trữ "${recipe.name}":`);
-  if (!reason) return;
-  if (window.confirm("Công thức đã được người dùng lưu hoặc thêm vào kế hoạch. Xác nhận lưu trữ thay vì xóa cứng?")) {
-    archiveRecipe(recipe.id, reason);
-  }
+function validate(form) {
+  if (!form.categoryId) return "Vui lòng chọn danh mục.";
+  if (!form.title.trim() || !form.description.trim()) return "Tên và mô tả công thức là bắt buộc.";
+  if (Number(form.servings) <= 0) return "Khẩu phần phải lớn hơn 0.";
+  if (!form.ingredients.length || form.ingredients.some((item) => !item.ingredientId || Number(item.quantity) <= 0 || !item.unit.trim())) return "Mỗi nguyên liệu cần có tên, số lượng lớn hơn 0 và đơn vị.";
+  if (!form.steps.length || form.steps.some((item) => !item.instruction.trim())) return "Mỗi bước nấu cần có hướng dẫn.";
+  if (Object.values(form.nutrition).some((value) => Number(value) < 0 || Number.isNaN(Number(value)))) return "Dinh dưỡng phải là số không âm.";
+  return "";
 }
 
 export default function RecipeFormPage({ mode }) {
   const { id } = useParams();
-  const recipe = recipes.find((item) => item.id === id) ?? recipes[0];
+  const navigate = useNavigate();
   const isCreate = mode === "create";
-  const [showPreview, setShowPreview] = useState(false);
-  const [nutritionMode, setNutritionMode] = useState("auto");
-  const [activeStep, setActiveStep] = useState(editorSteps[0].id);
-  const [calculationResult, setCalculationResult] = useState("Dữ liệu dinh dưỡng đã được tính từ 3/3 nguyên liệu, 1 dòng cần xác nhận DB.");
-
-  const blockedChecklist = useMemo(() => publishChecklist.filter((item) => item.state === "missing"), []);
-  const hasCriticalSafety = true;
-  const canPublish = blockedChecklist.length === 0 && !hasCriticalSafety;
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [categories, setCategories] = useState([]);
+  const [ingredientOptions, setIngredientOptions] = useState([]);
+  const [loading, setLoading] = useState(!isCreate);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const sections = editorSteps.map((step) => document.getElementById(step.id)).filter(Boolean);
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible?.target?.id) setActiveStep(visible.target.id);
-      },
-      { rootMargin: "-190px 0px -55% 0px", threshold: [0.15, 0.35, 0.6] }
-    );
+    setLoading(true);
+    const requests = [
+      getCategories({ page: 0, size: 500, sort: "name,asc" }),
+      getIngredients({ page: 0, size: 500, sort: "name,asc" })
+    ];
+    if (!isCreate) requests.push(getRecipe(id));
 
-    sections.forEach((section) => observer.observe(section));
-    return () => observer.disconnect();
-  }, []);
+    Promise.all(requests)
+      .then(([categoryPage, ingredientPage, recipe]) => {
+        setCategories(categoryPage.content || []);
+        setIngredientOptions(ingredientPage.content || []);
+        if (recipe) setForm(toForm(recipe));
+      })
+      .catch((requestError) => setError(requestError.message))
+      .finally(() => setLoading(false));
+  }, [id, isCreate]);
 
-  function handlePublish() {
-    if (!canPublish) return;
-    publishRecipe({ recipeId: recipe.id });
+  const allergenNames = useMemo(() => {
+    const selectedIds = new Set(form.ingredients.map((item) => Number(item.ingredientId)));
+    return [...new Set(ingredientOptions.filter((item) => selectedIds.has(item.ingredientId)).flatMap((item) => item.allergens || []).map((item) => item.name))];
+  }, [form.ingredients, ingredientOptions]);
+
+  function updateField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
   }
 
-  function handleOverridePublish() {
-    if (window.confirm("Công thức này còn cảnh báo dinh dưỡng hoặc allergen. Bạn có chắc muốn xuất bản không?")) {
-      publishRecipe({ recipeId: recipe.id, overrideWarnings: true });
+  function updateIngredient(index, field, value) {
+    setForm((current) => ({ ...current, ingredients: current.ingredients.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item) }));
+  }
+
+  function updateStep(index, value) {
+    setForm((current) => ({ ...current, steps: current.steps.map((item, itemIndex) => itemIndex === index ? { ...item, instruction: value } : item) }));
+  }
+
+  function toggleDiet(dietType) {
+    setForm((current) => ({
+      ...current,
+      dietTypes: current.dietTypes.includes(dietType) ? current.dietTypes.filter((item) => item !== dietType) : [...current.dietTypes, dietType]
+    }));
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    const validationError = validate(form);
+    if (validationError) { setError(validationError); return; }
+    setSaving(true);
+    setError("");
+    try {
+      const saved = isCreate ? await createRecipe(toPayload(form)) : await updateRecipe(id, toPayload(form));
+      navigate(`/recipes/${saved.recipeId}/edit`, { replace: true });
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSaving(false);
     }
   }
 
+  async function handleDelete() {
+    if (!window.confirm(`Xóa công thức “${form.title}”?`)) return;
+    try { await deleteRecipe(id); navigate("/recipes"); }
+    catch (requestError) { setError(requestError.message); }
+  }
+
+  if (loading) return <div className="page-stack"><section className="panel">Đang tải dữ liệu công thức...</section></div>;
+
   return (
-    <div className="page-stack recipe-editor-page">
+    <form className="page-stack recipe-editor-page" onSubmit={handleSubmit}>
       <div className="page-toolbar recipe-editor-title">
-        <div>
-          <p className="eyebrow">Recipe Studio</p>
-          <h2>{isCreate ? "Tạo công thức mới" : "Chỉnh sửa công thức"}</h2>
-          <p>Tạo công thức có cấu trúc, kiểm soát dinh dưỡng, dị ứng và khả năng cá nhân hóa bởi AI.</p>
-        </div>
+        <div><p className="eyebrow">Recipe Service</p><h2>{isCreate ? "Tạo công thức mới" : "Chỉnh sửa công thức"}</h2><p>Biểu mẫu này bám đúng RecipeRequest của backend.</p></div>
+        <div className="button-row"><Link className="ghost-btn" to="/recipes">Hủy</Link><button className="primary-btn" disabled={saving} type="submit"><Save size={16} /> {saving ? "Đang lưu..." : isCreate ? "Tạo công thức" : "Lưu thay đổi"}</button></div>
       </div>
 
-      <div className="recipe-action-bar">
-        <span className="source-badge">Trạng thái: Bản nháp</span>
-        <div className="button-row">
-          <button className="ghost-btn" onClick={() => setShowPreview(true)}><Eye size={16} /> Xem trước</button>
-          <button className="ghost-btn" onClick={() => saveRecipeDraft({ recipeId: recipe.id })}><Save size={16} /> Lưu nháp</button>
-          <button className="ghost-btn" onClick={() => runRecipeSafetyCheck(recipe.id)}><ShieldCheck size={16} /> Chạy kiểm tra an toàn</button>
-          <button className="primary-btn disabled-btn" disabled={!canPublish} title="Cần hoàn tất checklist trước khi xuất bản." onClick={handlePublish}>Xuất bản</button>
-          {!canPublish ? <button className="ghost-btn" onClick={handleOverridePublish}>Override có xác nhận</button> : null}
-        </div>
-      </div>
+      {error ? <section className="warning-panel"><span>{error}</span></section> : null}
 
-      <nav className="recipe-stepper" aria-label="Recipe editor sections">
-        {editorSteps.map((step) => (
-          <a className={activeStep === step.id ? "active" : ""} href={`#${step.id}`} key={step.id}>
-            {step.label}
-            <span className={`step-state ${step.state === "Hoàn tất" ? "done" : step.state === "Cảnh báo" ? "warn" : "todo"}`}>{step.state}</span>
-          </a>
-        ))}
-      </nav>
-
-      <section className="recipe-editor-section basic-info-section" id="basic-info">
-        <div className="section-heading">
-          <h2>Thông tin cơ bản</h2>
-          <p>Ảnh, mô tả, thời gian nấu, trạng thái và nguồn công thức.</p>
-        </div>
-        <div className="recipe-basic-grid">
-          <div className="media-upload recipe-media-upload">
-            <img src={recipe.image} alt={recipe.name} />
-            <button><Camera size={22} /> Thay ảnh món ăn</button>
-          </div>
-          <div className="form-card">
-            <label>Tên công thức<input defaultValue={isCreate ? "" : recipe.name} placeholder="Ví dụ: Bowl quinoa Địa Trung Hải" /></label>
-            <label>Mô tả<textarea defaultValue="Một bữa ăn giàu dinh dưỡng với đậu gà nướng, cà chua, rau xanh và sốt chanh tahini." /></label>
-            <div className="macro-input-grid compact-form-grid">
-              <label>Cuisine<select defaultValue={recipe.cuisine}><option>Địa Trung Hải</option><option>Việt Nam</option><option>Bắc Âu</option></select></label>
-              <label>Mùa phù hợp<select><option>Mùa hè</option><option>Mùa xuân</option><option>Quanh năm</option></select></label>
-              <label>Khẩu phần<input type="number" min="1" defaultValue="2" /></label>
-              <label>Chuẩn bị (phút)<input type="number" min="0" defaultValue="10" /></label>
-              <label>Thời gian nấu (phút)<input type="number" min="0" defaultValue="25" /></label>
-              <label>Tổng thời gian (phút)<input type="number" min="0" defaultValue="35" /></label>
-              <label>Độ khó<select><option>Dễ</option><option>Trung bình</option><option>Khó</option></select></label>
-              <label>Trạng thái<select><option>Bản nháp</option><option>Chờ duyệt</option><option>Đã xuất bản</option></select></label>
-              <label>Nguồn<select><option>Thủ công</option><option>AI tạo</option><option>Import</option></select></label>
-            </div>
+      <section className="recipe-editor-section">
+        <div className="section-heading"><h2>Thông tin cơ bản</h2><p>Danh mục, hình ảnh, thời gian, độ khó và khẩu phần.</p></div>
+        <div className="form-card">
+          <label>Tên công thức<input maxLength="255" value={form.title} onChange={(event) => updateField("title", event.target.value)} /></label>
+          <label>Mô tả<textarea value={form.description} onChange={(event) => updateField("description", event.target.value)} /></label>
+          <label>URL ảnh<input maxLength="2048" type="url" value={form.imageUrl} onChange={(event) => updateField("imageUrl", event.target.value)} placeholder="https://..." /></label>
+          <div className="macro-input-grid compact-form-grid">
+            <label>Danh mục<select value={form.categoryId} onChange={(event) => updateField("categoryId", event.target.value)}><option value="">Chọn danh mục</option>{categories.map((item) => <option value={item.categoryId} key={item.categoryId}>{item.name}</option>)}</select></label>
+            <label>Chuẩn bị (phút)<input min="0" type="number" value={form.preparationTime} onChange={(event) => updateField("preparationTime", event.target.value)} /></label>
+            <label>Nấu (phút)<input min="0" type="number" value={form.cookTime} onChange={(event) => updateField("cookTime", event.target.value)} /></label>
+            <label>Độ khó<select value={form.difficulty} onChange={(event) => updateField("difficulty", event.target.value)}><option value="EASY">Dễ</option><option value="MEDIUM">Trung bình</option><option value="HARD">Khó</option></select></label>
+            <label>Khẩu phần<input min="1" type="number" value={form.servings} onChange={(event) => updateField("servings", event.target.value)} /></label>
           </div>
         </div>
       </section>
 
-      <section className="recipe-editor-section" id="ingredients">
-        <div className="section-heading">
-          <h2>Nguyên liệu</h2>
-          <p>Chọn từ Nutrition Database để tính dinh dưỡng chính xác.</p>
-        </div>
+      <section className="recipe-editor-section">
+        <div className="section-heading"><h2>Nguyên liệu</h2><p>Recipe-service yêu cầu ít nhất một nguyên liệu từ catalog.</p></div>
         <div className="structured-list">
-          {ingredients.map((ingredient) => (
-            <div className="structured-ingredient-row" key={ingredient.name}>
-              <GripVertical size={16} />
-              <label>Nguyên liệu<input defaultValue={ingredient.name} /></label>
-              <label>Số lượng<input defaultValue={ingredient.amount} /></label>
-              <label>Đơn vị<input defaultValue={ingredient.unit} /></label>
-              <label>Ghi chú<input defaultValue={ingredient.note} /></label>
-              <span className={`safety-badge ${ingredient.status === "Đã khớp DB" ? "ok" : "warning"}`}>{ingredient.status}</span>
+          {form.ingredients.map((item, index) => (
+            <div className="structured-ingredient-row" key={index}>
+              <label>Nguyên liệu<select value={item.ingredientId} onChange={(event) => updateIngredient(index, "ingredientId", event.target.value)}><option value="">Chọn nguyên liệu</option>{ingredientOptions.map((option) => <option value={option.ingredientId} key={option.ingredientId}>{option.name}</option>)}</select></label>
+              <label>Số lượng<input min="0.0001" step="any" type="number" value={item.quantity} onChange={(event) => updateIngredient(index, "quantity", event.target.value)} /></label>
+              <label>Đơn vị<input maxLength="50" value={item.unit} onChange={(event) => updateIngredient(index, "unit", event.target.value)} /></label>
+              <button className="icon-link" disabled={form.ingredients.length === 1} type="button" onClick={() => setForm((current) => ({ ...current, ingredients: current.ingredients.filter((_, itemIndex) => itemIndex !== index) }))}><X size={16} /></button>
             </div>
           ))}
         </div>
-        <div className="warning-panel mini">
-          <ShieldAlert size={16} />
-          <span>1 nguyên liệu chưa khớp Nutrition Database: Sốt tahini chanh.</span>
-        </div>
-        <div className="button-row">
-          <button className="ghost-btn"><CirclePlus size={16} /> Thêm nguyên liệu</button>
-          <button className="primary-btn" onClick={() => setCalculationResult("Đã tính lại dinh dưỡng. Còn 1 nguyên liệu chưa khớp DB cần xác nhận.")}>Tính lại dinh dưỡng</button>
-        </div>
-        <p className="calculation-result">{calculationResult}</p>
+        <button className="dashed-btn" type="button" onClick={() => setForm((current) => ({ ...current, ingredients: [...current.ingredients, { ingredientId: "", quantity: 1, unit: "g" }] }))}><CirclePlus size={16} /> Thêm nguyên liệu</button>
+        {allergenNames.length ? <div className="warning-panel mini"><span>Dị ứng suy ra từ nguyên liệu: {allergenNames.join(", ")}</span></div> : null}
       </section>
 
-      <section className="recipe-editor-section" id="instructions">
-        <div className="section-heading row-heading">
-          <div>
-            <h2>Hướng dẫn nấu</h2>
-            <p>Các bước có timer, drag để sắp xếp và tùy chọn AI refine.</p>
-          </div>
-          <details className="ai-refine-menu">
-            <summary><Wand2 size={16} /> AI refine</summary>
-            <div>
-              {["Làm rõ hướng dẫn", "Rút gọn bước nấu", "Đề xuất giảm calo", "Đề xuất giảm natri", "Gợi ý phiên bản ít carb", "Kiểm tra xung đột dị ứng"].map((item) => <button key={item}>{item}</button>)}
-            </div>
-          </details>
-        </div>
+      <section className="recipe-editor-section">
+        <div className="section-heading"><h2>Hướng dẫn nấu</h2><p>Thứ tự bước được gửi liên tiếp từ 1.</p></div>
         <div className="instruction-list">
-          {instructionSteps.map((step) => (
-            <div className="instruction-row" key={step.order}>
-              <GripVertical size={16} />
-              <span className="step-number">{step.order}</span>
-              <textarea defaultValue={step.text} />
-              <label><Timer size={14} /> Timer (phút)<input type="number" min="0" defaultValue={step.timer} placeholder="Tùy chọn" /></label>
-              <button className="icon-link" aria-label="Xóa bước"><X size={16} /></button>
-            </div>
-          ))}
+          {form.steps.map((step, index) => <div className="instruction-row" key={index}><span className="step-number">{index + 1}</span><textarea value={step.instruction} onChange={(event) => updateStep(index, event.target.value)} /><button className="icon-link" disabled={form.steps.length === 1} type="button" onClick={() => setForm((current) => ({ ...current, steps: current.steps.filter((_, itemIndex) => itemIndex !== index) }))}><X size={16} /></button></div>)}
         </div>
-        <button className="dashed-btn"><CirclePlus size={16} /> Thêm bước nấu</button>
+        <button className="dashed-btn" type="button" onClick={() => setForm((current) => ({ ...current, steps: [...current.steps, { stepOrder: current.steps.length + 1, instruction: "" }] }))}><CirclePlus size={16} /> Thêm bước nấu</button>
       </section>
 
       <section className="recipe-editor-grid half-grid">
-        <article className="recipe-editor-section" id="nutrition">
-          <div className="section-heading">
-            <h2>Dinh dưỡng</h2>
-            <p>Dữ liệu dinh dưỡng đã được tính từ 3/3 nguyên liệu.</p>
-          </div>
-          <div className="segmented-control">
-            <button className={nutritionMode === "auto" ? "active" : ""} onClick={() => setNutritionMode("auto")}>Tự động tính từ nguyên liệu</button>
-            <button className={nutritionMode === "manual" ? "active" : ""} onClick={() => setNutritionMode("manual")}>Ghi đè thủ công</button>
-          </div>
+        <article className="recipe-editor-section">
+          <div className="section-heading"><h2>Dinh dưỡng</h2><p>Giá trị dinh dưỡng của toàn bộ công thức.</p></div>
           <div className="macro-input-grid nutrition-unit-grid">
-            {nutritionFields.map((field) => (
-              <label key={field.label}>
-                {field.label}
-                <div className="unit-input">
-                  <input type="number" min="0" defaultValue={field.value} readOnly={nutritionMode === "auto"} />
-                  <span>{field.unit}</span>
-                </div>
-              </label>
-            ))}
+            {NUTRITION_FIELDS.map(([key, label, unit]) => <label key={key}>{label}<div className="unit-input"><input min="0" step="any" type="number" value={form.nutrition[key]} onChange={(event) => setForm((current) => ({ ...current, nutrition: { ...current.nutrition, [key]: event.target.value } }))} /><span>{unit}</span></div></label>)}
           </div>
-          <div className="micronutrient-grid compact-micronutrients">
-            {["Iron 18%", "Vitamin C 45%", "Zinc 12%", "B12 5%"].map((item) => <span key={item}>{item}</span>)}
-          </div>
-          <button className="ghost-btn add-micro-btn">+ Thêm vi chất</button>
         </article>
-
-        <article className="recipe-editor-section" id="safety-tags">
-          <div className="section-heading">
-            <h2>Tags & an toàn</h2>
-            <p>Kiểm soát allergen, diet tags và cảnh báo safety trước khi publish.</p>
-          </div>
+        <article className="recipe-editor-section">
+          <div className="section-heading"><h2>Chế độ ăn</h2><p>Các giá trị DietType backend hỗ trợ.</p></div>
           <div className="tag-section-grid">
-            <div><h3>Allergen tags</h3><span className="chip danger">Hạt</span><span className="chip">+ thêm</span></div>
-            <div><h3>Diet tags</h3><span className="chip active">Vegan</span><span className="chip active">Gluten-free</span></div>
-            <div><h3>Health tags</h3><span className="chip">Tốt cho tim mạch</span><span className="chip">Chống viêm</span></div>
-            <div><h3>Safety warnings</h3><span className="severity-pill critical">Critical: Có hạt</span><span className="severity-pill warning">Warning: Natri cao</span><span className="severity-pill delayed">Review: Cần chuyên gia duyệt</span></div>
-          </div>
-          <div className="button-row">
-            <button className="ghost-btn"><ShieldCheck size={16} /> Chạy kiểm tra an toàn</button>
-            <button className="primary-btn"><Sparkles size={16} /> Áp dụng gợi ý AI</button>
+            {DIET_TYPES.map((item) => <label className={`chip ${form.dietTypes.includes(item) ? "active" : ""}`} key={item}><input checked={form.dietTypes.includes(item)} onChange={() => toggleDiet(item)} type="checkbox" /> {item.replaceAll("_", " ")}</label>)}
           </div>
         </article>
       </section>
-
-      <section className="ai-banner recipe-ai-insight compact-ai-insight">
-        <div className="ai-icon"><Sparkles size={22} /></div>
-        <div>
-          <h2>NutriChef AI Insight · Độ tin cậy 86%</h2>
-          <p>Nguồn phân tích: Nutrition Database + ingredient tags.</p>
-          <div className="ai-suggestion-grid compact-ai-suggestions">
-            {aiSuggestions.map((suggestion) => (
-              <article className="ai-suggestion-card" key={suggestion.id}>
-                <strong>{suggestion.text}</strong>
-                <span>Confidence {suggestion.confidence}</span>
-                <div className="button-row">
-                  <button className="primary-btn" onClick={() => applyAiSuggestion(suggestion.id)}>Áp dụng</button>
-                  <button className="ghost-btn">Bỏ qua</button>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="recipe-editor-section" id="publish">
-        <div className="section-heading row-heading">
-          <div>
-            <h2>Xem trước & xuất bản</h2>
-            <p>Kiểm tra checklist trước khi công thức xuất hiện trên mobile app.</p>
-          </div>
-          <button className="ghost-btn" onClick={() => setShowPreview(true)}><Eye size={16} /> Xem trước trên mobile</button>
-        </div>
-        <div className="publish-checklist status-checklist">
-          {publishChecklist.map((item) => (
-            <label className={`check-${item.state}`} key={item.label}>
-              {item.state === "completed" ? <CheckCircle2 size={17} /> : item.state === "warning" ? <ShieldAlert size={17} /> : <X size={17} />}
-              <span>
-                <strong>{item.label}</strong>
-                <small>{item.help}</small>
-              </span>
-            </label>
-          ))}
-        </div>
-        {!canPublish ? <p className="publish-helper">Cần hoàn tất checklist trước khi xuất bản.</p> : null}
-      </section>
-
-      {showPreview ? (
-        <aside className="preview-panel" aria-label="Xem trước công thức trên mobile app">
-          <button className="icon-link preview-close" onClick={() => setShowPreview(false)} aria-label="Đóng preview"><X size={18} /></button>
-          <img src={recipe.image} alt={recipe.name} />
-          <h2>{recipe.name}</h2>
-          <span className="chip active">Phù hợp mẫu 92%</span>
-          <p>{recipe.calories} kcal · P {recipe.protein}g · C {recipe.carb}g · F {recipe.fat}g</p>
-          <div className="warning-panel mini"><ShieldAlert size={16} /> Allergen warning: Có hạt, cần xác nhận.</div>
-          <h3>Ingredients</h3>
-          <ul>{ingredients.map((item) => <li key={item.name}>{item.amount} {item.unit} {item.name}</li>)}</ul>
-          <h3>Steps</h3>
-          <ol>{instructionSteps.map((step) => <li key={step.order}>{step.text}</li>)}</ol>
-          <p className="soft-copy">Health note: giàu chất xơ, phù hợp bữa trưa cân bằng.</p>
-        </aside>
-      ) : null}
 
       <div className="danger-footer">
-        {isCreate ? (
-          <Link className="danger-link" to="/recipes">Hủy tạo công thức</Link>
-        ) : (
-          <button className="danger-link" onClick={() => confirmArchive(recipe)}><Archive size={16} /> Lưu trữ công thức</button>
-        )}
-        <div className="button-row">
-          <Link className="ghost-btn" to="/recipes">Hủy</Link>
-          <button className="ghost-btn" onClick={() => saveRecipeDraft({ recipeId: recipe.id })}>Lưu nháp</button>
-          <button className="primary-btn wide disabled-btn" disabled={!canPublish} title="Cần hoàn tất checklist trước khi xuất bản." onClick={handlePublish}>Xuất bản lên ứng dụng</button>
-        </div>
+        {!isCreate ? <button className="danger-link" onClick={handleDelete} type="button"><Trash2 size={16} /> Xóa công thức</button> : <span />}
+        <div className="button-row"><Link className="ghost-btn" to="/recipes">Hủy</Link><button className="primary-btn wide" disabled={saving} type="submit">{saving ? "Đang lưu..." : "Lưu công thức"}</button></div>
       </div>
-    </div>
+    </form>
   );
 }

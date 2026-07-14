@@ -1,6 +1,7 @@
 package com.mss301.authservice.service;
 
 import com.mss301.authservice.dto.AccountResponse;
+import com.mss301.authservice.dto.AdminCreateAccountRequest;
 import com.mss301.authservice.dto.AuthResponse;
 import com.mss301.authservice.dto.ChangePasswordRequest;
 import com.mss301.authservice.dto.EmailRequest;
@@ -16,6 +17,8 @@ import com.mss301.authservice.dto.VerifyEmailRequest;
 public interface AuthService {
 
     MessageResponse register(RegisterRequest request);
+
+    AccountResponse createAccountByAdmin(AdminCreateAccountRequest request);
 
     AuthResponse login(LoginRequest request);
 

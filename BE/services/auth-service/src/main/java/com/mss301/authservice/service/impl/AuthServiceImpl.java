@@ -3,11 +3,13 @@ package com.mss301.authservice.service.impl;
 import com.mss301.authservice.client.UserProfileClient;
 
 import com.mss301.authservice.config.AuthSecurityProperties;
+import com.mss301.authservice.config.AdminAccountProperties;
 import com.mss301.authservice.config.JwtProperties;
 import com.mss301.authservice.config.PasswordResetProperties;
 import com.mss301.authservice.config.RateLimitProperties;
 import com.mss301.authservice.config.VerificationProperties;
 import com.mss301.authservice.dto.AccountResponse;
+import com.mss301.authservice.dto.AdminCreateAccountRequest;
 import com.mss301.authservice.dto.AuthResponse;
 import com.mss301.authservice.dto.ChangePasswordRequest;
 import com.mss301.authservice.dto.EmailRequest;
@@ -64,6 +66,7 @@ public class AuthServiceImpl implements AuthService {
     private final VerificationProperties verificationProperties;
     private final PasswordResetProperties passwordResetProperties;
     private final AuthSecurityProperties authSecurityProperties;
+    private final AdminAccountProperties adminAccountProperties;
     private final RateLimitProperties rateLimitProperties;
     private final SecureTokenService secureTokenService;
     private final EmailService emailService;
@@ -92,6 +95,36 @@ public class AuthServiceImpl implements AuthService {
         return MessageResponse.builder()
                 .message("Account registered successfully. Please verify your email before logging in.")
                 .build();
+    }
+
+    @Override
+    public AccountResponse createAccountByAdmin(AdminCreateAccountRequest request) {
+        ensureEmailIsAvailable(request.email());
+
+        String defaultPassword = adminAccountProperties.getDefaultPassword();
+        if (!StringUtils.hasText(defaultPassword)
+                || defaultPassword.length() < 8
+                || defaultPassword.length() > 100) {
+            throw new AuthException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Admin default user password must contain between 8 and 100 characters.",
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        UserAccount account = UserAccount.builder()
+                .email(request.email().trim().toLowerCase())
+                .passwordHash(passwordEncoder.encode(defaultPassword))
+                .fullName(request.fullName().trim())
+                .role(AccountRole.USER)
+                .status(AccountStatus.INACTIVE)
+                .emailVerified(false)
+                .provider(AuthProvider.LOCAL)
+                .failedLoginAttempts(0)
+                .build();
+
+        UserAccount savedAccount = userAccountRepository.save(account);
+        createAndSendVerificationOtp(savedAccount);
+        return toAccountResponse(savedAccount);
     }
 
     @Override

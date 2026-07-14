@@ -60,6 +60,28 @@ Flutter google_sign_in -> Google ID token -> POST /google -> access token + refr
 | `GET` | `/api/v1/auth/me` | Get current account |
 | `POST` | `/api/v1/auth/change-password` | Change current account password |
 | `POST` | `/api/v1/auth/logout` | Revoke refresh token |
+| `POST` | `/api/v1/auth/admin/accounts` | Create a user account with the configured temporary password (ADMIN only) |
+
+## Admin Create Account
+
+```http
+POST /api/v1/auth/admin/accounts
+Authorization: Bearer <admin_access_token>
+```
+
+Request:
+
+```json
+{
+  "email": "new.user@example.com",
+  "fullName": "New User"
+}
+```
+
+The endpoint uses `ADMIN_DEFAULT_USER_PASSWORD` on the server, creates an
+inactive LOCAL account, sends a verification OTP, and provisions the linked
+User Service profile. The user should change the temporary password after the
+first login.
 
 ## Register
 
