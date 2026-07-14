@@ -10,6 +10,7 @@ import 'features/auth/application/auth_dependencies.dart';
 import 'features/auth/data/models/account.dart';
 import 'features/auth/presentation/google_web_button.dart';
 import 'features/recipe/data/models/recipe.dart';
+import 'features/user/application/food_log_store.dart';
 import 'features/user/data/models/user_profile.dart';
 
 Future<void> main() async {
@@ -1062,10 +1063,14 @@ class ApiMessageBanner extends StatelessWidget {
     super.key,
     required this.message,
     this.isError = false,
+    this.actionLabel,
+    this.onAction,
   });
 
   final String message;
   final bool isError;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -1076,14 +1081,22 @@ class ApiMessageBanner extends StatelessWidget {
         color: isError ? const Color(0xFFFFE8E6) : AppColors.mint,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
-        message,
-        style: TextStyle(
-          fontSize: 12,
-          height: 1.3,
-          fontWeight: FontWeight.w700,
-          color: isError ? const Color(0xFF9F2D20) : AppColors.darkGreen,
-        ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.3,
+                fontWeight: FontWeight.w700,
+                color: isError ? const Color(0xFF9F2D20) : AppColors.darkGreen,
+              ),
+            ),
+          ),
+          if (actionLabel != null && onAction != null)
+            TextButton(onPressed: onAction, child: Text(actionLabel!)),
+        ],
       ),
     );
   }
@@ -1230,9 +1243,67 @@ class SignUpScreen extends StatelessWidget {
 }
 
 class _HealthProfileSetupDraft {
+  int? userId;
   String height = '';
   String weight = '';
   String activityLevel = 'LIGHT';
+
+  String calories = '2000';
+  String protein = '100';
+  String carbs = '250';
+  String fat = '65';
+  final Set<String> dietTypes = {};
+  final Map<int, String> allergies = {};
+  List<Map<String, dynamic>> allergenOptions = const [];
+
+  Future<void> loadFromBackend() async {
+    final dependencies = AuthDependencies.instance;
+    final account = await dependencies.repository.me();
+    userId = account.userId;
+
+    final health = await dependencies.userRepository.getHealthProfile(userId!);
+    final nutrition = await dependencies.userRepository.getNutritionGoal(
+      userId!,
+    );
+    final diets = await dependencies.userRepository.getDietPreferences(userId!);
+    final savedAllergies = await dependencies.userRepository.getAllergies(
+      userId!,
+    );
+    allergenOptions = await dependencies.recipeRepository.getAllergens();
+
+    height = _draftNumber(health?['height']);
+    weight = _draftNumber(health?['weight']);
+    activityLevel = health?['activityLevel']?.toString() ?? 'LIGHT';
+    calories = _draftNumber(nutrition?['calories'], fallback: '2000');
+    protein = _draftNumber(nutrition?['protein'], fallback: '100');
+    carbs = _draftNumber(nutrition?['carbs'], fallback: '250');
+    fat = _draftNumber(nutrition?['fat'], fallback: '65');
+
+    dietTypes
+      ..clear()
+      ..addAll(
+        diets
+            .map((item) => item['dietType']?.toString().toUpperCase())
+            .whereType<String>(),
+      );
+    allergies.clear();
+    for (final allergy in savedAllergies) {
+      final allergenId = (allergy['allergenId'] as num?)?.toInt();
+      if (allergenId != null) {
+        allergies[allergenId] =
+            allergy['severity']?.toString().toUpperCase() ?? 'MEDIUM';
+      }
+    }
+  }
+
+  static String _draftNumber(Object? value, {String fallback = ''}) {
+    if (value is num) {
+      return value == value.roundToDouble()
+          ? value.toInt().toString()
+          : value.toString();
+    }
+    return value?.toString() ?? fallback;
+  }
 }
 
 final _healthProfileSetupDraft = _HealthProfileSetupDraft();
@@ -1250,12 +1321,21 @@ class LifestyleScreen extends StatefulWidget {
 }
 
 class _LifestyleScreenState extends State<LifestyleScreen> {
-  late final TextEditingController _heightController = TextEditingController(
-    text: _healthProfileSetupDraft.height,
-  );
-  late final TextEditingController _weightController = TextEditingController(
-    text: _healthProfileSetupDraft.weight,
-  );
+  final _heightController = TextEditingController();
+  final _weightController = TextEditingController();
+  late Future<void> _loadFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFuture = _loadDraft();
+  }
+
+  Future<void> _loadDraft() async {
+    await _healthProfileSetupDraft.loadFromBackend();
+    _heightController.text = _healthProfileSetupDraft.height;
+    _weightController.text = _healthProfileSetupDraft.weight;
+  }
 
   @override
   void dispose() {
@@ -1266,6 +1346,24 @@ class _LifestyleScreenState extends State<LifestyleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _loadFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const _OnboardingLoadingScreen();
+        }
+        if (snapshot.hasError) {
+          return _OnboardingLoadErrorScreen(
+            error: snapshot.error,
+            onRetry: () => setState(() => _loadFuture = _loadDraft()),
+          );
+        }
+        return _buildForm();
+      },
+    );
+  }
+
+  Widget _buildForm() {
     return OnboardingScaffold(
       step: 1,
       progress: .25,
@@ -1391,27 +1489,98 @@ class _HealthStatusScreenState extends State<HealthStatusScreen> {
   }
 }
 
-class GoalsScreen extends StatelessWidget {
+class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key, this.completeDestination = const HomeScreen()});
 
   final Widget completeDestination;
+
+  @override
+  State<GoalsScreen> createState() => _GoalsScreenState();
+}
+
+class _GoalsScreenState extends State<GoalsScreen> {
+  late final TextEditingController _caloriesController = TextEditingController(
+    text: _healthProfileSetupDraft.calories,
+  );
+  late final TextEditingController _proteinController = TextEditingController(
+    text: _healthProfileSetupDraft.protein,
+  );
+  late final TextEditingController _carbsController = TextEditingController(
+    text: _healthProfileSetupDraft.carbs,
+  );
+  late final TextEditingController _fatController = TextEditingController(
+    text: _healthProfileSetupDraft.fat,
+  );
+
+  @override
+  void dispose() {
+    _caloriesController.dispose();
+    _proteinController.dispose();
+    _carbsController.dispose();
+    _fatController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return OnboardingScaffold(
       step: 3,
       progress: .75,
-      title: 'Kiểm tra dữ liệu',
-      subtitle:
-          'Đây là payload sẽ gửi tới user-service để cập nhật hồ sơ sức khỏe.',
-      next: PreferencesScreen(completeDestination: completeDestination),
+      title: 'Mục tiêu dinh dưỡng',
+      subtitle: 'Thiết lập calories và các chỉ số macro mục tiêu mỗi ngày.',
+      next: PreferencesScreen(completeDestination: widget.completeDestination),
       children: [
-        _HealthProfilePayloadPreview(draft: _healthProfileSetupDraft),
+        AppTextField(
+          label: 'Calories mỗi ngày (kcal)',
+          hint: '2000',
+          compact: true,
+          controller: _caloriesController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (value) => _healthProfileSetupDraft.calories = value,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: AppTextField(
+                label: 'Protein (g)',
+                hint: '100',
+                compact: true,
+                controller: _proteinController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                onChanged: (value) => _healthProfileSetupDraft.protein = value,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: AppTextField(
+                label: 'Carbs (g)',
+                hint: '250',
+                compact: true,
+                controller: _carbsController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                onChanged: (value) => _healthProfileSetupDraft.carbs = value,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        AppTextField(
+          label: 'Fat (g)',
+          hint: '65',
+          compact: true,
+          controller: _fatController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (value) => _healthProfileSetupDraft.fat = value,
+        ),
         const SizedBox(height: 16),
         const InfoPanel(
           title: 'API mapping',
-          text:
-              'Payload chỉ gồm height, weight và activityLevel. Các field mục tiêu ăn uống không thuộc health-profile nên đã được bỏ khỏi bước này.',
+          text: 'Dữ liệu được lưu vào /users/{userId}/nutrition-goal.',
         ),
       ],
     );
@@ -1431,31 +1600,82 @@ class PreferencesScreen extends StatefulWidget {
 }
 
 class _PreferencesScreenState extends State<PreferencesScreen> {
-  Future<void> _saveHealthProfile(BuildContext context) async {
+  static const _dietOptions = <(String, String)>[
+    ('VEGAN', 'Vegan'),
+    ('VEGETARIAN', 'Ăn chay'),
+    ('KETO', 'Keto'),
+    ('HALAL', 'Halal'),
+    ('MEDITERRANEAN', 'Địa Trung Hải'),
+    ('PALEO', 'Paleo'),
+  ];
+
+  Future<void> _saveOnboarding(BuildContext context) async {
     final height = double.tryParse(
       _healthProfileSetupDraft.height.replaceAll(',', '.'),
     );
     final weight = double.tryParse(
       _healthProfileSetupDraft.weight.replaceAll(',', '.'),
     );
+    final calories = double.tryParse(
+      _healthProfileSetupDraft.calories.replaceAll(',', '.'),
+    );
+    final protein = double.tryParse(
+      _healthProfileSetupDraft.protein.replaceAll(',', '.'),
+    );
+    final carbs = double.tryParse(
+      _healthProfileSetupDraft.carbs.replaceAll(',', '.'),
+    );
+    final fat = double.tryParse(
+      _healthProfileSetupDraft.fat.replaceAll(',', '.'),
+    );
 
-    if (height == null || weight == null) {
+    if (height == null || weight == null || height <= 0 || weight <= 0) {
       throw const ApiException(
         message: 'Nhập chiều cao và cân nặng hợp lệ trước khi hoàn tất.',
       );
     }
 
-    final auth = AuthDependencies.instance.repository;
+    if (calories == null ||
+        protein == null ||
+        carbs == null ||
+        fat == null ||
+        calories <= 0 ||
+        protein < 0 ||
+        carbs < 0 ||
+        fat < 0) {
+      throw const ApiException(
+        message: 'Nhập calories và các chỉ số macro hợp lệ.',
+      );
+    }
+
     final users = AuthDependencies.instance.userRepository;
-    final account = await auth.me();
-    var userProfile = await users.findByEmail(account.email);
-    userProfile ??= await users.createFromAccount(account);
+    final userId = _healthProfileSetupDraft.userId;
+    if (userId == null) {
+      throw const ApiException(
+        message: 'Không xác định được hồ sơ người dùng.',
+      );
+    }
 
     await users.saveHealthProfile(
-      userId: userProfile.userId,
+      userId: userId,
       height: height,
       weight: weight,
       activityLevel: _healthProfileSetupDraft.activityLevel,
+    );
+    await users.saveNutritionGoal(
+      userId: userId,
+      calories: calories,
+      protein: protein,
+      carbs: carbs,
+      fat: fat,
+    );
+    await users.syncDietPreferences(
+      userId: userId,
+      dietTypes: _healthProfileSetupDraft.dietTypes,
+    );
+    await users.syncAllergies(
+      userId: userId,
+      allergies: _healthProfileSetupDraft.allergies,
     );
   }
 
@@ -1464,58 +1684,161 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     return OnboardingScaffold(
       step: 4,
       progress: 1,
-      title: 'Cập nhật hồ sơ',
-      subtitle:
-          'Bấm hoàn tất để lưu health-profile vào backend cho người dùng hiện tại.',
-      buttonLabel: 'Lưu hồ sơ sức khỏe',
+      title: 'Sở thích và dị ứng',
+      subtitle: 'Chọn chế độ ăn và các dị ứng cần loại trừ khỏi gợi ý món.',
+      buttonLabel: 'Lưu toàn bộ hồ sơ',
       complete: true,
       completeDestination: widget.completeDestination,
-      onComplete: _saveHealthProfile,
+      onComplete: _saveOnboarding,
       children: [
-        _HealthProfilePayloadPreview(draft: _healthProfileSetupDraft),
+        const SectionLabel('CHẾ ĐỘ ĂN'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final diet in _dietOptions)
+              FilterChip(
+                label: Text(diet.$2),
+                selected: _healthProfileSetupDraft.dietTypes.contains(diet.$1),
+                onSelected: (selected) => setState(() {
+                  if (selected) {
+                    _healthProfileSetupDraft.dietTypes.add(diet.$1);
+                  } else {
+                    _healthProfileSetupDraft.dietTypes.remove(diet.$1);
+                  }
+                }),
+                selectedColor: AppColors.mint,
+                checkmarkColor: AppColors.green,
+              ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        const SectionLabel('DỊ ỨNG'),
+        const SizedBox(height: 8),
+        if (_healthProfileSetupDraft.allergenOptions.isEmpty)
+          const InfoPanel(
+            title: 'Chưa có catalog dị ứng',
+            text: 'Recipe Service chưa trả về allergen nào để lựa chọn.',
+          )
+        else
+          for (final allergen in _healthProfileSetupDraft.allergenOptions)
+            _AllergenSelectionTile(
+              allergen: allergen,
+              severity: _healthProfileSetupDraft
+                  .allergies[(allergen['allergenId'] as num).toInt()],
+              onChanged: (severity) => setState(() {
+                final id = (allergen['allergenId'] as num).toInt();
+                if (severity == null) {
+                  _healthProfileSetupDraft.allergies.remove(id);
+                } else {
+                  _healthProfileSetupDraft.allergies[id] = severity;
+                }
+              }),
+            ),
         const SizedBox(height: 16),
         const InfoPanel(
-          title: 'Endpoint',
+          title: 'Đồng bộ backend',
           text:
-              'Ứng dụng sẽ PUT /api/v1/users/{userId}/health-profile. Nếu chưa có hồ sơ, ứng dụng tự POST để tạo mới.',
+              'Ứng dụng tạo, cập nhật hoặc xóa nutrition goal, diet preferences và allergies để backend khớp với lựa chọn hiện tại.',
         ),
       ],
     );
   }
 }
 
-class _HealthProfilePayloadPreview extends StatelessWidget {
-  const _HealthProfilePayloadPreview({required this.draft});
+class _AllergenSelectionTile extends StatelessWidget {
+  const _AllergenSelectionTile({
+    required this.allergen,
+    required this.severity,
+    required this.onChanged,
+  });
 
-  final _HealthProfileSetupDraft draft;
+  final Map<String, dynamic> allergen;
+  final String? severity;
+  final ValueChanged<String?> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.line),
+    final selected = severity != null;
+    return Card(
+      color: selected ? AppColors.mint : AppColors.card,
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          children: [
+            Checkbox(
+              value: selected,
+              activeColor: AppColors.green,
+              onChanged: (value) => onChanged(value == true ? 'MEDIUM' : null),
+            ),
+            Expanded(
+              child: Text(
+                allergen['name']?.toString() ?? 'Allergen',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+            if (selected)
+              DropdownButton<String>(
+                value: severity,
+                underline: const SizedBox.shrink(),
+                items: const [
+                  DropdownMenuItem(value: 'LOW', child: Text('Nhẹ')),
+                  DropdownMenuItem(value: 'MEDIUM', child: Text('Vừa')),
+                  DropdownMenuItem(value: 'HIGH', child: Text('Nặng')),
+                ],
+                onChanged: onChanged,
+              ),
+          ],
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Payload health-profile',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+    );
+  }
+}
+
+class _OnboardingLoadingScreen extends StatelessWidget {
+  const _OnboardingLoadingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: AppColors.cream,
+      body: Center(child: CircularProgressIndicator(color: AppColors.green)),
+    );
+  }
+}
+
+class _OnboardingLoadErrorScreen extends StatelessWidget {
+  const _OnboardingLoadErrorScreen({
+    required this.error,
+    required this.onRetry,
+  });
+
+  final Object? error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final message = error is ApiException
+        ? (error as ApiException).message
+        : 'Không thể tải dữ liệu onboarding từ backend.';
+    return Scaffold(
+      backgroundColor: AppColors.cream,
+      appBar: AppBar(backgroundColor: AppColors.cream),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(message, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: onRetry, child: const Text('Thử lại')),
+            ],
           ),
-          const SizedBox(height: 14),
-          _SummaryRow(
-            label: 'height',
-            value: draft.height.isEmpty ? '-' : draft.height,
-          ),
-          _SummaryRow(
-            label: 'weight',
-            value: draft.weight.isEmpty ? '-' : draft.weight,
-          ),
-          _SummaryRow(label: 'activityLevel', value: draft.activityLevel),
-        ],
+        ),
       ),
     );
   }
@@ -2819,6 +3142,611 @@ class PromoImage extends StatelessWidget {
   }
 }
 
+String _foodLogIsoDate(DateTime value) {
+  return '${value.year.toString().padLeft(4, '0')}-'
+      '${value.month.toString().padLeft(2, '0')}-'
+      '${value.day.toString().padLeft(2, '0')}';
+}
+
+String _mealTypeLabel(String value) {
+  return switch (value) {
+    'BREAKFAST' => 'Bữa sáng',
+    'LUNCH' => 'Bữa trưa',
+    'DINNER' => 'Bữa tối',
+    'SNACK' => 'Bữa phụ',
+    _ => value,
+  };
+}
+
+class FoodLogButton extends StatelessWidget {
+  const FoodLogButton({
+    super.key,
+    required this.recipeId,
+    required this.recipeTitle,
+    this.compact = false,
+  });
+
+  final int recipeId;
+  final String recipeTitle;
+  final bool compact;
+
+  Future<void> _openEditor(BuildContext context) async {
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (_) =>
+          FoodLogEditorDialog(recipeId: recipeId, recipeTitle: recipeTitle),
+    );
+    if (saved == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã thêm món vào nhật ký ăn uống.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (compact) {
+      return IconButton(
+        tooltip: 'Đã ăn / thêm vào bữa',
+        onPressed: () => _openEditor(context),
+        icon: const Icon(Icons.restaurant_menu, color: AppColors.green),
+      );
+    }
+    return FilledButton.icon(
+      onPressed: () => _openEditor(context),
+      icon: const Icon(Icons.add_circle_outline, size: 17),
+      label: const Text('Đã ăn'),
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.green,
+        foregroundColor: Colors.white,
+        minimumSize: const Size(0, 42),
+      ),
+    );
+  }
+}
+
+class FoodLogEditorDialog extends StatefulWidget {
+  const FoodLogEditorDialog({
+    super.key,
+    required this.recipeId,
+    required this.recipeTitle,
+    this.entry,
+  });
+
+  final int recipeId;
+  final String recipeTitle;
+  final FoodLogEntry? entry;
+
+  @override
+  State<FoodLogEditorDialog> createState() => _FoodLogEditorDialogState();
+}
+
+class _FoodLogEditorDialogState extends State<FoodLogEditorDialog> {
+  late final TextEditingController _quantityController = TextEditingController(
+    text: widget.entry?.quantity.toString() ?? '1',
+  );
+  late String _mealType = widget.entry?.mealType ?? 'LUNCH';
+  late DateTime _date =
+      DateTime.tryParse(widget.entry?.logDate ?? '') ?? DateTime.now();
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (selected != null && mounted) setState(() => _date = selected);
+  }
+
+  Future<void> _save() async {
+    final quantity = double.tryParse(
+      _quantityController.text.trim().replaceAll(',', '.'),
+    );
+    if (quantity == null || quantity <= 0) {
+      setState(() => _error = 'Quantity phải lớn hơn 0.');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final store = AuthDependencies.instance.foodLogStore;
+      final entry = widget.entry;
+      if (entry == null) {
+        await store.create(
+          recipeId: widget.recipeId,
+          quantity: quantity,
+          mealType: _mealType,
+          logDate: _foodLogIsoDate(_date),
+        );
+      } else {
+        await store.update(
+          logId: entry.logId,
+          recipeId: entry.recipeId,
+          quantity: quantity,
+          mealType: _mealType,
+          logDate: _foodLogIsoDate(_date),
+        );
+      }
+      if (mounted) Navigator.pop(context, true);
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.entry == null ? 'Thêm vào bữa' : 'Sửa food log'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.recipeTitle,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _quantityController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Quantity',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 14),
+            DropdownButtonFormField<String>(
+              initialValue: _mealType,
+              decoration: const InputDecoration(
+                labelText: 'Bữa ăn',
+                border: OutlineInputBorder(),
+              ),
+              items: const ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK']
+                  .map(
+                    (value) => DropdownMenuItem(
+                      value: value,
+                      child: Text(_mealTypeLabel(value)),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) => setState(() => _mealType = value!),
+            ),
+            const SizedBox(height: 14),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.calendar_month),
+              title: const Text('Ngày ăn'),
+              subtitle: Text(_foodLogIsoDate(_date)),
+              onTap: _pickDate,
+            ),
+            if (_error != null)
+              Text(_error!, style: const TextStyle(color: Colors.red)),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context),
+          child: const Text('Hủy'),
+        ),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: Text(_saving ? 'Đang lưu...' : 'Lưu'),
+        ),
+      ],
+    );
+  }
+}
+
+class FoodLogScreen extends StatefulWidget {
+  const FoodLogScreen({super.key});
+
+  @override
+  State<FoodLogScreen> createState() => _FoodLogScreenState();
+}
+
+class _FoodLogScreenState extends State<FoodLogScreen> {
+  DateTime _date = DateTime.now();
+  String? _mealType;
+  late Future<List<FoodLogEntry>> _logsFuture = _load();
+
+  Future<List<FoodLogEntry>> _load() {
+    return AuthDependencies.instance.foodLogStore.load(
+      date: _foodLogIsoDate(_date),
+      mealType: _mealType,
+    );
+  }
+
+  void _reload() => setState(() => _logsFuture = _load());
+
+  Future<void> _pickDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (selected != null && mounted) {
+      setState(() {
+        _date = selected;
+        _logsFuture = _load();
+      });
+    }
+  }
+
+  Future<void> _edit(FoodLogEntry entry) async {
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (_) => FoodLogEditorDialog(
+        recipeId: entry.recipeId,
+        recipeTitle: entry.recipe?.title ?? 'Recipe #${entry.recipeId}',
+        entry: entry,
+      ),
+    );
+    if (saved == true) _reload();
+  }
+
+  Future<void> _delete(FoodLogEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xóa food log?'),
+        content: Text(entry.recipe?.title ?? 'Recipe #${entry.recipeId}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await AuthDependencies.instance.foodLogStore.delete(entry.logId);
+      if (mounted) _reload();
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.cream,
+      appBar: AppBar(
+        backgroundColor: AppColors.cream,
+        title: const Text(
+          'Nhật ký ăn uống',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pickDate,
+                    icon: const Icon(Icons.calendar_month),
+                    label: Text(_foodLogIsoDate(_date)),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: DropdownButtonFormField<String?>(
+                    initialValue: _mealType,
+                    decoration: const InputDecoration(
+                      labelText: 'Bữa ăn',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('Tất cả'),
+                      ),
+                      ...const ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'].map(
+                        (value) => DropdownMenuItem<String?>(
+                          value: value,
+                          child: Text(_mealTypeLabel(value)),
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      _mealType = value;
+                      _reload();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<FoodLogEntry>>(
+              future: _logsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppColors.green),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                    child: FilledButton(
+                      onPressed: _reload,
+                      child: const Text('Không thể tải - Thử lại'),
+                    ),
+                  );
+                }
+                final logs = snapshot.data ?? const [];
+                if (logs.isEmpty) {
+                  return const Center(
+                    child: Text('Chưa có món nào trong ngày.'),
+                  );
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(14, 4, 14, 24),
+                  itemCount: logs.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final entry = logs[index];
+                    return Card(
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.restaurant_menu),
+                        ),
+                        title: Text(
+                          entry.recipe?.title ?? 'Recipe #${entry.recipeId}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        subtitle: Text(
+                          '${_mealTypeLabel(entry.mealType)} • Quantity: ${entry.quantity} • ${entry.logDate}',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: 'Sửa',
+                              onPressed: () => _edit(entry),
+                              icon: const Icon(Icons.edit_outlined),
+                            ),
+                            IconButton(
+                              tooltip: 'Xóa',
+                              onPressed: () => _delete(entry),
+                              icon: const Icon(Icons.delete_outline),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class FavoriteRecipesScreen extends StatefulWidget {
+  const FavoriteRecipesScreen({super.key});
+
+  @override
+  State<FavoriteRecipesScreen> createState() => _FavoriteRecipesScreenState();
+}
+
+class _FavoriteRecipesScreenState extends State<FavoriteRecipesScreen> {
+  late Future<List<Recipe>> _recipesFuture = _loadRecipes();
+
+  Future<List<Recipe>> _loadRecipes() async {
+    final store = AuthDependencies.instance.favoriteStore;
+    await store.load(force: true);
+    final recipes = await Future.wait(
+      store.recipeIds.map((recipeId) async {
+        try {
+          return await store.recipeRepository.getRecipe(recipeId);
+        } catch (_) {
+          return null;
+        }
+      }),
+    );
+    return recipes.whereType<Recipe>().toList();
+  }
+
+  void _refresh() {
+    setState(() => _recipesFuture = _loadRecipes());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = AuthDependencies.instance.favoriteStore;
+    return Scaffold(
+      backgroundColor: AppColors.cream,
+      appBar: AppBar(
+        backgroundColor: AppColors.cream,
+        title: const Text(
+          'Món yêu thích',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Tải lại',
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: AnimatedBuilder(
+        animation: store,
+        builder: (context, _) {
+          return FutureBuilder<List<Recipe>>(
+            future: _recipesFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(
+                  child: CircularProgressIndicator(color: AppColors.green),
+                );
+              }
+              if (snapshot.hasError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Không thể tải danh sách món yêu thích.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                          onPressed: _refresh,
+                          child: const Text('Thử lại'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              final recipes = (snapshot.data ?? const <Recipe>[])
+                  .where((recipe) => store.isFavorite(recipe.recipeId))
+                  .toList();
+              if (recipes.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(28),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.favorite_border,
+                          size: 54,
+                          color: AppColors.green,
+                        ),
+                        SizedBox(height: 14),
+                        Text(
+                          'Bạn chưa lưu món yêu thích nào.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                itemCount: recipes.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 16),
+                itemBuilder: (context, index) =>
+                    RecipeRecommendationCard.fromRecipe(
+                      recipe: recipes[index],
+                      palette: _paletteForIndex(index),
+                    ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class FavoriteButton extends StatefulWidget {
+  const FavoriteButton({super.key, required this.recipeId});
+
+  final int recipeId;
+
+  @override
+  State<FavoriteButton> createState() => _FavoriteButtonState();
+}
+
+class _FavoriteButtonState extends State<FavoriteButton> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(AuthDependencies.instance.favoriteStore.load);
+  }
+
+  Future<void> _toggle() async {
+    try {
+      await AuthDependencies.instance.favoriteStore.toggle(widget.recipeId);
+    } catch (error) {
+      if (!mounted) return;
+      final message = error is ApiException
+          ? error.message
+          : 'Không thể cập nhật món yêu thích.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = AuthDependencies.instance.favoriteStore;
+    return AnimatedBuilder(
+      animation: store,
+      builder: (context, _) {
+        final selected = store.isFavorite(widget.recipeId);
+        final pending = store.isPending(widget.recipeId);
+        return CircleAvatar(
+          radius: 23,
+          backgroundColor: Colors.white.withValues(alpha: .94),
+          child: IconButton(
+            tooltip: selected ? 'Bỏ yêu thích' : 'Thêm vào yêu thích',
+            onPressed: pending ? null : _toggle,
+            icon: pending
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.green,
+                    ),
+                  )
+                : Icon(
+                    selected ? Icons.favorite : Icons.favorite_border,
+                    color: selected ? Colors.redAccent : AppColors.darkGreen,
+                  ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class ExploreRecipesScreen extends StatelessWidget {
   const ExploreRecipesScreen({super.key});
 
@@ -3067,6 +3995,7 @@ class RecommendedHeader extends StatelessWidget {
 class RecipeRecommendationCard extends StatelessWidget {
   const RecipeRecommendationCard({
     super.key,
+    required this.recipeId,
     required this.title,
     required this.subtitle,
     required this.calories,
@@ -3089,6 +4018,7 @@ class RecipeRecommendationCard extends StatelessWidget {
         : recipe.dietTypes.map(_dietLabel).toList();
 
     return RecipeRecommendationCard(
+      recipeId: recipe.recipeId,
       title: recipe.title,
       subtitle:
           '${recipe.categoryName ?? 'Recipe service'} • ${_difficultyLabel(recipe.difficulty)}',
@@ -3100,6 +4030,7 @@ class RecipeRecommendationCard extends StatelessWidget {
     );
   }
 
+  final int recipeId;
   final String title;
   final String subtitle;
   final String calories;
@@ -3135,14 +4066,7 @@ class RecipeRecommendationCard extends StatelessWidget {
                 Positioned(
                   right: 14,
                   top: 14,
-                  child: CircleAvatar(
-                    radius: 23,
-                    backgroundColor: Colors.white.withValues(alpha: .94),
-                    child: const Icon(
-                      Icons.favorite_border,
-                      color: AppColors.darkGreen,
-                    ),
-                  ),
+                  child: FavoriteButton(recipeId: recipeId),
                 ),
                 Positioned(
                   left: 16,
@@ -3220,6 +4144,12 @@ class RecipeRecommendationCard extends StatelessWidget {
                         fontSize: 14,
                         color: AppColors.darkGreen,
                       ),
+                    ),
+                    const Spacer(),
+                    FoodLogButton(
+                      recipeId: recipeId,
+                      recipeTitle: title,
+                      compact: true,
                     ),
                   ],
                 ),
@@ -3632,6 +4562,7 @@ class NutritionChip extends StatelessWidget {
 class SuggestionMiniCard extends StatelessWidget {
   const SuggestionMiniCard({
     super.key,
+    required this.recipeId,
     required this.title,
     required this.tags,
     required this.calories,
@@ -3651,6 +4582,7 @@ class SuggestionMiniCard extends StatelessWidget {
         : recipe.dietTypes.map(_dietLabel).toList();
 
     return SuggestionMiniCard(
+      recipeId: recipe.recipeId,
       title: recipe.title,
       tags: tags,
       calories: nutrition == null ? '-' : _formatNumber(nutrition.calories),
@@ -3660,6 +4592,7 @@ class SuggestionMiniCard extends StatelessWidget {
     );
   }
 
+  final int recipeId;
   final String title;
   final List<String> tags;
   final String calories;
@@ -3672,7 +4605,10 @@ class SuggestionMiniCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const RecipeDetailsScreen()),
+        MaterialPageRoute(
+          builder: (_) =>
+              RecipeDetailsScreen(recipeId: recipeId, recipeTitle: title),
+        ),
       ),
       child: Container(
         decoration: BoxDecoration(
@@ -3696,6 +4632,11 @@ class SuggestionMiniCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   MealArt(palette: palette),
+                  Positioned(
+                    left: 12,
+                    top: 10,
+                    child: FavoriteButton(recipeId: recipeId),
+                  ),
                   Positioned(
                     right: 12,
                     top: 10,
@@ -3749,6 +4690,11 @@ class SuggestionMiniCard extends StatelessWidget {
                       const SizedBox(width: 28),
                       _TinyMetric(label: 'TIME', value: time),
                       const Spacer(),
+                      FoodLogButton(
+                        recipeId: recipeId,
+                        recipeTitle: title,
+                        compact: true,
+                      ),
                       const Icon(Icons.arrow_forward, color: AppColors.green),
                     ],
                   ),
@@ -3887,7 +4833,10 @@ class SuggestionsAnalysisCard extends StatelessWidget {
 }
 
 class RecipeDetailsScreen extends StatelessWidget {
-  const RecipeDetailsScreen({super.key});
+  const RecipeDetailsScreen({super.key, this.recipeId, this.recipeTitle});
+
+  final int? recipeId;
+  final String? recipeTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -3899,20 +4848,20 @@ class RecipeDetailsScreen extends StatelessWidget {
           children: [
             ListView(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 110),
-              children: const [
-                RecipeDetailsHeader(),
-                SizedBox(height: 12),
-                RecipeHeroPanel(),
-                SizedBox(height: 18),
-                RecipeMetaLine(),
-                SizedBox(height: 18),
-                DetailAiInsightCard(),
-                SizedBox(height: 20),
-                NutritionFactsCard(),
-                SizedBox(height: 22),
-                IngredientsCard(),
-                SizedBox(height: 26),
-                Text(
+              children: [
+                const RecipeDetailsHeader(),
+                const SizedBox(height: 12),
+                const RecipeHeroPanel(),
+                const SizedBox(height: 18),
+                RecipeMetaLine(recipeId: recipeId, recipeTitle: recipeTitle),
+                const SizedBox(height: 18),
+                const DetailAiInsightCard(),
+                const SizedBox(height: 20),
+                const NutritionFactsCard(),
+                const SizedBox(height: 22),
+                const IngredientsCard(),
+                const SizedBox(height: 26),
+                const Text(
                   'Cooking Instructions',
                   style: TextStyle(
                     fontSize: 26,
@@ -3920,27 +4869,27 @@ class RecipeDetailsScreen extends StatelessWidget {
                     color: AppColors.ink,
                   ),
                 ),
-                SizedBox(height: 22),
-                CookingStep(
+                const SizedBox(height: 22),
+                const CookingStep(
                   step: '1',
                   title: 'Prepare the Salmon',
                   body:
                       'Pat the salmon fillets dry and season both sides with salt, black pepper, and a drizzle of lemon juice. AI Tip: For more flavor, add a pinch of smoked paprika.',
                 ),
-                CookingStep(
+                const CookingStep(
                   step: '2',
                   title: 'Sear the Fish',
                   body:
                       'Heat a non-stick pan over medium-high heat. Sear salmon for 4-5 minutes per side until the edges are golden and crispy. Set aside to rest for 3 minutes.',
                 ),
-                CookingStep(
+                const CookingStep(
                   step: '3',
                   title: 'Assemble the Bowl',
                   body:
                       'Divide cooked quinoa into two bowls. Top with the seared salmon, sliced avocado, cucumber, and baby spinach. Drizzle with the lemon-yogurt dressing.',
                 ),
-                SizedBox(height: 20),
-                MealFeedbackCard(),
+                const SizedBox(height: 20),
+                const MealFeedbackCard(),
               ],
             ),
             const Positioned(
@@ -4061,7 +5010,10 @@ class RecipeHeroPanel extends StatelessWidget {
 }
 
 class RecipeMetaLine extends StatelessWidget {
-  const RecipeMetaLine({super.key});
+  const RecipeMetaLine({super.key, this.recipeId, this.recipeTitle});
+
+  final int? recipeId;
+  final String? recipeTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -4085,33 +5037,14 @@ class RecipeMetaLine extends StatelessWidget {
         const SizedBox(height: 14),
         Row(
           children: [
-            FilledButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.add_circle_outline, size: 17),
-              label: const Text('Add to Plan'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.green,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                minimumSize: const Size(0, 42),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(99),
-                ),
+            if (recipeId != null) ...[
+              FoodLogButton(
+                recipeId: recipeId!,
+                recipeTitle: recipeTitle ?? 'Recipe #$recipeId',
               ),
-            ),
-            const SizedBox(width: 12),
-            OutlinedButton(
-              onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.green,
-                side: const BorderSide(color: AppColors.line),
-                minimumSize: const Size(48, 42),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-              child: const Icon(Icons.favorite_border, size: 18),
-            ),
+              const SizedBox(width: 12),
+              FavoriteButton(recipeId: recipeId!),
+            ],
           ],
         ),
       ],
@@ -4605,6 +5538,175 @@ class MealFeedbackCard extends StatelessWidget {
   }
 }
 
+class EditBasicProfileScreen extends StatefulWidget {
+  const EditBasicProfileScreen({super.key, required this.profile});
+
+  final UserProfile profile;
+
+  @override
+  State<EditBasicProfileScreen> createState() => _EditBasicProfileScreenState();
+}
+
+class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
+  late final TextEditingController _fullNameController = TextEditingController(
+    text: widget.profile.fullName,
+  );
+  late DateTime? _dob = DateTime.tryParse(widget.profile.dob ?? '');
+  late String _gender = widget.profile.gender ?? 'OTHER';
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    super.dispose();
+  }
+
+  String get _dobLabel {
+    final value = _dob;
+    if (value == null) return 'Chưa cập nhật';
+    return '${value.day.toString().padLeft(2, '0')}/'
+        '${value.month.toString().padLeft(2, '0')}/${value.year}';
+  }
+
+  String? get _dobApiValue {
+    final value = _dob;
+    if (value == null) return null;
+    return '${value.year.toString().padLeft(4, '0')}-'
+        '${value.month.toString().padLeft(2, '0')}-'
+        '${value.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _pickDob() async {
+    final now = DateTime.now();
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _dob ?? DateTime(now.year - 18, now.month, now.day),
+      firstDate: DateTime(1900),
+      lastDate: now.subtract(const Duration(days: 1)),
+    );
+    if (selected != null && mounted) setState(() => _dob = selected);
+  }
+
+  Future<void> _save() async {
+    final fullName = _fullNameController.text.trim();
+    if (fullName.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Vui lòng nhập họ và tên.')));
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      await AuthDependencies.instance.userRepository.updateUser(
+        userId: widget.profile.userId,
+        fullName: fullName,
+        dob: _dobApiValue,
+        gender: _gender,
+      );
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.cream,
+      appBar: AppBar(
+        backgroundColor: AppColors.cream,
+        title: const Text(
+          'Chỉnh sửa thông tin cá nhân',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(18),
+        children: [
+          AppTextField(
+            label: 'HỌ VÀ TÊN',
+            hint: 'Nhập họ và tên',
+            controller: _fullNameController,
+            icon: Icons.person_outline,
+          ),
+          const SizedBox(height: 18),
+          const SectionLabel('NGÀY SINH'),
+          const SizedBox(height: 7),
+          InkWell(
+            onTap: _pickDob,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              height: 52,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: AppColors.field,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_month_outlined,
+                    color: AppColors.muted,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    _dobLabel,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const Spacer(),
+                  const Icon(Icons.edit_calendar, color: AppColors.green),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          const SectionLabel('GIỚI TÍNH'),
+          const SizedBox(height: 7),
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'MALE', label: Text('Nam')),
+              ButtonSegment(value: 'FEMALE', label: Text('Nữ')),
+              ButtonSegment(value: 'OTHER', label: Text('Khác')),
+            ],
+            selected: {_gender},
+            onSelectionChanged: (selection) =>
+                setState(() => _gender = selection.first),
+          ),
+          const SizedBox(height: 28),
+          SizedBox(
+            height: 52,
+            child: FilledButton.icon(
+              onPressed: _saving ? null : _save,
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.save_outlined),
+              label: Text(_saving ? 'Đang lưu...' : 'Lưu thay đổi'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.green,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class ApiUserProfileScreen extends StatefulWidget {
   const ApiUserProfileScreen({super.key});
 
@@ -4613,7 +5715,28 @@ class ApiUserProfileScreen extends StatefulWidget {
 }
 
 class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
-  late final Future<_ProfileApiState> _profileFuture = _loadProfile();
+  late Future<_ProfileApiState> _profileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileFuture = _loadProfile();
+  }
+
+  void _reloadProfile() {
+    setState(() => _profileFuture = _loadProfile());
+  }
+
+  Future<void> _editBasicProfile(UserProfile? profile) async {
+    if (profile == null) return;
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditBasicProfileScreen(profile: profile),
+      ),
+    );
+    if (updated == true && mounted) _reloadProfile();
+  }
 
   Future<_ProfileApiState> _loadProfile() async {
     final account = await AuthDependencies.instance.repository.me();
@@ -4625,14 +5748,9 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
     List<Map<String, dynamic>> allergies = const [];
 
     try {
-      userProfile = await AuthDependencies.instance.userRepository.findByEmail(
-        account.email,
+      userProfile = await AuthDependencies.instance.userRepository.getUserById(
+        account.userId,
       );
-      if (userProfile == null) {
-        userProfile = await AuthDependencies.instance.userRepository
-            .createFromAccount(account);
-        profileMessage = 'Đã tạo hồ sơ user-service từ tài khoản auth-service.';
-      }
     } on ApiException catch (error) {
       profileMessage = error.message;
     }
@@ -4664,6 +5782,8 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
 
   Future<void> _logout() async {
     await AuthDependencies.instance.repository.logout();
+    AuthDependencies.instance.favoriteStore.clear();
+    AuthDependencies.instance.foodLogStore.clear();
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
@@ -4713,19 +5833,21 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
                     ProfileIdentity(
                       account: state.account,
                       userProfile: state.userProfile,
+                      onEdit: () => _editBasicProfile(state.userProfile),
                     ),
                     const SizedBox(height: 24),
-                    HealthScoreCard(healthProfile: state.healthProfile),
-                    const SizedBox(height: 16),
                     ProfileInsightCard(
                       profileMessage: state.profileMessage,
                       healthProfile: state.healthProfile,
                     ),
-                    if (state.healthProfile == null ||
-                        state.nutritionGoal == null) ...[
-                      const SizedBox(height: 16),
-                      const ProfileSetupBanner(),
-                    ],
+                    const SizedBox(height: 16),
+                    ProfileSetupBanner(
+                      editing:
+                          state.healthProfile != null ||
+                          state.nutritionGoal != null ||
+                          state.dietPreferences.isNotEmpty ||
+                          state.allergies.isNotEmpty,
+                    ),
                     const SizedBox(height: 28),
                     HealthProfileSection(healthProfile: state.healthProfile),
                     const SizedBox(height: 16),
@@ -4735,27 +5857,7 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
                       dietPreferences: state.dietPreferences,
                       allergies: state.allergies,
                     ),
-                    const SizedBox(height: 16),
-                    const CollapsedProfileSection(
-                      icon: Icons.devices_outlined,
-                      title: 'Thiết bị kết nối',
-                      preview: 'Đồng bộ sức khỏe',
-                      value: 'Chưa kết nối',
-                    ),
                     const SizedBox(height: 28),
-                    const Padding(
-                      padding: EdgeInsets.only(left: 18),
-                      child: Text(
-                        'CÀI ĐẶT ỨNG DỤNG',
-                        style: TextStyle(
-                          fontSize: 12,
-                          letterSpacing: 1,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.muted,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
                     SettingsCard(onLogout: _logout),
                   ],
                 );
@@ -4886,80 +5988,6 @@ MealPalette _paletteForIndex(int index) {
   };
 }
 
-class UserProfileScreen extends StatelessWidget {
-  const UserProfileScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.cream,
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            ListView(
-              padding: const EdgeInsets.fromLTRB(18, 20, 18, 112),
-              children: const [
-                ProfileTopBar(),
-                SizedBox(height: 46),
-                ProfileIdentity(),
-                SizedBox(height: 26),
-                HealthScoreCard(),
-                SizedBox(height: 18),
-                ProfileInsightCard(),
-                SizedBox(height: 44),
-                HealthProfileSection(),
-                SizedBox(height: 16),
-                CollapsedProfileSection(
-                  icon: Icons.track_changes,
-                  title: 'Nutrition Goals',
-                  preview: 'Daily Calories',
-                  value: '1,850 kcal',
-                ),
-                SizedBox(height: 16),
-                CollapsedProfileSection(
-                  icon: Icons.restaurant_menu,
-                  title: 'Dietary Preferences',
-                  preview: 'Mediterranean',
-                  value: 'Gluten-Free',
-                ),
-                SizedBox(height: 16),
-                CollapsedProfileSection(
-                  icon: Icons.devices_outlined,
-                  title: 'Connected Devices',
-                  preview: 'Apple Health',
-                  value: 'Connected',
-                ),
-                SizedBox(height: 38),
-                Padding(
-                  padding: EdgeInsets.only(left: 18),
-                  child: Text(
-                    'APP SETTINGS',
-                    style: TextStyle(
-                      fontSize: 12,
-                      letterSpacing: 1,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.muted,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16),
-                SettingsCard(),
-              ],
-            ),
-            const Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: HomeBottomNav(selected: HomeTab.profile),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class ProfileTopBar extends StatelessWidget {
   const ProfileTopBar({super.key, this.onLogout});
 
@@ -4996,10 +6024,16 @@ class ProfileTopBar extends StatelessWidget {
 }
 
 class ProfileIdentity extends StatelessWidget {
-  const ProfileIdentity({super.key, this.account, this.userProfile});
+  const ProfileIdentity({
+    super.key,
+    this.account,
+    this.userProfile,
+    this.onEdit,
+  });
 
   final Account? account;
   final UserProfile? userProfile;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -5036,10 +6070,14 @@ class ProfileIdentity extends StatelessWidget {
                 child: Icon(Icons.person, size: 76, color: AppColors.darkGreen),
               ),
             ),
-            const CircleAvatar(
+            CircleAvatar(
               radius: 24,
               backgroundColor: AppColors.green,
-              child: Icon(Icons.edit, color: Colors.white, size: 20),
+              child: IconButton(
+                tooltip: 'Sửa thông tin cá nhân',
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit, color: Colors.white, size: 20),
+              ),
             ),
           ],
         ),
@@ -5076,75 +6114,6 @@ class ProfileIdentity extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class HealthScoreCard extends StatelessWidget {
-  const HealthScoreCard({super.key, this.healthProfile});
-
-  final Map<String, dynamic>? healthProfile;
-
-  @override
-  Widget build(BuildContext context) {
-    final bmi = _asDouble(healthProfile?['bmi']);
-    final score = bmi == null
-        ? 70
-        : (100 - ((bmi - 22).abs() * 4)).clamp(55, 95).round();
-    final scoreLabel = bmi == null ? 'Đang cập nhật' : _bmiLabel(bmi);
-
-    return ProfileCard(
-      child: Column(
-        children: [
-          const Text(
-            'ĐIỂM SỨC KHỎE',
-            style: TextStyle(
-              fontSize: 12,
-              letterSpacing: .9,
-              fontWeight: FontWeight.w900,
-              color: AppColors.muted,
-            ),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: 96,
-            height: 96,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 86,
-                  height: 86,
-                  child: CircularProgressIndicator(
-                    value: score / 100,
-                    strokeWidth: 4,
-                    strokeCap: StrokeCap.round,
-                    color: AppColors.green,
-                    backgroundColor: AppColors.line,
-                  ),
-                ),
-                Text(
-                  '$score',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.green,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            scoreLabel,
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
-              color: AppColors.green,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -5239,7 +6208,9 @@ class ProfileInsightCard extends StatelessWidget {
 }
 
 class ProfileSetupBanner extends StatelessWidget {
-  const ProfileSetupBanner({super.key});
+  const ProfileSetupBanner({super.key, this.editing = false});
+
+  final bool editing;
 
   @override
   Widget build(BuildContext context) {
@@ -5257,18 +6228,22 @@ class ProfileSetupBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Thiết lập hồ sơ cá nhân',
-                  style: TextStyle(
+                Text(
+                  editing
+                      ? 'Chỉnh sửa sức khỏe và dinh dưỡng'
+                      : 'Thiết lập hồ sơ cá nhân',
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
                     color: AppColors.ink,
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Hoàn thành 4 bước để cập nhật sức khỏe, mục tiêu dinh dưỡng, dị ứng và sở thích ăn uống.',
-                  style: TextStyle(
+                Text(
+                  editing
+                      ? 'Mở lại 4 bước với dữ liệu hiện tại để sửa health profile, nutrition goal, dị ứng và chế độ ăn.'
+                      : 'Hoàn thành 4 bước để cập nhật sức khỏe, mục tiêu dinh dưỡng, dị ứng và sở thích ăn uống.',
+                  style: const TextStyle(
                     fontSize: 14,
                     height: 1.35,
                     color: AppColors.darkGreen,
@@ -5287,7 +6262,7 @@ class ProfileSetupBanner extends StatelessWidget {
                       ),
                     ),
                     icon: const Icon(Icons.arrow_forward, size: 17),
-                    label: const Text('Bắt đầu 4 bước'),
+                    label: Text(editing ? 'Chỉnh sửa hồ sơ' : 'Bắt đầu 4 bước'),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.green,
                       foregroundColor: Colors.white,
@@ -5672,19 +6647,6 @@ class SettingsCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          const SettingsRow(icon: Icons.notifications_none, title: 'Thông báo'),
-          const Divider(height: 1, color: AppColors.line),
-          SettingsRow(
-            icon: Icons.dark_mode_outlined,
-            title: 'Chế độ tối',
-            toggle: true,
-          ),
-          const Divider(height: 1, color: AppColors.line),
-          const SettingsRow(
-            icon: Icons.privacy_tip_outlined,
-            title: 'Quyền riêng tư & bảo mật',
-          ),
-          const Divider(height: 1, color: AppColors.line),
           SettingsRow(
             icon: Icons.logout,
             title: 'Đăng xuất',
@@ -6498,74 +7460,6 @@ class _WeeklyTrendPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class MealPlannerScreen extends StatelessWidget {
-  const MealPlannerScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.cream,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 74),
-        child: FloatingActionButton(
-          onPressed: () {},
-          backgroundColor: AppColors.green,
-          foregroundColor: Colors.white,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add),
-        ),
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            ListView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 116),
-              children: [
-                const MealPlannerHeader(),
-                const SizedBox(height: 36),
-                const Text(
-                  'Dinh dưỡng tuần này',
-                  style: TextStyle(fontSize: 18, color: AppColors.ink),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Kế hoạch cá nhân hóa từ dữ liệu công thức hiện có',
-                  style: TextStyle(
-                    fontSize: 18,
-                    height: 1.35,
-                    color: AppColors.ink,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                const PlannerActionButtons(),
-                const SizedBox(height: 36),
-                const CalorieTargetPanel(),
-                const SizedBox(height: 24),
-                const MacroBalancePanel(),
-                const SizedBox(height: 26),
-                const PlannerInsightPanel(),
-                const SizedBox(height: 34),
-                const PlannerDaySelector(),
-                const SizedBox(height: 22),
-                const ApiPlannerMealList(),
-                const SizedBox(height: 18),
-                const AddSnackButton(),
-              ],
-            ),
-            const Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: HomeBottomNav(selected: HomeTab.mealPlan),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class MealPlannerHeader extends StatelessWidget {
@@ -7950,6 +8844,22 @@ class HomeHeader extends StatelessWidget {
         ),
         const Spacer(),
         IconButton(
+          tooltip: 'Nhật ký ăn uống',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const FoodLogScreen()),
+          ),
+          icon: const Icon(Icons.restaurant_menu, color: AppColors.darkGreen),
+        ),
+        IconButton(
+          tooltip: 'Món yêu thích',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const FavoriteRecipesScreen()),
+          ),
+          icon: const Icon(Icons.favorite_border, color: AppColors.darkGreen),
+        ),
+        IconButton(
           onPressed: openScanner
               ? () => Navigator.push(
                   context,
@@ -7965,17 +8875,99 @@ class HomeHeader extends StatelessWidget {
   }
 }
 
-class DailyCaloriesCard extends StatelessWidget {
+class DailyCaloriesCard extends StatefulWidget {
   const DailyCaloriesCard({super.key});
 
   @override
+  State<DailyCaloriesCard> createState() => _DailyCaloriesCardState();
+}
+
+class _DailyCaloriesCardState extends State<DailyCaloriesCard> {
+  late Future<_DailyCaloriesData> _dataFuture = _loadData();
+
+  Future<_DailyCaloriesData> _loadData() async {
+    final dependencies = AuthDependencies.instance;
+    final account = await dependencies.repository.me();
+    final profile = await dependencies.userRepository.getUserById(
+      account.userId,
+    );
+    final nutritionGoal = await dependencies.userRepository.getNutritionGoal(
+      account.userId,
+    );
+    final logs = await dependencies.foodLogStore.load(
+      date: _foodLogIsoDate(DateTime.now()),
+    );
+    final consumedCalories = logs.fold<double>(0, (total, entry) {
+      final caloriesPerServing = entry.recipe?.nutrition?.calories;
+      if (caloriesPerServing == null) return total;
+      return total + (caloriesPerServing * entry.quantity);
+    });
+
+    return _DailyCaloriesData(
+      fullName: profile.fullName,
+      consumedCalories: consumedCalories,
+      targetCalories: _asDouble(nutritionGoal?['calories']),
+    );
+  }
+
+  void _reload() => setState(() => _dataFuture = _loadData());
+
+  @override
   Widget build(BuildContext context) {
+    return FutureBuilder<_DailyCaloriesData>(
+      future: _dataFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const SizedBox(
+            height: 300,
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.green),
+            ),
+          );
+        }
+        if (snapshot.hasError) {
+          return ApiMessageBanner(
+            message: 'Không thể tải dữ liệu calo hôm nay.',
+            isError: true,
+            actionLabel: 'Thử lại',
+            onAction: _reload,
+          );
+        }
+        return _DailyCaloriesContent(data: snapshot.data!);
+      },
+    );
+  }
+}
+
+class _DailyCaloriesContent extends StatelessWidget {
+  const _DailyCaloriesContent({required this.data});
+
+  final _DailyCaloriesData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final target = data.targetCalories;
+    final remaining = target == null
+        ? null
+        : (target - data.consumedCalories).clamp(0, double.infinity).toDouble();
+    final progress = target == null || target <= 0
+        ? 0.0
+        : (data.consumedCalories / target).clamp(0, 1).toDouble();
+    final displayName = data.fullName.trim().isEmpty
+        ? 'bạn'
+        : data.fullName.trim().split(RegExp(r'\s+')).last;
+    final statusText = target == null
+        ? 'Bạn chưa thiết lập mục tiêu calo trong hồ sơ.'
+        : remaining! > 0
+        ? 'Hôm nay bạn cần nạp thêm ${_formatCalories(remaining)} kcal\nđể đạt mục tiêu.'
+        : 'Bạn đã đạt mục tiêu calo hôm nay.';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Chào buổi sáng, Vy',
-          style: TextStyle(
+        Text(
+          '${_greetingFor(DateTime.now())}, $displayName',
+          style: const TextStyle(
             fontSize: 30,
             height: 1.05,
             fontWeight: FontWeight.w900,
@@ -7983,9 +8975,9 @@ class DailyCaloriesCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Hôm nay bạn cần nạp thêm 1,240 kcal\nđể đạt mục tiêu.',
-          style: TextStyle(
+        Text(
+          statusText,
+          style: const TextStyle(
             fontSize: 17,
             height: 1.35,
             color: AppColors.darkGreen,
@@ -8021,29 +9013,42 @@ class DailyCaloriesCard extends StatelessWidget {
                         width: 168,
                         height: 168,
                         child: CircularProgressIndicator(
-                          value: .50,
+                          value: 0,
                           strokeWidth: 8,
                           strokeCap: StrokeCap.round,
                           color: AppColors.green,
                           backgroundColor: AppColors.line,
                         ),
                       ),
+                      SizedBox(
+                        width: 168,
+                        height: 168,
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 8,
+                          strokeCap: StrokeCap.round,
+                          color: AppColors.green,
+                          backgroundColor: Colors.transparent,
+                        ),
+                      ),
                       Column(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
+                        children: [
                           Text(
-                            '1,254',
-                            style: TextStyle(
+                            _formatCalories(data.consumedCalories),
+                            style: const TextStyle(
                               fontSize: 44,
                               height: 1,
                               fontWeight: FontWeight.w900,
                               color: AppColors.ink,
                             ),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
-                            'Đã nạp / 2,494',
-                            style: TextStyle(
+                            target == null
+                                ? 'Đã nạp / Chưa có mục tiêu'
+                                : 'Đã nạp / ${_formatCalories(target)}',
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
                               color: AppColors.ink,
@@ -8061,6 +9066,34 @@ class DailyCaloriesCard extends StatelessWidget {
       ],
     );
   }
+}
+
+class _DailyCaloriesData {
+  const _DailyCaloriesData({
+    required this.fullName,
+    required this.consumedCalories,
+    required this.targetCalories,
+  });
+
+  final String fullName;
+  final double consumedCalories;
+  final double? targetCalories;
+}
+
+String _greetingFor(DateTime value) {
+  if (value.hour < 12) return 'Chào buổi sáng';
+  if (value.hour < 18) return 'Chào buổi chiều';
+  return 'Chào buổi tối';
+}
+
+String _formatCalories(double value) {
+  final digits = value.round().toString();
+  final buffer = StringBuffer();
+  for (var index = 0; index < digits.length; index++) {
+    if (index > 0 && (digits.length - index) % 3 == 0) buffer.write(',');
+    buffer.write(digits[index]);
+  }
+  return buffer.toString();
 }
 
 class HomeAiInsightCard extends StatelessWidget {
@@ -8535,7 +9568,6 @@ class HomeBottomNav extends StatelessWidget {
       (Icons.home_outlined, 'Trang chủ', HomeTab.home),
       (Icons.search, 'Khám phá', HomeTab.explore),
       (Icons.menu_book_outlined, 'Công thức', HomeTab.recipes),
-      (Icons.calendar_month_outlined, 'Thực đơn', HomeTab.mealPlan),
       (Icons.person_outline, 'Hồ sơ', HomeTab.profile),
     ];
 
@@ -8595,7 +9627,6 @@ class HomeBottomNav extends StatelessWidget {
       HomeTab.home => const HomeScreen(),
       HomeTab.explore => const ExploreRecipesScreen(),
       HomeTab.recipes => const PersonalizedSuggestionsScreen(),
-      HomeTab.mealPlan => const MealPlannerScreen(),
       HomeTab.profile => const ApiUserProfileScreen(),
     };
 
@@ -8606,7 +9637,7 @@ class HomeBottomNav extends StatelessWidget {
   }
 }
 
-enum HomeTab { home, explore, recipes, mealPlan, profile }
+enum HomeTab { home, explore, recipes, profile }
 
 class _MealArtPainter extends CustomPainter {
   _MealArtPainter(this.palette);

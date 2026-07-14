@@ -13,6 +13,9 @@ public record AccountResponse(
         @Schema(description = "Account ID", example = "1")
         Long accountId,
 
+        @Schema(description = "Linked User Service user ID", example = "1")
+        Long userId,
+
         @Schema(description = "Account email", example = "test@example.com")
         String email,
 
