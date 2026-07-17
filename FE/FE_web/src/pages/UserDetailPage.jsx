@@ -1,172 +1,159 @@
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { Activity, AlertTriangle, Heart, Save, Target, Trash2, UserCircle, Utensils } from "lucide-react";
 import {
-  Ban,
-  CalendarDays,
-  EyeOff,
-  History,
-  Lock,
-  Mail,
-  RotateCcw,
-  Send,
-  ShieldAlert,
-  ShieldCheck,
-  Unlock,
-  UserCircle
-} from "lucide-react";
-import { users } from "../data/mockData.js";
-import {
-  deactivateUser,
-  lockUser,
-  requestSensitiveAccess,
-  resendInvitation,
-  resetOnboarding,
-  sendSupportEmail,
-  unlockUser
+  deleteUser,
+  getAllergies,
+  getDietPreferences,
+  getFavorites,
+  getFoodLogs,
+  getHealthProfile,
+  getNutritionGoal,
+  getUser,
+  optionalResource,
+  updateUser
 } from "../api/userManagement.js";
 
-const userMeta = {
-  elena: { accountStatus: "Hoạt động", onboarding: "Hoàn tất", healthDataStatus: "Đã ẩn", emailVerified: "Có", signupSource: "Google", savedRecipes: 18, hasMealPlan: "Có", aiRequests: 142, openTickets: 0 },
-  marcus: { accountStatus: "Hoạt động", onboarding: "Chưa hoàn tất", healthDataStatus: "Bị giới hạn", emailVerified: "Có", signupSource: "Email", savedRecipes: 7, hasMealPlan: "Chưa", aiRequests: 38, openTickets: 1 },
-  sarah: { accountStatus: "Không hoạt động", onboarding: "Chưa hoàn tất", healthDataStatus: "Chưa có", emailVerified: "Chưa", signupSource: "Admin invite", savedRecipes: 3, hasMealPlan: "Chưa", aiRequests: 9, openTickets: 2 },
-  julia: { accountStatus: "Bị khóa", onboarding: "Hoàn tất", healthDataStatus: "Đã ẩn", emailVerified: "Có", signupSource: "Email", savedRecipes: 24, hasMealPlan: "Có", aiRequests: 186, openTickets: 1 }
-};
-
-const supportLogs = [
-  { title: "Reset onboarding", admin: "Admin Linh", time: "2 ngày trước" },
-  { title: "Gửi email hỗ trợ", admin: "Admin Panel", time: "5 ngày trước" },
-  { title: "Kiểm tra đăng nhập", admin: "CSKH Team", time: "1 tuần trước" },
-  { title: "Mở khóa tài khoản", admin: "Security Admin", time: "2 tuần trước" }
-];
-
-const maskedSections = [
-  { title: "Hồ sơ sức khỏe", description: "Bệnh lý, cân nặng, chiều cao và tình trạng sức khỏe chi tiết đã bị masking." },
-  { title: "Mục tiêu dinh dưỡng", description: "Mục tiêu calo, macro, goal completion và tiến độ dinh dưỡng không hiển thị cho CSKH." },
-  { title: "Dị ứng & sở thích", description: "Tên dị ứng cụ thể, sở thích ăn uống và hạn chế cá nhân được bảo vệ theo quyền." },
-  { title: "Meal plan & AI history", description: "Không hiển thị thực đơn, recipe cụ thể, prompt hoặc response AI cá nhân hóa." }
-];
-
-function requestReason(actionLabel, userName) {
-  return window.prompt(`Nhập lý do để ${actionLabel.toLowerCase()} cho ${userName}:`);
+function initials(name = "") {
+  return name.split(/\s+/).filter(Boolean).slice(-2).map((part) => part[0]).join("").toUpperCase() || "U";
 }
 
-async function runAction(actionLabel, handler, user, requiresReason = false) {
-  if (requiresReason) {
-    const reason = requestReason(actionLabel, user.name);
-    if (!reason) return;
-    if (!window.confirm(`Xác nhận ${actionLabel.toLowerCase()} cho ${user.name}?`)) return;
-    await handler(user.id, reason);
-    return;
-  }
-
-  if (!window.confirm(`Xác nhận ${actionLabel.toLowerCase()} cho ${user.name}?`)) return;
-  await handler(user.id);
+function formatDateTime(value) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
+
+const mealLabels = { BREAKFAST: "Bữa sáng", LUNCH: "Bữa trưa", DINNER: "Bữa tối", SNACK: "Bữa phụ" };
+const severityLabels = { LOW: "Thấp", MEDIUM: "Trung bình", HIGH: "Cao" };
+const activityLabels = { SEDENTARY: "Ít vận động", LIGHT: "Nhẹ", MODERATE: "Vừa", ACTIVE: "Năng động", VERY_ACTIVE: "Rất năng động" };
 
 export default function UserDetailPage() {
   const { id } = useParams();
-  const user = users.find((item) => item.id === id) ?? users[0];
-  const meta = userMeta[user.id] ?? userMeta.elena;
+  const navigate = useNavigate();
+  const [data, setData] = useState(null);
+  const [form, setForm] = useState({ fullName: "", email: "", dob: "", gender: "OTHER" });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  async function load() {
+    setLoading(true);
+    setError("");
+    try {
+      const user = await getUser(id);
+      const [healthProfile, nutritionGoal, dietPreferences, allergies, favorites, foodLogs] = await Promise.all([
+        optionalResource(() => getHealthProfile(id)),
+        optionalResource(() => getNutritionGoal(id)),
+        getDietPreferences(id),
+        getAllergies(id),
+        getFavorites(id),
+        getFoodLogs(id, { page: 0, size: 5, sort: "logDate,desc" })
+      ]);
+      setData({ user, healthProfile, nutritionGoal, dietPreferences, allergies, favorites, foodLogs });
+      setForm({ fullName: user.fullName || "", email: user.email || "", dob: user.dob || "", gender: user.gender || "OTHER" });
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, [id]);
+
+  function updateField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
+    setSuccess("");
+  }
+
+  async function handleSave(event) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const user = await updateUser(id, {
+        fullName: form.fullName.trim(),
+        email: form.email.trim().toLowerCase(),
+        dob: form.dob || null,
+        gender: form.gender
+      });
+      setData((current) => ({ ...current, user }));
+      setSuccess("Đã cập nhật hồ sơ người dùng.");
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(`Xóa vĩnh viễn hồ sơ user #${id}?`)) return;
+    try {
+      await deleteUser(id);
+      navigate("/users", { replace: true });
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  }
+
+  if (loading) return <div className="panel">Đang tải hồ sơ và dữ liệu liên quan...</div>;
+  if (!data) return <div className="page-stack"><section className="warning-panel"><div><strong>Không tải được hồ sơ</strong><p>{error}</p><button className="ghost-btn" onClick={load}>Thử lại</button></div></section><Link className="ghost-btn" to="/users">Quay lại danh sách</Link></div>;
+
+  const { user, healthProfile, nutritionGoal, dietPreferences, allergies, favorites, foodLogs } = data;
 
   return (
     <div className="page-stack">
-      <div className="profile-hero restricted-profile-hero user-detail-hero">
-        <div className="large-avatar">{user.avatar}</div>
-        <div>
-          <p className="eyebrow">Hồ sơ CSKH</p>
-          <h2>{user.name}</h2>
-          <span>{user.email}</span>
-          <div className="chip-row profile-badges">
-            <span className={`chip ${meta.accountStatus === "Hoạt động" ? "active" : ""}`}>{meta.accountStatus}</span>
-            <span className="chip">{meta.onboarding}</span>
-            <span className="masked-pill">Dữ liệu sức khỏe {meta.healthDataStatus.toLowerCase()}</span>
-          </div>
-        </div>
+      <div className="profile-hero user-detail-hero">
+        <div className="large-avatar">{initials(user.fullName)}</div>
+        <div><p className="eyebrow">User Service · #{user.userId}</p><h2>{user.fullName}</h2><span>{user.email}</span><div className="chip-row profile-badges"><span className="chip active">{user.gender}</span><span className="chip">Auth #{user.authAccountId ?? "chưa liên kết"}</span></div></div>
         <Link className="ghost-btn" to="/users">Quay lại danh sách</Link>
       </div>
 
-      <section className="privacy-banner">
-        <ShieldCheck size={24} />
-        <div>
-          <strong>Hồ sơ đang ở chế độ tối thiểu dữ liệu</strong>
-          <p>Thông tin riêng tư và dữ liệu sức khỏe chi tiết đã được masking để tránh lộ dữ liệu cá nhân.</p>
-        </div>
-      </section>
+      {error ? <section className="warning-panel"><AlertTriangle size={20} /><div><strong>Yêu cầu thất bại</strong><p>{error}</p></div></section> : null}
+      {success ? <div className="success-note">{success}</div> : null}
 
       <section className="dashboard-grid">
-        <article className="panel span-2">
-          <h2><UserCircle size={18} /> Thông tin tài khoản</h2>
-          <dl className="info-list account-info-grid">
-            <dt>Tên</dt><dd>{user.name}</dd>
-            <dt>Email</dt><dd>{user.email}</dd>
-            <dt>Quốc gia</dt><dd>{user.country}</dd>
-            <dt>Trạng thái tài khoản</dt><dd><span className={`status-dot ${meta.accountStatus !== "Hoạt động" ? "muted" : ""}`}>{meta.accountStatus}</span></dd>
-            <dt>Email đã xác thực</dt><dd>{meta.emailVerified}</dd>
-            <dt>Ngày tham gia</dt><dd>{user.joined}</dd>
-            <dt>Hoạt động cuối</dt><dd>{user.lastActive}</dd>
-            <dt>Onboarding</dt><dd>{meta.onboarding}</dd>
-            <dt>Nguồn đăng ký</dt><dd>{meta.signupSource}</dd>
-          </dl>
-        </article>
-
-        <article className="panel">
-          <h2><Lock size={18} /> Hành động hỗ trợ</h2>
-          <div className="support-action-list vertical-actions">
-            <button className="ghost-btn" onClick={() => sendSupportEmail(user.id)} title="Gửi email hỗ trợ"><Mail size={16} /> Gửi email hỗ trợ</button>
-            <button className="ghost-btn" onClick={() => resendInvitation(user.id)} title="Gửi lại email kích hoạt"><Send size={16} /> Gửi lại email kích hoạt</button>
-            <button className="ghost-btn" onClick={() => runAction("Reset onboarding", resetOnboarding, user, true)} title="Reset onboarding"><RotateCcw size={16} /> Reset onboarding</button>
-            <button className="ghost-btn" onClick={() => runAction("Khóa tài khoản", lockUser, user, true)} title="Khóa tài khoản"><Lock size={16} /> Khóa tài khoản</button>
-            <button className="ghost-btn" onClick={() => runAction("Mở khóa tài khoản", unlockUser, user, true)} title="Mở khóa tài khoản"><Unlock size={16} /> Mở khóa tài khoản</button>
-            <button className="danger-link" onClick={() => runAction("Vô hiệu hóa tài khoản", deactivateUser, user, true)} title="Vô hiệu hóa tài khoản"><Ban size={16} /> Vô hiệu hóa tài khoản</button>
+        <form className="panel span-2" onSubmit={handleSave}>
+          <h2><UserCircle size={18} /> Thông tin hồ sơ</h2>
+          <div className="filter-grid">
+            <label>Họ và tên<input value={form.fullName} onChange={(event) => updateField("fullName", event.target.value)} required /></label>
+            <label>Email<input type="email" value={form.email} onChange={(event) => updateField("email", event.target.value)} required /></label>
+            <label>Ngày sinh<input type="date" value={form.dob} onChange={(event) => updateField("dob", event.target.value)} /></label>
+            <label>Giới tính<select value={form.gender} onChange={(event) => updateField("gender", event.target.value)}><option value="MALE">Nam</option><option value="FEMALE">Nữ</option><option value="OTHER">Khác</option></select></label>
           </div>
+          <dl className="info-list account-info-grid"><dt>User ID</dt><dd>{user.userId}</dd><dt>Auth Account ID</dt><dd>{user.authAccountId ?? "Chưa liên kết"}</dd><dt>Ngày tạo</dt><dd>{formatDateTime(user.createdAt)}</dd><dt>Cập nhật cuối</dt><dd>{formatDateTime(user.updatedAt)}</dd></dl>
+          <div className="form-actions"><button className="primary-btn" type="submit" disabled={saving}><Save size={16} /> {saving ? "Đang lưu..." : "Lưu thay đổi"}</button><button className="danger-link" type="button" onClick={handleDelete}><Trash2 size={16} /> Xóa hồ sơ</button></div>
+        </form>
+
+        <article className="panel">
+          <h2><Activity size={18} /> Hồ sơ sức khỏe</h2>
+          {healthProfile ? <dl className="info-list"><dt>Chiều cao</dt><dd>{healthProfile.height} cm</dd><dt>Cân nặng</dt><dd>{healthProfile.weight} kg</dd><dt>BMI</dt><dd>{healthProfile.bmi}</dd><dt>Mức vận động</dt><dd>{activityLabels[healthProfile.activityLevel] || healthProfile.activityLevel}</dd></dl> : <p>Chưa có hồ sơ sức khỏe.</p>}
         </article>
       </section>
 
       <section className="dashboard-grid">
         <article className="panel">
-          <h2><History size={18} /> Lịch sử hoạt động cơ bản</h2>
-          <dl className="info-list">
-            <dt>Lần đăng nhập gần nhất</dt><dd>{user.lastActive}</dd>
-            <dt>Số công thức đã lưu</dt><dd>{meta.savedRecipes} mục</dd>
-            <dt>Có meal plan hay chưa</dt><dd>{meta.hasMealPlan}</dd>
-            <dt>Số AI requests</dt><dd>{meta.aiRequests}</dd>
-            <dt>Khiếu nại mở</dt><dd>{meta.openTickets} yêu cầu</dd>
-          </dl>
+          <h2><Target size={18} /> Mục tiêu dinh dưỡng</h2>
+          {nutritionGoal ? <dl className="info-list"><dt>Calories</dt><dd>{nutritionGoal.calories} kcal</dd><dt>Protein</dt><dd>{nutritionGoal.protein} g</dd><dt>Carbs</dt><dd>{nutritionGoal.carbs} g</dd><dt>Fat</dt><dd>{nutritionGoal.fat} g</dd></dl> : <p>Chưa có mục tiêu dinh dưỡng.</p>}
         </article>
-
         <article className="panel">
-          <h2><CalendarDays size={18} /> Nhật ký hỗ trợ</h2>
-          <ul className="timeline-list support-log-list">
-            {supportLogs.map((item) => (
-              <li key={`${item.title}-${item.time}`}>
-                <strong>{item.title}</strong>
-                <span>{item.time} · {item.admin}</span>
-              </li>
-            ))}
-          </ul>
+          <h2><Heart size={18} /> Sở thích và dị ứng</h2>
+          <dl className="info-list"><dt>Chế độ ăn</dt><dd>{dietPreferences.length ? dietPreferences.map((item) => item.dietType).join(", ") : "Chưa có"}</dd><dt>Dị ứng</dt><dd>{allergies.length ? allergies.map((item) => `Allergen #${item.allergenId} (${severityLabels[item.severity] || item.severity})`).join(", ") : "Chưa có"}</dd></dl>
+        </article>
+        <article className="panel">
+          <h2><Utensils size={18} /> Hoạt động ăn uống</h2>
+          <dl className="info-list"><dt>Công thức yêu thích</dt><dd>{favorites.length}</dd><dt>Tổng food log</dt><dd>{foodLogs.totalElements || 0}</dd></dl>
         </article>
       </section>
 
-      <section className="masked-grid">
-        {maskedSections.map((section) => (
-          <article className="masked-card" key={section.title}>
-            <EyeOff size={20} />
-            <strong>{section.title}</strong>
-            <p>{section.description}</p>
-            <span className="masked-pill">MASKED</span>
-            <small>Cần quyền USER_HEALTH_READ để xem.</small>
-            <button className="ghost-btn" onClick={() => runAction("Yêu cầu quyền truy cập", requestSensitiveAccess, user, true)}>
-              Yêu cầu quyền truy cập
-            </button>
-          </article>
-        ))}
-      </section>
-
-      <section className="warning-panel access-note-panel">
-        <ShieldAlert size={20} />
-        <div>
-          <strong>Ghi chú quyền truy cập</strong>
-          <p>Màn hình CSKH mặc định không mở khóa dữ liệu sức khỏe. Mọi truy cập dữ liệu nhạy cảm cần quyền cao hơn, lý do nghiệp vụ rõ ràng và được ghi vào audit log.</p>
-        </div>
+      <section className="panel">
+        <h2>Food log gần nhất</h2>
+        <table className="data-table"><thead><tr><th>Ngày</th><th>Bữa</th><th>Recipe ID</th><th>Số lượng</th></tr></thead><tbody>
+          {!foodLogs.content?.length ? <tr><td colSpan="4">Chưa có food log.</td></tr> : foodLogs.content.map((log) => <tr key={log.logId}><td>{log.logDate}</td><td>{mealLabels[log.mealType] || log.mealType}</td><td>#{log.recipeId}</td><td>{log.quantity}</td></tr>)}
+        </tbody></table>
       </section>
     </div>
   );

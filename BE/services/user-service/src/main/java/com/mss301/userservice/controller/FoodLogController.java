@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -60,7 +61,7 @@ public class FoodLogController {
             @PathVariable Long userId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) MealType mealType,
-            @PageableDefault(size = 20, sort = "logDate") Pageable pageable) {
+            @ParameterObject @PageableDefault(size = 20, sort = "logDate") Pageable pageable) {
         return ResponseEntity.ok(foodLogService.getFoodLogHistory(userId, date, mealType, pageable));
     }
 

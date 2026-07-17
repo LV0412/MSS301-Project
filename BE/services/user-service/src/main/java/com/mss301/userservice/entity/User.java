@@ -32,6 +32,9 @@ public class User {
     @Column(name = "user_id")
     private Long userId;
 
+    @Column(name = "auth_account_id", unique = true)
+    private Long authAccountId;
+
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 

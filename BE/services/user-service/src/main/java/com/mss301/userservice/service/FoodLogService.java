@@ -10,6 +10,7 @@ import com.mss301.userservice.exception.FoodLogNotFoundException;
 import com.mss301.userservice.exception.UserNotFoundException;
 import com.mss301.userservice.repository.FoodLogRepository;
 import com.mss301.userservice.repository.UserRepository;
+import com.mss301.userservice.util.PageableUtils;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -52,7 +53,8 @@ public class FoodLogService {
                 .and(hasDate(date))
                 .and(hasMealType(mealType));
 
-        return foodLogRepository.findAll(specification, pageable).map(this::toResponse);
+        return foodLogRepository.findAll(specification, PageableUtils.normalizeSort(pageable, "logDate"))
+                .map(this::toResponse);
     }
 
     public FoodLogResponse updateFoodLog(Long userId, Long logId, UpdateFoodLogRequest request) {

@@ -8,11 +8,19 @@ services:
       MYSQL_DATABASE: auth_service
       MYSQL_ROOT_PASSWORD: ${AUTH_MYSQL_ROOT_PASSWORD:-root}
     ports:
-      - "${AUTH_MYSQL_PORT:-3307}:3306"
+      - "127.0.0.1:${AUTH_MYSQL_PORT:-3307}:3306"
     volumes:
       - auth_mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${AUTH_MYSQL_ROOT_PASSWORD:-root}"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-p${AUTH_MYSQL_ROOT_PASSWORD:-root}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -24,13 +32,18 @@ services:
     depends_on:
       auth-mysql:
         condition: service_healthy
+      user-service:
+        condition: service_started
+    env_file:
+      - ./BE/services/auth-service/.env
     environment:
       AUTH_APP_PORT: 8000
-      AUTH_DATABASE_URL: jdbc:mysql://auth-mysql:3306/auth_service?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      AUTH_DATABASE_URL: jdbc:mysql://auth-mysql:3306/auth_service?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
       AUTH_DATABASE_USERNAME: root
       AUTH_DATABASE_PASSWORD: ${AUTH_MYSQL_ROOT_PASSWORD:-root}
       AUTH_JPA_DDL_AUTO: ${AUTH_JPA_DDL_AUTO:-update}
       AUTH_JPA_SHOW_SQL: ${AUTH_JPA_SHOW_SQL:-false}
+      AUTH_SEED_ENABLED: ${AUTH_SEED_ENABLED:-true}
       JWT_SECRET: ${JWT_SECRET:-change-this-to-a-long-random-secret-at-least-32-bytes-long}
       JWT_ACCESS_TOKEN_EXPIRATION_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRATION_MINUTES:-15}
       JWT_REFRESH_TOKEN_EXPIRATION_DAYS: ${JWT_REFRESH_TOKEN_EXPIRATION_DAYS:-30}
@@ -44,8 +57,9 @@ services:
       AUTH_RATE_LIMIT_VERIFY_EMAIL: ${AUTH_RATE_LIMIT_VERIFY_EMAIL:-10}
       AUTH_RATE_LIMIT_FORGOT_PASSWORD: ${AUTH_RATE_LIMIT_FORGOT_PASSWORD:-3}
       AUTH_RATE_LIMIT_RESET_PASSWORD: ${AUTH_RATE_LIMIT_RESET_PASSWORD:-10}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173,http://localhost:8080}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-*}
+      USER_SERVICE_URL: http://user-service:8001
+      ADMIN_DEFAULT_USER_PASSWORD: ${ADMIN_DEFAULT_USER_PASSWORD:-ChangeMe@123}
       MAIL_HOST: ${MAIL_HOST:-}
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
@@ -59,14 +73,22 @@ services:
     image: mysql:8.4
     container_name: mss301-user-mysql
     environment:
-      MYSQL_DATABASE: user_service
+      MYSQL_DATABASE: ${USER_MYSQL_DATABASE:-user_service}
       MYSQL_ROOT_PASSWORD: ${USER_MYSQL_ROOT_PASSWORD:-root}
     ports:
-      - "${USER_MYSQL_PORT:-3308}:3306"
+      - "127.0.0.1:${USER_MYSQL_PORT:-3308}:3306"
     volumes:
       - user_mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${USER_MYSQL_ROOT_PASSWORD:-root}"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-p${USER_MYSQL_ROOT_PASSWORD:-root}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -78,20 +100,62 @@ services:
     depends_on:
       user-mysql:
         condition: service_healthy
+    env_file:
+      - path: ./BE/services/user-service/.env
+        required: false
     environment:
       APP_PORT: 8001
-      DATABASE_URL: jdbc:mysql://user-mysql:3306/user_service?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DATABASE_URL: jdbc:mysql://user-mysql:3306/${USER_MYSQL_DATABASE:-user_service}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       DATABASE_USERNAME: root
       DATABASE_PASSWORD: ${USER_MYSQL_ROOT_PASSWORD:-root}
       JPA_DDL_AUTO: ${USER_JPA_DDL_AUTO:-update}
       JPA_SHOW_SQL: ${USER_JPA_SHOW_SQL:-false}
+      APP_SEED_ENABLED: true
     ports:
       - "${USER_SERVICE_PORT:-8001}:8001"
 
+  recipe-mysql:
+    image: mysql:8.4
+    container_name: mss301-recipe-mysql
+    environment:
+      MYSQL_DATABASE: ${RECIPE_MYSQL_DATABASE:-recipe_service}
+      MYSQL_ROOT_PASSWORD: ${RECIPE_MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "127.0.0.1:${RECIPE_MYSQL_PORT:-3309}:3306"
+    volumes:
+      - recipe_mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-p${RECIPE_MYSQL_ROOT_PASSWORD:-root}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   recipe-service:
-    profiles: ["future"]
     build:
       context: ./BE/services/recipe-service
+    container_name: mss301-recipe-service
+    depends_on:
+      recipe-mysql:
+        condition: service_healthy
+    env_file:
+      - path: ./BE/services/recipe-service/.env
+        required: false
+    environment:
+      APP_PORT: 8002
+      DATABASE_URL: jdbc:mysql://recipe-mysql:3306/${RECIPE_MYSQL_DATABASE:-recipe_service}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DATABASE_USERNAME: root
+      DATABASE_PASSWORD: ${RECIPE_MYSQL_ROOT_PASSWORD:-root}
+      JPA_SHOW_SQL: ${RECIPE_JPA_SHOW_SQL:-false}
+    ports:
+      - "${RECIPE_SERVICE_PORT:-8002}:8002"
 
   ai-recommendation-service:
     profiles: ["future"]
@@ -99,9 +163,21 @@ services:
       context: ./BE/services/ai-recommendation-service
 
   api-gateway-service:
-    profiles: ["future"]
     build:
       context: ./BE/services/api-gateway-service
+    container_name: mss301-api-gateway-service
+    depends_on:
+      - auth-service
+      - user-service
+      - recipe-service
+    environment:
+      APP_PORT: 8080
+      AUTH_SERVICE_URL: http://auth-service:8000
+      USER_SERVICE_URL: http://user-service:8001
+      RECIPE_SERVICE_URL: http://recipe-service:8002
+      AI_RECOMMENDATION_SERVICE_URL: http://ai-recommendation-service:8003
+    ports:
+      - "${API_GATEWAY_PORT:-8080}:8080"
 
   eureka-server:
     profiles: ["future"]
@@ -116,3 +192,4 @@ services:
 volumes:
   auth_mysql_data:
   user_mysql_data:
+  recipe_mysql_data:

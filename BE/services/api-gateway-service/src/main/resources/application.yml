@@ -6,22 +6,84 @@ spring:
     name: api-gateway-service
   cloud:
     gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns:
+              - "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - Authorization
+              - Content-Type
+              - Accept
+              - Origin
+              - X-Requested-With
+            exposedHeaders:
+              - Authorization
+            allowCredentials: false
+            maxAge: 3600
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
       routes:
+        - id: auth-service-openapi
+          uri: ${AUTH_SERVICE_URL:http://localhost:8000}
+          predicates:
+            - Path=/v3/api-docs/auth
+          filters:
+            - RewritePath=/v3/api-docs/auth,/v3/api-docs
+        - id: user-service-openapi
+          uri: ${USER_SERVICE_URL:http://localhost:8001}
+          predicates:
+            - Path=/v3/api-docs/users
+          filters:
+            - RewritePath=/v3/api-docs/users,/v3/api-docs
+        - id: recipe-service-openapi
+          uri: ${RECIPE_SERVICE_URL:http://localhost:8002}
+          predicates:
+            - Path=/v3/api-docs/recipes
+          filters:
+            - RewritePath=/v3/api-docs/recipes,/v3/api-docs
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8000}
+          predicates:
+            - Path=/api/v1/auth/**
         - id: user-service
           uri: ${USER_SERVICE_URL:http://localhost:8001}
           predicates:
-            - Path=/api/users/**,/api/health-profiles/**,/api/diet-preferences/**,/api/nutrition-goals/**,/api/allergies/**,/api/favorites/**,/api/food-logs/**
+            - Path=/api/v1/users/**,/api/internal/users/**,/api/internal/health-profiles/**,/api/internal/nutrition-goals/**,/api/internal/diet-preferences/**,/api/internal/user-allergies/**,/api/internal/food-logs/**,/api/internal/ai-profile/**
         - id: recipe-service
           uri: ${RECIPE_SERVICE_URL:http://localhost:8002}
           predicates:
-            - Path=/api/recipes/**,/api/ingredients/**,/api/categories/**,/api/nutrition-info/**
+            - Path=/api/recipes/**,/api/v1/recipes/**,/api/ingredients/**,/api/v1/ingredients/**,/api/categories/**,/api/v1/categories/**,/api/allergens/**,/api/v1/allergens/**,/api/internal/recipes/**
         - id: ai-recommendation-service
           uri: ${AI_RECOMMENDATION_SERVICE_URL:http://localhost:8003}
           predicates:
-            - Path=/api/recommendations/**,/api/ai-suggestions/**,/api/meal-plans/**
+            - Path=/api/ai/**
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,gateway
+
+springdoc:
+  api-docs:
+    path: /gateway/v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    urls-primary-name: Auth Service
+    urls:
+      - name: Auth Service
+        url: /v3/api-docs/auth
+      - name: User Service
+        url: /v3/api-docs/users
+      - name: Recipe Service
+        url: /v3/api-docs/recipes

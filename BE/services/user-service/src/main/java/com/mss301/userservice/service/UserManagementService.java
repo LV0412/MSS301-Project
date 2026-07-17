@@ -3,10 +3,13 @@ package com.mss301.userservice.service;
 import com.mss301.userservice.dto.CreateUserRequest;
 import com.mss301.userservice.dto.UpdateUserRequest;
 import com.mss301.userservice.dto.UserResponse;
+import com.mss301.userservice.dto.internal.InternalUserProvisionRequest;
+import com.mss301.userservice.entity.Gender;
 import com.mss301.userservice.entity.User;
 import com.mss301.userservice.exception.DuplicateEmailException;
 import com.mss301.userservice.exception.UserNotFoundException;
 import com.mss301.userservice.repository.UserRepository;
+import com.mss301.userservice.util.PageableUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -35,6 +38,24 @@ public class UserManagementService {
         return toResponse(userRepository.save(user));
     }
 
+    public UserResponse provisionFromAuth(InternalUserProvisionRequest request) {
+        User user = userRepository.findByAuthAccountId(request.authAccountId())
+                .orElseGet(() -> userRepository.findByEmailIgnoreCase(request.email())
+                        .map(existing -> {
+                            existing.setAuthAccountId(request.authAccountId());
+                            return existing;
+                        })
+                        .orElseGet(() -> User.builder()
+                                .authAccountId(request.authAccountId())
+                                .email(request.email())
+                                .passwordHash("managed-by-auth-service")
+                                .fullName(request.fullName())
+                                .gender(Gender.OTHER)
+                                .build()));
+
+        return toResponse(userRepository.save(user));
+    }
+
     @Transactional(readOnly = true)
     public UserResponse getUserById(Long userId) {
         return toResponse(findUser(userId));
@@ -42,7 +63,9 @@ public class UserManagementService {
 
     @Transactional(readOnly = true)
     public Page<UserResponse> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable).map(this::toResponse);
+        Pageable normalizedPageable = PageableUtils.normalizeSort(pageable, "createdAt");
+        Page<User> users = userRepository.findAll(normalizedPageable);
+        return users.map(this::toResponse);
     }
 
     public UserResponse updateUser(Long userId, UpdateUserRequest request) {
@@ -87,6 +110,7 @@ public class UserManagementService {
     private UserResponse toResponse(User user) {
         return UserResponse.builder()
                 .userId(user.getUserId())
+                .authAccountId(user.getAuthAccountId())
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .dob(user.getDob())

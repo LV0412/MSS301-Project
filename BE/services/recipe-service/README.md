@@ -15,6 +15,10 @@ Spring Boot microservice that owns the recipe catalog, categories, ingredients, 
 
 Both `/api/...` and `/api/v1/...` public paths are supported.
 
+Detailed API documentation:
+
+- [API.md](./API.md)
+
 | Resource | Endpoints |
 | --- | --- |
 | Categories | `POST/GET /api/categories`, `GET/PUT/DELETE /api/categories/{id}` |
@@ -90,18 +94,18 @@ OpenAPI JSON is available at `/v3/api-docs`; Swagger UI is at `/swagger-ui.html`
 
 ## Database and local run
 
-The service uses PostgreSQL. Flyway creates and validates the schema on startup.
+The service uses MySQL. Hibernate manages the schema directly on startup via JPA.
 
 ```bash
-export DATABASE_URL=jdbc:postgresql://localhost:5432/recipe_service
-export DATABASE_USERNAME=postgres
-export DATABASE_PASSWORD=postgres
+export DATABASE_URL=jdbc:mysql://localhost:3306/recipe_service?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+export DATABASE_USERNAME=root
+export DATABASE_PASSWORD=root
 mvn spring-boot:run
 ```
 
 Default port: `8002`.
 
-Run the integration suite (H2 in PostgreSQL compatibility mode):
+Run the integration suite (H2 in MySQL compatibility mode):
 
 ```bash
 mvn test

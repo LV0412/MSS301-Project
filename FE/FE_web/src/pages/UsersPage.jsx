@@ -1,214 +1,143 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Ban,
-  Download,
-  Eye,
-  Mail,
-  MoreVertical,
-  RotateCcw,
-  Search,
-  Send,
-  ShieldAlert,
-  ShieldCheck,
-  Unlock,
-  UserCheck,
-  UserPlus,
-  Users
-} from "lucide-react";
-import { users } from "../data/mockData.js";
-import {
-  deactivateUser,
-  lockUser,
-  resendInvitation,
-  resetOnboarding,
-  sendSupportEmail,
-  unlockUser
-} from "../api/userManagement.js";
+import { Download, Eye, Search, Trash2, UserCheck, UserPlus, Users, UserX } from "lucide-react";
+import { deleteUser, getUsers } from "../api/userManagement.js";
 
-const userRows = [
-  { ...users[0], accountStatus: "Hoạt động", onboarding: "Hoàn tất", emailVerified: "Có", healthDataStatus: "Đã ẩn", savedRecipes: 18, hasMealPlan: "Có", supportRequests: 0 },
-  { ...users[1], accountStatus: "Hoạt động", onboarding: "Chưa hoàn tất", emailVerified: "Có", healthDataStatus: "Bị giới hạn", savedRecipes: 7, hasMealPlan: "Chưa", supportRequests: 1 },
-  { ...users[2], accountStatus: "Không hoạt động", onboarding: "Chưa hoàn tất", emailVerified: "Chưa", healthDataStatus: "Chưa có", savedRecipes: 3, hasMealPlan: "Chưa", supportRequests: 2 },
-  { ...users[3], accountStatus: "Bị khóa", onboarding: "Hoàn tất", emailVerified: "Có", healthDataStatus: "Đã ẩn", savedRecipes: 24, hasMealPlan: "Có", supportRequests: 1 }
-];
+const PAGE_SIZE = 10;
 
-const kpis = [
-  { label: "Tổng người dùng", value: "1,284", icon: Users },
-  { label: "Đang hoạt động", value: "982", icon: UserCheck },
-  { label: "Không hoạt động", value: "182", icon: Ban },
-  { label: "Chưa onboarding", value: "96", icon: RotateCcw },
-  { label: "Bị khóa", value: "24", icon: ShieldAlert, danger: true }
-];
-
-function requestReason(actionLabel, userName) {
-  return window.prompt(`Nhập lý do để ${actionLabel.toLowerCase()} cho ${userName}:`);
+function initials(name = "") {
+  return name.split(/\s+/).filter(Boolean).slice(-2).map((part) => part[0]).join("").toUpperCase() || "U";
 }
 
-async function runSupportAction(action, user) {
-  if (action.requiresReason) {
-    const reason = requestReason(action.label, user.name);
-    if (!reason) return;
-    if (!window.confirm(`Xác nhận ${action.label.toLowerCase()} cho ${user.name}?`)) return;
-    await action.handler(user.id, reason);
-    return;
-  }
-
-  if (action.confirm && !window.confirm(`Xác nhận ${action.label.toLowerCase()} cho ${user.name}?`)) return;
-  await action.handler(user.id);
+function formatDate(value) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
 }
 
-const actionItems = [
-  { label: "Gửi email hỗ trợ", icon: Mail, handler: sendSupportEmail },
-  { label: "Gửi lại email kích hoạt", icon: Send, handler: resendInvitation },
-  { label: "Reset onboarding", icon: RotateCcw, handler: resetOnboarding, requiresReason: true },
-  { label: "Khóa tài khoản", icon: ShieldAlert, handler: lockUser, requiresReason: true, danger: true },
-  { label: "Mở khóa tài khoản", icon: Unlock, handler: unlockUser, requiresReason: true },
-  { label: "Vô hiệu hóa tài khoản", icon: Ban, handler: deactivateUser, requiresReason: true, danger: true }
-];
+function genderLabel(value) {
+  return { MALE: "Nam", FEMALE: "Nữ", OTHER: "Khác" }[value] || "—";
+}
 
 export default function UsersPage() {
+  const [page, setPage] = useState(0);
+  const [data, setData] = useState({ content: [], totalElements: 0, totalPages: 0, number: 0 });
+  const [search, setSearch] = useState("");
+  const [gender, setGender] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  async function loadUsers(targetPage = page) {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await getUsers({ page: targetPage, size: PAGE_SIZE, sort: "createdAt,desc" });
+      setData(response);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadUsers(page);
+  }, [page]);
+
+  const rows = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    return (data.content || []).filter((user) => {
+      const matchesSearch = !keyword || user.fullName?.toLowerCase().includes(keyword) || user.email?.toLowerCase().includes(keyword) || String(user.userId).includes(keyword);
+      return matchesSearch && (!gender || user.gender === gender);
+    });
+  }, [data.content, search, gender]);
+
+  const linkedCount = (data.content || []).filter((user) => user.authAccountId != null).length;
+
+  async function handleDelete(user) {
+    if (!window.confirm(`Xóa hồ sơ ${user.fullName} (#${user.userId})? Hành động này không thể hoàn tác.`)) return;
+    try {
+      await deleteUser(user.userId);
+      await loadUsers(page);
+    } catch (requestError) {
+      setError(requestError.message);
+    }
+  }
+
+  function exportCurrentPage() {
+    const header = ["userId", "authAccountId", "fullName", "email", "gender", "dob", "createdAt"];
+    const csv = [header, ...rows.map((user) => header.map((key) => user[key] ?? ""))]
+      .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+    link.download = `users-page-${page + 1}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
   return (
     <div className="page-stack">
       <div className="page-toolbar">
         <div>
-          <p className="eyebrow">Quyền CSKH</p>
+          <p className="eyebrow">User Service</p>
           <h2>Quản lý người dùng</h2>
-          <p>Quản lý tài khoản, trạng thái hoạt động và hỗ trợ người dùng mà không hiển thị dữ liệu sức khỏe nhạy cảm.</p>
+          <p>Dữ liệu được tải trực tiếp từ API User Service qua API Gateway.</p>
         </div>
         <div className="button-row">
-          <Link className="primary-btn" to="/users/new"><UserPlus size={16} /> Mời người dùng</Link>
-          <button className="ghost-btn"><Download size={16} /> Xuất danh sách</button>
+          <Link className="primary-btn" to="/users/new"><UserPlus size={16} /> Tạo hồ sơ</Link>
+          <button className="ghost-btn" onClick={exportCurrentPage} disabled={!rows.length}><Download size={16} /> Xuất trang hiện tại</button>
         </div>
       </div>
 
-      <section className="privacy-banner">
-        <ShieldCheck size={24} />
-        <div>
-          <strong>Chế độ bảo vệ dữ liệu sức khỏe đang bật</strong>
-          <p>Support Admin chỉ xem dữ liệu cần thiết cho chăm sóc khách hàng. Bệnh lý, cân nặng, mục tiêu calo, dị ứng, macro, meal plan cụ thể và lịch sử AI cá nhân hóa được masking theo quyền.</p>
-        </div>
-      </section>
-
       <section className="kpi-grid overview-main-kpis">
-        {kpis.map(({ label, value, icon: Icon, danger }) => (
-          <article className={`kpi-card compact-kpi ${danger ? "danger-card" : ""}`} key={label}>
-            <div className="kpi-icon"><Icon size={19} /></div>
-            <span>{label}</span>
-            <strong>{value}</strong>
-          </article>
-        ))}
+        <article className="kpi-card compact-kpi"><div className="kpi-icon"><Users size={19} /></div><span>Tổng hồ sơ</span><strong>{data.totalElements ?? 0}</strong></article>
+        <article className="kpi-card compact-kpi"><div className="kpi-icon"><UserCheck size={19} /></div><span>Đã liên kết Auth (trang này)</span><strong>{linkedCount}</strong></article>
+        <article className="kpi-card compact-kpi"><div className="kpi-icon"><UserX size={19} /></div><span>Chưa liên kết (trang này)</span><strong>{(data.content || []).length - linkedCount}</strong></article>
       </section>
 
       <section className="panel">
         <div className="filter-grid user-management-filter-grid">
-          <label>Quốc gia
-            <select>
-              <option>Tất cả quốc gia</option>
-              <option>Việt Nam</option>
-              <option>Hoa Kỳ</option>
-              <option>Canada</option>
-              <option>Đức</option>
-              <option>Anh</option>
+          <label>Giới tính
+            <select value={gender} onChange={(event) => setGender(event.target.value)}>
+              <option value="">Tất cả</option><option value="MALE">Nam</option><option value="FEMALE">Nữ</option><option value="OTHER">Khác</option>
             </select>
           </label>
-          <label>Trạng thái tài khoản
-            <select>
-              <option>Tất cả</option>
-              <option>Hoạt động</option>
-              <option>Không hoạt động</option>
-              <option>Chờ kích hoạt</option>
-              <option>Bị khóa</option>
-            </select>
+          <label>Tìm trong trang hiện tại
+            <div className="field"><Search size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tên, email hoặc user ID..." /></div>
           </label>
-          <label>Onboarding
-            <select>
-              <option>Tất cả</option>
-              <option>Hoàn tất</option>
-              <option>Chưa hoàn tất</option>
-            </select>
-          </label>
-          <label>Dữ liệu sức khỏe
-            <select>
-              <option>Tất cả</option>
-              <option>Đã ẩn</option>
-              <option>Chưa có</option>
-              <option>Bị giới hạn</option>
-            </select>
-          </label>
-          <label>Tìm kiếm
-            <div className="field">
-              <Search size={15} />
-              <input placeholder="Tìm theo tên hoặc email..." />
-            </div>
-          </label>
-          <button className="ghost-btn">Xóa bộ lọc</button>
+          <button className="ghost-btn" onClick={() => { setSearch(""); setGender(""); }}>Xóa bộ lọc</button>
         </div>
       </section>
 
+      {error ? <section className="warning-panel"><div><strong>Không tải được dữ liệu</strong><p>{error}</p><button className="ghost-btn" onClick={() => loadUsers(page)}>Thử lại</button></div></section> : null}
+
       <section className="panel">
         <table className="data-table user-table">
-          <thead>
-            <tr>
-              <th>Người dùng</th>
-              <th>Email</th>
-              <th>Quốc gia</th>
-              <th>Trạng thái tài khoản</th>
-              <th>Onboarding</th>
-              <th>Hoạt động cuối</th>
-              <th>Dữ liệu sức khỏe</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Người dùng</th><th>Email</th><th>Giới tính</th><th>Ngày sinh</th><th>Liên kết Auth</th><th>Ngày tạo</th><th>Hành động</th></tr></thead>
           <tbody>
-            {userRows.map((user) => (
-              <tr className={user.accountStatus === "Không hoạt động" ? "soft-danger-row" : ""} key={user.id}>
-                <td className="person-cell">
-                  <span className="avatar-xs">{user.avatar}</span>
-                  <div>
-                    <strong>{user.name}</strong>
-                    <small>{user.savedRecipes} công thức đã lưu · Kế hoạch ăn uống: {user.hasMealPlan} · {user.supportRequests} yêu cầu hỗ trợ</small>
-                  </div>
-                </td>
-                <td>{user.email}</td>
-                <td>{user.country}</td>
-                <td><span className={`status-dot ${user.accountStatus !== "Hoạt động" ? "muted" : ""}`}>{user.accountStatus}</span></td>
-                <td><span className={`chip ${user.onboarding === "Hoàn tất" ? "active" : ""}`}>{user.onboarding}</span></td>
-                <td>{user.lastActive}</td>
-                <td><span className="masked-pill">{user.healthDataStatus}</span></td>
+            {loading ? <tr><td colSpan="7">Đang tải người dùng...</td></tr> : null}
+            {!loading && !rows.length ? <tr><td colSpan="7">Không có người dùng phù hợp.</td></tr> : null}
+            {!loading && rows.map((user) => (
+              <tr key={user.userId}>
+                <td className="person-cell"><span className="avatar-xs">{initials(user.fullName)}</span><div><strong>{user.fullName}</strong><small>User ID: {user.userId}</small></div></td>
+                <td>{user.email}</td><td>{genderLabel(user.gender)}</td><td>{user.dob || "—"}</td>
+                <td>{user.authAccountId != null ? <span className="chip active">Account #{user.authAccountId}</span> : <span className="chip">Chưa liên kết</span>}</td>
+                <td>{formatDate(user.createdAt)}</td>
                 <td className="actions-cell">
-                  <Link className="icon-link" to={`/users/${user.id}`} title="Xem chi tiết" aria-label="Xem chi tiết người dùng"><Eye size={17} /></Link>
-                  <details className="action-menu">
-                    <summary title="Mở menu hành động" aria-label="Mở menu hành động"><MoreVertical size={17} /></summary>
-                    <div className="action-menu-list">
-                      {actionItems.map(({ icon: Icon, ...action }) => (
-                        <button
-                          className={action.danger ? "danger-action" : ""}
-                          key={action.label}
-                          onClick={() => runSupportAction(action, user)}
-                          title={action.label}
-                        >
-                          <Icon size={15} />
-                          {action.label}
-                        </button>
-                      ))}
-                    </div>
-                  </details>
+                  <Link className="icon-link" to={`/users/${user.userId}`} title="Xem và chỉnh sửa"><Eye size={17} /></Link>
+                  <button className="icon-link" onClick={() => handleDelete(user)} title="Xóa hồ sơ"><Trash2 size={17} /></button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
         <div className="table-footer">
-          <span>Hiển thị 1-10 trong 1,284 người dùng</span>
-          <div className="pagination"><button disabled>‹</button><button className="active">1</button><button>2</button><button>3</button><span>...</span><button>321</button><button>›</button></div>
-        </div>
-      </section>
-
-      <section className="warning-panel access-note-panel">
-        <ShieldAlert size={20} />
-        <div>
-          <strong>Ghi chú quyền truy cập</strong>
-          <p>Nếu cần xem dữ liệu sức khỏe chi tiết, Admin phải có quyền USER_HEALTH_READ và lý do nghiệp vụ rõ ràng. Mọi lần truy cập dữ liệu nhạy cảm phải được ghi vào audit log.</p>
+          <span>Trang {data.totalPages ? page + 1 : 0}/{data.totalPages || 0} · {data.totalElements || 0} hồ sơ</span>
+          <div className="pagination">
+            <button disabled={loading || page === 0} onClick={() => setPage((value) => value - 1)}>‹</button>
+            <button className="active" disabled>{page + 1}</button>
+            <button disabled={loading || page + 1 >= (data.totalPages || 0)} onClick={() => setPage((value) => value + 1)}>›</button>
+          </div>
         </div>
       </section>
     </div>
