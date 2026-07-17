@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Any
 
 from rag.embedding import SimpleEmbedding, cosine_similarity
 
@@ -12,7 +13,7 @@ class RecipeDocument:
     protein: int
     estimated_cost: int
     text: str
-    metadata: dict[str, str] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class InMemoryVectorStore:

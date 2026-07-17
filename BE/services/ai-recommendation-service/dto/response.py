@@ -8,6 +8,9 @@ class RecommendedItem(BaseModel):
     protein: int = Field(description="Protein grams per serving.")
     estimated_cost: int = Field(description="Estimated recipe cost in VND when available.")
     tags: list[str] = Field(description="Diet, allergen, or retrieval tags used during ranking.")
+    suitability_score: float = Field(default=0.0, description="FoodyLLM suitability score from 0 to 100.")
+    reason: str = Field(default="", description="FoodyLLM reason for choosing this recipe.")
+    warnings: list[str] = Field(default_factory=list, description="Diet, allergy, or nutrition warnings.")
 
 
 class RecommendationResponse(BaseModel):
@@ -24,6 +27,9 @@ class RecommendationResponse(BaseModel):
                             "protein": 35,
                             "estimated_cost": 45000,
                             "tags": ["NORMAL", "high_protein"],
+                            "suitability_score": 91.5,
+                            "reason": "Phu hop muc tieu giau dam va nam trong gioi han calories.",
+                            "warnings": [],
                         }
                     ],
                     "explanation": "He thong da ket hop hybrid search va RAG context de chon cac mon phu hop.",

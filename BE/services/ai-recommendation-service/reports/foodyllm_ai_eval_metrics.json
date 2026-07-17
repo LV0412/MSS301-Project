@@ -1,0 +1,35 @@
+{
+  "dataset": "data\\evaluation\\foodyllm_ai_eval.json",
+  "total_cases": 12,
+  "hit_at_1": 0.8333,
+  "hit_at_3": 0.9167,
+  "mean_reciprocal_rank": 0.8917,
+  "recommendation_coverage": 1.0,
+  "foodyllm_stage_coverage": 1.0,
+  "avg_latency_ms": 6.16,
+  "avg_top1_suitability_score": 92.14,
+  "top3_constraint_compliance": {
+    "calories": 1.0,
+    "protein": 1.0,
+    "budget": 1.0,
+    "diet": 1.0,
+    "allergy": 1.0
+  },
+  "by_foodyllm_task": {
+    "assessing_recipe_nutritional_profile": {
+      "cases": 4,
+      "hit_at_3": 1.0,
+      "mean_reciprocal_rank": 1.0
+    },
+    "food_entity_extraction_and_safety_filtering": {
+      "cases": 4,
+      "hit_at_3": 0.75,
+      "mean_reciprocal_rank": 0.8
+    },
+    "traffic_light_nutrition_labeling": {
+      "cases": 4,
+      "hit_at_3": 1.0,
+      "mean_reciprocal_rank": 0.875
+    }
+  }
+}

@@ -1,0 +1,172 @@
+[
+  {
+    "id": "nutrition_high_protein_budget_001",
+    "foodyllm_task": "assessing_recipe_nutritional_profile",
+    "description": "High-protein lunch under student budget and calorie limit.",
+    "request": {
+      "query": "goi y bua trua giau dam cho sinh vien",
+      "goal": "high_protein",
+      "max_calories": 600,
+      "target_calories": 520,
+      "min_protein": 30,
+      "budget": 50000,
+      "allergies": []
+    },
+    "expected_recipe_ids": ["1", "3", "10", "23", "46"]
+  },
+  {
+    "id": "traffic_light_low_calorie_002",
+    "foodyllm_task": "traffic_light_nutrition_labeling",
+    "description": "Low-calorie meal selection behaves like green-light calorie screening.",
+    "request": {
+      "query": "mon it calo de giam can",
+      "goal": "weight_loss",
+      "diet": "low_calorie",
+      "max_calories": 400,
+      "target_calories": 350,
+      "budget": 45000,
+      "allergies": []
+    },
+    "expected_recipe_ids": ["8", "18", "25", "34", "46"]
+  },
+  {
+    "id": "entity_allergy_peanut_003",
+    "foodyllm_task": "food_entity_extraction_and_safety_filtering",
+    "description": "Food entity/allergy safety: peanut must be avoided.",
+    "request": {
+      "query": "bua phu chay re tien khong dau phong",
+      "diet": "vegan",
+      "goal": "balanced",
+      "max_calories": 500,
+      "budget": 40000,
+      "allergies": ["peanut"]
+    },
+    "expected_recipe_ids": ["18", "30", "31", "39", "42", "51"]
+  },
+  {
+    "id": "vegetarian_balanced_004",
+    "foodyllm_task": "assessing_recipe_nutritional_profile",
+    "description": "Vegetarian balanced meal with enough protein.",
+    "request": {
+      "query": "mon chay can bang co dam",
+      "diet": "vegetarian",
+      "goal": "balanced",
+      "max_calories": 550,
+      "min_protein": 16,
+      "budget": 40000,
+      "allergies": []
+    },
+    "expected_recipe_ids": ["7", "17", "18", "29", "31", "35", "42", "45", "51"]
+  },
+  {
+    "id": "low_carb_protein_005",
+    "foodyllm_task": "traffic_light_nutrition_labeling",
+    "description": "Low-carb protein meal selection.",
+    "request": {
+      "query": "mon it carb nhieu protein",
+      "diet": "low_carb",
+      "goal": "muscle_gain",
+      "max_calories": 550,
+      "min_protein": 30,
+      "budget": 60000,
+      "allergies": []
+    },
+    "expected_recipe_ids": ["13", "19", "25", "33"]
+  },
+  {
+    "id": "seafood_allergy_006",
+    "foodyllm_task": "food_entity_extraction_and_safety_filtering",
+    "description": "Seafood allergy safety must filter fish and shrimp recipes.",
+    "request": {
+      "query": "bua trua giau dam khong hai san",
+      "goal": "high_protein",
+      "max_calories": 650,
+      "min_protein": 30,
+      "budget": 50000,
+      "allergies": ["seafood"]
+    },
+    "expected_recipe_ids": ["1", "3", "10", "13", "23", "38", "43", "44", "46", "50"]
+  },
+  {
+    "id": "budget_student_007",
+    "foodyllm_task": "assessing_recipe_nutritional_profile",
+    "description": "Student budget meal under 25k VND.",
+    "request": {
+      "query": "mon an sinh vien duoi 25 nghin",
+      "goal": "balanced",
+      "max_calories": 550,
+      "budget": 25000,
+      "allergies": []
+    },
+    "expected_recipe_ids": ["4", "7", "9", "17", "19", "21", "27", "28", "29", "31", "32", "35", "39", "40", "48", "49"]
+  },
+  {
+    "id": "muscle_gain_008",
+    "foodyllm_task": "assessing_recipe_nutritional_profile",
+    "description": "Muscle gain meals prioritize high protein and higher calories.",
+    "request": {
+      "query": "bua an tang co nhieu protein",
+      "goal": "muscle_gain",
+      "diet": "muscle_gain",
+      "max_calories": 750,
+      "min_protein": 35,
+      "budget": 65000,
+      "allergies": []
+    },
+    "expected_recipe_ids": ["1", "13", "24", "37"]
+  },
+  {
+    "id": "breakfast_light_009",
+    "foodyllm_task": "traffic_light_nutrition_labeling",
+    "description": "Light breakfast under 400 kcal.",
+    "request": {
+      "query": "bua sang nhe duoi 400 kcal",
+      "goal": "weight_loss",
+      "max_calories": 400,
+      "target_calories": 320,
+      "budget": 30000,
+      "allergies": []
+    },
+    "expected_recipe_ids": ["4", "19", "20", "21", "28", "35", "39", "49"]
+  },
+  {
+    "id": "egg_allergy_010",
+    "foodyllm_task": "food_entity_extraction_and_safety_filtering",
+    "description": "Egg allergy safety should avoid egg recipes.",
+    "request": {
+      "query": "mon re tien can bang khong trung",
+      "goal": "balanced",
+      "max_calories": 600,
+      "budget": 35000,
+      "allergies": ["egg"]
+    },
+    "expected_recipe_ids": ["2", "4", "7", "11", "15", "17", "18", "23", "28", "31", "32", "38", "39", "41", "45", "47", "48", "50", "51"]
+  },
+  {
+    "id": "vegan_low_calorie_011",
+    "foodyllm_task": "traffic_light_nutrition_labeling",
+    "description": "Vegan low-calorie recommendation.",
+    "request": {
+      "query": "mon vegan it calo",
+      "diet": "vegan",
+      "goal": "weight_loss",
+      "max_calories": 420,
+      "budget": 45000,
+      "allergies": []
+    },
+    "expected_recipe_ids": ["7", "18", "30", "31", "39", "42"]
+  },
+  {
+    "id": "balanced_no_milk_012",
+    "foodyllm_task": "food_entity_extraction_and_safety_filtering",
+    "description": "Milk allergy safety with balanced recommendations.",
+    "request": {
+      "query": "mon can bang khong sua",
+      "goal": "balanced",
+      "max_calories": 600,
+      "budget": 50000,
+      "allergies": ["milk"]
+    },
+    "expected_recipe_ids": ["1", "2", "3", "4", "6", "7", "11", "12", "15", "17", "18", "23", "28", "31", "32", "38", "41", "43", "44", "45", "47", "48", "50"]
+  }
+]

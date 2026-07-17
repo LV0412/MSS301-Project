@@ -26,4 +26,7 @@ class RecommendationRequest(BaseModel):
     allergies: list[str] = Field(default_factory=list, description="Allergy names or allergen:id tokens.")
     max_calories: int | None = Field(default=None, ge=1, description="Maximum calories allowed per recommended recipe.")
     target_calories: int | None = Field(default=None, ge=1, description="Preferred calories per recommended recipe.")
+    min_protein: int | None = Field(default=None, ge=0, description="Minimum protein grams preferred per recipe.")
+    max_carbs: int | None = Field(default=None, ge=0, description="Maximum carbs grams allowed per recipe.")
+    max_fat: int | None = Field(default=None, ge=0, description="Maximum fat grams allowed per recipe.")
     budget: int | None = Field(default=None, ge=1, description="Maximum estimated recipe cost in VND.")
