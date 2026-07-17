@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: recipe-service
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:10MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:10MB}
   datasource:
     url: ${DATABASE_URL:jdbc:mysql://localhost:3306/recipe_service?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${DATABASE_USERNAME:root}
@@ -27,6 +31,12 @@ management:
 app:
   seed-data:
     enabled: ${APP_SEED_DATA_ENABLED:true}
+  cloudinary:
+    enabled: ${APP_CLOUDINARY_ENABLED:true}
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:mss301}
+    api-key: ${CLOUDINARY_API_KEY:429768692751461}
+    api-secret: ${CLOUDINARY_API_SECRET:p9AhIOkrKBk4CRECSKDBFsPpdz4}
+    folder: ${CLOUDINARY_FOLDER:mss301/recipes}
 
 springdoc:
   swagger-ui:

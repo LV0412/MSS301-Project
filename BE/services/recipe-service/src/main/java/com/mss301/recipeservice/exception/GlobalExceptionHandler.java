@@ -8,6 +8,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -47,6 +49,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     ResponseEntity<ErrorResponse> integrity(DataIntegrityViolationException exception, HttpServletRequest request) {
         return response(HttpStatus.CONFLICT, "Data integrity violation", request, null);
+    }
+
+    @ExceptionHandler(ImageStorageException.class)
+    ResponseEntity<ErrorResponse> imageStorage(ImageStorageException exception, HttpServletRequest request) {
+        return response(HttpStatus.BAD_GATEWAY, exception.getMessage(), request, null);
+    }
+
+    @ExceptionHandler({MultipartException.class, MaxUploadSizeExceededException.class})
+    ResponseEntity<ErrorResponse> multipart(Exception exception, HttpServletRequest request) {
+        return response(HttpStatus.BAD_REQUEST, "Invalid multipart upload request", request, null);
     }
 
     private ResponseEntity<ErrorResponse> response(

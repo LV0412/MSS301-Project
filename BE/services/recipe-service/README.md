@@ -28,6 +28,10 @@ Detailed API documentation:
 
 List endpoints are pageable using `page`, `size`, and `sort`.
 
+Recipe image upload endpoint:
+
+- `POST /api/recipes/upload-image`
+
 Recipe search supports:
 
 ```text
@@ -53,7 +57,25 @@ GET /api/internal/recipes?ingredientIds=2,3&excludedAllergenIds=4&size=10
 
 ### Create recipe example
 
-Create category, allergens, and ingredients first, then submit their IDs:
+Create category, allergens, and ingredients first, then submit their IDs. If you want to store the real Cloudinary URL in the `recipes.image_url` column, upload the file to Cloudinary first, then pass the returned `imageUrl` into the recipe payload:
+
+```bash
+curl -X POST http://localhost:8002/api/recipes/upload-image \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@/absolute/path/to/recipe-image.jpg"
+```
+
+Example response:
+
+```json
+{
+  "imageUrl": "https://res.cloudinary.com/your-cloud/image/upload/v1721200000/mss301/recipes/recipe-image_abc123.jpg",
+  "publicId": "mss301/recipes/recipe-image_abc123",
+  "originalFilename": "recipe-image.jpg"
+}
+```
+
+Then submit the returned `imageUrl` when creating or updating a recipe:
 
 ```json
 {
@@ -100,6 +122,11 @@ The service uses MySQL. Hibernate manages the schema directly on startup via JPA
 export DATABASE_URL=jdbc:mysql://localhost:3306/recipe_service?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
 export DATABASE_USERNAME=root
 export DATABASE_PASSWORD=root
+export APP_CLOUDINARY_ENABLED=true
+export CLOUDINARY_CLOUD_NAME=your_cloud_name
+export CLOUDINARY_API_KEY=your_api_key
+export CLOUDINARY_API_SECRET=your_api_secret
+export CLOUDINARY_FOLDER=mss301/recipes
 mvn spring-boot:run
 ```
 

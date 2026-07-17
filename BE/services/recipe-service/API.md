@@ -116,6 +116,7 @@ Endpoints:
 | Method | Path | Description |
 | --- | --- | --- |
 | `POST` | `/api/recipes` | Create a recipe |
+| `POST` | `/api/recipes/upload-image` | Upload a recipe image to Cloudinary |
 | `GET` | `/api/recipes/{recipeId}` | Get one recipe |
 | `GET` | `/api/recipes` | Search recipes with filters and pagination |
 | `PUT` | `/api/recipes/{recipeId}` | Update a recipe |
@@ -139,6 +140,36 @@ Example search:
 
 ```text
 GET /api/recipes?query=noodles&categoryId=1&ingredientIds=2,3&minCalories=200&maxCalories=600&dietType=VEGETARIAN&excludedAllergenIds=4,5
+```
+
+### Upload Recipe Image To Cloudinary
+
+Use this endpoint to upload an image file and receive the real Cloudinary `secure_url`. That URL can then be stored in the recipe payload's `imageUrl` field, which maps to the `image_url` column in the `recipes` table.
+
+Request:
+
+```text
+POST /api/recipes/upload-image
+Content-Type: multipart/form-data
+Body: file=<image>
+```
+
+Example:
+
+```bash
+curl -X POST http://localhost:8002/api/recipes/upload-image \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@/absolute/path/to/recipe-image.jpg"
+```
+
+Example response:
+
+```json
+{
+  "imageUrl": "https://res.cloudinary.com/your-cloud/image/upload/v1721200000/mss301/recipes/recipe-image_abc123.jpg",
+  "publicId": "mss301/recipes/recipe-image_abc123",
+  "originalFilename": "recipe-image.jpg"
+}
 ```
 
 ## Internal APIs
@@ -176,6 +207,8 @@ The service enforces these rules:
 - Categories, ingredients, and allergens are shared catalog data that should not be deleted when referenced by recipes.
 
 ## Example Recipe Payload
+
+After uploading the image, copy the returned `imageUrl` into the payload below.
 
 ```json
 {
@@ -221,3 +254,8 @@ DATABASE_URL=jdbc:mysql://localhost:3306/recipe_service?createDatabaseIfNotExist
 DATABASE_USERNAME=root
 DATABASE_PASSWORD=root
 JPA_SHOW_SQL=false
+APP_CLOUDINARY_ENABLED=true
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_FOLDER=mss301/recipes
