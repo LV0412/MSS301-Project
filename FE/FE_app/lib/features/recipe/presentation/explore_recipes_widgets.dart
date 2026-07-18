@@ -237,7 +237,9 @@ class _RecipeAdvancedFiltersSheetState
         minCalories > maxCalories) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Calories tối thiểu không được lớn hơn tối đa.'),
+          content: Text(
+            'Năng lượng tối thiểu không được lớn hơn năng lượng tối đa.',
+          ),
         ),
       );
       return;
@@ -310,14 +312,14 @@ class _RecipeAdvancedFiltersSheetState
               _filterField(
                 controller: _ingredientController,
                 label: 'Tên nguyên liệu',
-                hint: 'Ví dụ: chicken',
+                hint: 'Ví dụ: thịt gà',
               ),
               Row(
                 children: [
                   Expanded(
                     child: _filterField(
                       controller: _minCaloriesController,
-                      label: 'Calories tối thiểu',
+                      label: 'Năng lượng tối thiểu (kcal)',
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
@@ -327,7 +329,7 @@ class _RecipeAdvancedFiltersSheetState
                   Expanded(
                     child: _filterField(
                       controller: _maxCaloriesController,
-                      label: 'Calories tối đa',
+                      label: 'Năng lượng tối đa (kcal)',
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),

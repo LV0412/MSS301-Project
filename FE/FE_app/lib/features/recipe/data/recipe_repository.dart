@@ -64,7 +64,7 @@ class RecipeRepository {
       if (_hasText(dietType)) 'dietType': dietType,
       if (excludedAllergenIds.isNotEmpty)
         'excludedAllergenIds': excludedAllergenIds,
-      if (_hasText(sort)) 'sort': sort,
+      'sort': _stableSort(sort),
     };
     final response = await _request(
       () => _apiClient.dio.get<Map<String, dynamic>>(
@@ -147,6 +147,18 @@ class RecipeRepository {
   }
 
   static bool _hasText(String? value) => value?.trim().isNotEmpty == true;
+
+  static List<String> _stableSort(String? sort) {
+    final primary = _hasText(sort) ? sort!.trim() : 'createdAt,desc';
+    final parts = primary.split(',');
+    final property = parts.first.trim();
+    if (property == 'recipeId') return [primary];
+
+    final direction = parts.length > 1 && parts.last.toLowerCase() == 'asc'
+        ? 'asc'
+        : 'desc';
+    return [primary, 'recipeId,$direction'];
+  }
 }
 
 class RecipePage {
