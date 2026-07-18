@@ -99,7 +99,11 @@ class _ExploreRecipesScreenState extends State<ExploreRecipesScreen> {
       if (!mounted) return;
       setState(() {
         _catalogs = _RecipeFilterCatalogs(
-          categories: _catalogOptions(results[0], 'categoryId'),
+          categories: _catalogOptions(
+            results[0],
+            'categoryId',
+            labelBuilder: _recipeCategoryLabel,
+          ),
           ingredients: _catalogOptions(results[1], 'ingredientId'),
           allergens: _catalogOptions(results[2], 'allergenId'),
         );
@@ -119,17 +123,43 @@ class _ExploreRecipesScreenState extends State<ExploreRecipesScreen> {
 
   static List<_CatalogOption> _catalogOptions(
     List<Map<String, dynamic>> items,
-    String idKey,
-  ) {
+    String idKey, {
+    String Function(String)? labelBuilder,
+  }) {
     return items
         .map(
           (item) => _CatalogOption(
             id: (item[idKey] as num).toInt(),
-            name: item['name']?.toString() ?? '',
+            name:
+                labelBuilder?.call(item['name']?.toString() ?? '') ??
+                item['name']?.toString() ??
+                '',
           ),
         )
         .where((item) => item.name.isNotEmpty)
         .toList();
+  }
+
+  static String _recipeCategoryLabel(String value) {
+    final normalized = value.trim().toUpperCase().replaceAll(
+      RegExp(r'[\s-]+'),
+      '_',
+    );
+    return switch (normalized) {
+      'BREAKFAST' || 'BREAKFASTS' => 'Bữa sáng',
+      'BRUNCH' => 'Bữa sáng muộn',
+      'LUNCH' || 'LUNCHES' => 'Bữa trưa',
+      'DINNER' || 'DINNERS' => 'Bữa tối',
+      'SNACK' || 'SNACKS' => 'Bữa phụ',
+      'APPETIZER' || 'APPETIZERS' || 'STARTER' || 'STARTERS' => 'Món khai vị',
+      'MAIN_COURSE' || 'MAIN_DISH' => 'Món chính',
+      'DESSERT' || 'DESSERTS' => 'Món tráng miệng',
+      'DRINK' || 'DRINKS' || 'BEVERAGE' || 'BEVERAGES' => 'Đồ uống',
+      'SOUP' || 'SOUPS' => 'Canh và súp',
+      'SALAD' || 'SALADS' => 'Salad',
+      'OTHER' => 'Khác',
+      _ => value,
+    };
   }
 
   void _resetFilters() {
@@ -171,7 +201,9 @@ class _ExploreRecipesScreenState extends State<ExploreRecipesScreen> {
           );
       if (!mounted || requestId != _requestId) return;
       setState(() {
-        _recipes = reset ? result.content : [..._recipes, ...result.content];
+        _recipes = _mergeUniqueRecipes(
+          reset ? result.content : [..._recipes, ...result.content],
+        );
         _page = result.page;
         _totalElements = result.totalElements;
         _lastPage = result.last;
@@ -184,6 +216,14 @@ class _ExploreRecipesScreenState extends State<ExploreRecipesScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  static List<Recipe> _mergeUniqueRecipes(Iterable<Recipe> recipes) {
+    final uniqueById = <int, Recipe>{};
+    for (final recipe in recipes) {
+      uniqueById.putIfAbsent(recipe.recipeId, () => recipe);
+    }
+    return uniqueById.values.toList(growable: false);
   }
 
   @override

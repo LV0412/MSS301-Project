@@ -162,7 +162,7 @@ class DetailAiInsightCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'AI Health Insight',
+                  'Phân tích sức khỏe',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -207,12 +207,12 @@ class NutritionFactsCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Nutrition Facts',
+                  'Thông tin dinh dưỡng',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                 ),
               ),
               Text(
-                'PER SERVING',
+                'MỖI KHẨU PHẦN',
                 style: TextStyle(
                   fontSize: 9,
                   letterSpacing: .6,
@@ -230,7 +230,7 @@ class NutritionFactsCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: FactBar(
-                    label: 'CALORIES',
+                    label: 'NĂNG LƯỢNG',
                     value: '${_formatNumber(nutrition!.calories)} kcal',
                     progress: (nutrition!.calories / 600)
                         .clamp(0, 1)
@@ -240,8 +240,8 @@ class NutritionFactsCard extends StatelessWidget {
                 const SizedBox(width: 20),
                 Expanded(
                   child: FactBar(
-                    label: 'PROTEIN',
-                    value: '${_formatNumber(nutrition!.protein)}g',
+                    label: 'CHẤT ĐẠM',
+                    value: '${_formatNumber(nutrition!.protein)} g',
                     progress: (nutrition!.protein / 50).clamp(0, 1).toDouble(),
                   ),
                 ),
@@ -252,16 +252,16 @@ class NutritionFactsCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: FactBar(
-                    label: 'CARBS',
-                    value: '${_formatNumber(nutrition!.carbs)}g',
+                    label: 'TINH BỘT',
+                    value: '${_formatNumber(nutrition!.carbs)} g',
                     progress: (nutrition!.carbs / 75).clamp(0, 1).toDouble(),
                   ),
                 ),
                 const SizedBox(width: 20),
                 Expanded(
                   child: FactBar(
-                    label: 'FAT',
-                    value: '${_formatNumber(nutrition!.fat)}g',
+                    label: 'CHẤT BÉO',
+                    value: '${_formatNumber(nutrition!.fat)} g',
                     progress: (nutrition!.fat / 40).clamp(0, 1).toDouble(),
                   ),
                 ),
@@ -272,14 +272,14 @@ class NutritionFactsCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _FactSmall(
-                    label: 'Fiber',
-                    value: '${_formatNumber(nutrition!.fiber)}g',
+                    label: 'Chất xơ',
+                    value: '${_formatNumber(nutrition!.fiber)} g',
                   ),
                 ),
                 Expanded(
                   child: _FactSmall(
-                    label: 'Sodium',
-                    value: '${_formatNumber(nutrition!.sodium)}mg',
+                    label: 'Natri',
+                    value: '${_formatNumber(nutrition!.sodium)} mg',
                   ),
                 ),
               ],
@@ -289,8 +289,8 @@ class NutritionFactsCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _FactSmall(
-                    label: 'Sugar',
-                    value: '${_formatNumber(nutrition!.sugar)}g',
+                    label: 'Đường',
+                    value: '${_formatNumber(nutrition!.sugar)} g',
                   ),
                 ),
               ],
@@ -391,7 +391,7 @@ class IngredientsCard extends StatelessWidget {
             children: [
               const Expanded(
                 child: Text(
-                  'Ingredients',
+                  'Nguyên liệu',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
                 ),
               ),
@@ -413,7 +413,7 @@ class IngredientsCard extends StatelessWidget {
               if (ingredient.allergens.isNotEmpty)
                 AllergyNote(
                   allergenNames: ingredient.allergens
-                      .map((allergen) => allergen.name)
+                      .map((allergen) => _allergenLabel(allergen.name))
                       .where((name) => name.isNotEmpty)
                       .toList(),
                 ),
@@ -520,6 +520,26 @@ class AllergyNote extends StatelessWidget {
       ),
     );
   }
+}
+
+String _allergenLabel(String value) {
+  final normalized = value.trim().toUpperCase().replaceAll(
+    RegExp(r'[\s-]+'),
+    '_',
+  );
+  return switch (normalized) {
+    'MILK' || 'DAIRY' => 'Sữa',
+    'EGG' || 'EGGS' => 'Trứng',
+    'PEANUT' || 'PEANUTS' => 'Đậu phộng',
+    'TREE_NUT' || 'TREE_NUTS' || 'NUT' || 'NUTS' => 'Các loại hạt',
+    'SOY' || 'SOYBEAN' || 'SOYBEANS' => 'Đậu nành',
+    'WHEAT' => 'Lúa mì',
+    'GLUTEN' => 'Gluten',
+    'FISH' => 'Cá',
+    'SHELLFISH' || 'CRUSTACEAN' || 'CRUSTACEANS' => 'Động vật có vỏ',
+    'SESAME' => 'Mè',
+    _ => value,
+  };
 }
 
 class CookingStep extends StatelessWidget {
@@ -639,7 +659,7 @@ class MealFeedbackCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Text(
-              'Share your experience (Optional)...',
+              'Chia sẻ trải nghiệm của bạn (không bắt buộc)...',
               style: TextStyle(fontSize: 12, color: AppColors.muted),
             ),
           ),
