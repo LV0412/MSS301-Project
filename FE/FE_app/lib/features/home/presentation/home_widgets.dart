@@ -341,6 +341,9 @@ class _NutritionTotals {
     this.protein = 0,
     this.carbs = 0,
     this.fat = 0,
+    this.fiber = 0,
+    this.sugar = 0,
+    this.sodium = 0,
   });
 
   factory _NutritionTotals.fromLogs(List<FoodLogEntry> logs) {
@@ -348,6 +351,9 @@ class _NutritionTotals {
     var protein = 0.0;
     var carbs = 0.0;
     var fat = 0.0;
+    var fiber = 0.0;
+    var sugar = 0.0;
+    var sodium = 0.0;
     for (final entry in logs) {
       final nutrition = entry.recipe?.nutrition;
       if (nutrition == null) continue;
@@ -355,12 +361,18 @@ class _NutritionTotals {
       protein += nutrition.protein * entry.quantity;
       carbs += nutrition.carbs * entry.quantity;
       fat += nutrition.fat * entry.quantity;
+      fiber += nutrition.fiber * entry.quantity;
+      sugar += nutrition.sugar * entry.quantity;
+      sodium += nutrition.sodium * entry.quantity;
     }
     return _NutritionTotals(
       calories: calories,
       protein: protein,
       carbs: carbs,
       fat: fat,
+      fiber: fiber,
+      sugar: sugar,
+      sodium: sodium,
     );
   }
 
@@ -368,12 +380,18 @@ class _NutritionTotals {
   final double protein;
   final double carbs;
   final double fat;
+  final double fiber;
+  final double sugar;
+  final double sodium;
 
   _NutritionTotals operator +(_NutritionTotals other) => _NutritionTotals(
     calories: calories + other.calories,
     protein: protein + other.protein,
     carbs: carbs + other.carbs,
     fat: fat + other.fat,
+    fiber: fiber + other.fiber,
+    sugar: sugar + other.sugar,
+    sodium: sodium + other.sodium,
   );
 }
 
@@ -438,6 +456,10 @@ String _macroValue(double consumed, double? target) {
 double _macroProgress(double consumed, double? target) {
   if (target == null || target <= 0) return 0;
   return (consumed / target).clamp(0, 1).toDouble();
+}
+
+String _nutrientValue(double consumed, String unit) {
+  return '${_formatNumber(consumed)} $unit';
 }
 
 class _MacroSummaryCardState extends State<MacroSummaryCard> {
@@ -521,6 +543,24 @@ class _MacroSummaryContent extends StatelessWidget {
             progress: _macroProgress(data.consumed.fat, data.fatTarget),
             color: const Color(0xFF5F6057),
           ),
+          const SizedBox(height: 14),
+          MacroProgressRow(
+            label: 'CHẤT XƠ',
+            value: _nutrientValue(data.consumed.fiber, 'g'),
+            color: const Color(0xFF78946A),
+          ),
+          const SizedBox(height: 14),
+          MacroProgressRow(
+            label: 'ĐƯỜNG',
+            value: _nutrientValue(data.consumed.sugar, 'g'),
+            color: const Color(0xFFC28B5C),
+          ),
+          const SizedBox(height: 14),
+          MacroProgressRow(
+            label: 'NATRI',
+            value: _nutrientValue(data.consumed.sodium, 'mg'),
+            color: const Color(0xFF7D8996),
+          ),
         ],
       ),
     );
@@ -532,13 +572,13 @@ class MacroProgressRow extends StatelessWidget {
     super.key,
     required this.label,
     required this.value,
-    required this.progress,
+    this.progress,
     required this.color,
   });
 
   final String label;
   final String value;
-  final double progress;
+  final double? progress;
   final Color color;
 
   @override
@@ -566,16 +606,18 @@ class MacroProgressRow extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 7),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(99),
-          child: LinearProgressIndicator(
-            value: progress,
-            minHeight: 6,
-            color: color,
-            backgroundColor: AppColors.line,
+        if (progress != null) ...[
+          const SizedBox(height: 7),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              color: color,
+              backgroundColor: AppColors.line,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
