@@ -34,6 +34,9 @@ public class NutritionInfo {
     @JoinColumn(name = "recipe_id", nullable = false, unique = true)
     private Recipe recipe;
 
+    @Column(name = "serving_size_grams", nullable = false, precision = 10, scale = 2)
+    private BigDecimal servingSizeGrams;
+
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal calories;
 
@@ -42,6 +45,15 @@ public class NutritionInfo {
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal fat;
+
+    @Column(name = "saturated_fat", nullable = false, precision = 10, scale = 2)
+    private BigDecimal saturatedFat;
+
+    @Column(name = "trans_fat", nullable = false, precision = 10, scale = 2)
+    private BigDecimal transFat;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal cholesterol;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal carbs;
@@ -54,4 +66,46 @@ public class NutritionInfo {
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal sodium;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal potassium;
+
+    @Column(name = "vitamin_a", nullable = false, precision = 10, scale = 2)
+    private BigDecimal vitaminA;
+
+    @Column(name = "vitamin_d", nullable = false, precision = 10, scale = 2)
+    private BigDecimal vitaminD;
+
+    @Column(name = "vitamin_e", nullable = false, precision = 10, scale = 2)
+    private BigDecimal vitaminE;
+
+    @Column(name = "vitamin_k", nullable = false, precision = 10, scale = 2)
+    private BigDecimal vitaminK;
+
+    @Column(name = "vitamin_b1", nullable = false, precision = 10, scale = 2)
+    private BigDecimal vitaminB1;
+
+    @Column(name = "vitamin_b2", nullable = false, precision = 10, scale = 2)
+    private BigDecimal vitaminB2;
+
+    @Column(name = "vitamin_b3", nullable = false, precision = 10, scale = 2)
+    private BigDecimal vitaminB3;
+
+    @Column(name = "vitamin_b6", nullable = false, precision = 10, scale = 2)
+    private BigDecimal vitaminB6;
+
+    @Column(name = "vitamin_b9", nullable = false, precision = 10, scale = 2)
+    private BigDecimal vitaminB9;
+
+    @Column(name = "vitamin_b12", nullable = false, precision = 10, scale = 2)
+    private BigDecimal vitaminB12;
+
+    @Column(name = "vitamin_c", nullable = false, precision = 10, scale = 2)
+    private BigDecimal vitaminC;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal calcium;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal iron;
 }

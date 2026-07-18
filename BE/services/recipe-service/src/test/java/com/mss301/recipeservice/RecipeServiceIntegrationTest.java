@@ -2,6 +2,9 @@ package com.mss301.recipeservice;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.mss301.recipeservice.api.dto.CatalogDtos.AllergenRequest;
 import com.mss301.recipeservice.api.dto.CatalogDtos.CategoryRequest;
@@ -25,12 +28,15 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
 class RecipeServiceIntegrationTest {
@@ -39,6 +45,7 @@ class RecipeServiceIntegrationTest {
     @Autowired private AllergenService allergenService;
     @Autowired private IngredientService ingredientService;
     @Autowired private RecipeManagementService recipeService;
+    @Autowired private MockMvc mockMvc;
 
     private Long categoryId;
     private Long peanutAllergenId;
@@ -178,9 +185,15 @@ class RecipeServiceIntegrationTest {
                 List.of(new RecipeIngredientRequest(peanutIngredientId, new BigDecimal("75"), "g")),
                 List.of(new RecipeStepRequest(1, "Mix and cook")),
                 new NutritionRequest(
-                        new BigDecimal("500"), new BigDecimal("20"), new BigDecimal("15"),
-                        new BigDecimal("70"), new BigDecimal("9"), new BigDecimal("5"),
-                        new BigDecimal("400")));
+                        new BigDecimal("260"), new BigDecimal("500"), new BigDecimal("20"),
+                        new BigDecimal("15"), new BigDecimal("4"), new BigDecimal("0.1"),
+                        new BigDecimal("15"), new BigDecimal("70"), new BigDecimal("9"),
+                        new BigDecimal("5"), new BigDecimal("400"), new BigDecimal("620"),
+                        new BigDecimal("180"), new BigDecimal("2.8"), new BigDecimal("4.6"),
+                        new BigDecimal("18"), new BigDecimal("0.4"), new BigDecimal("0.2"),
+                        new BigDecimal("7.5"), new BigDecimal("0.5"), new BigDecimal("80"),
+                        new BigDecimal("0.1"), new BigDecimal("12"), new BigDecimal("70"),
+                        new BigDecimal("3.5")));
 
         RecipeResponse updated = recipeService.update(created.recipeId(), update);
 
@@ -189,6 +202,36 @@ class RecipeServiceIntegrationTest {
                 ingredient -> assertThat(ingredient.quantity()).isEqualByComparingTo("75"));
         assertThat(updated.steps()).extracting("instruction").containsExactly("Mix and cook");
         assertThat(updated.nutrition().calories()).isEqualByComparingTo("500");
+    }
+
+    @Test
+    void exposesSnapshotApiForAiRecommendation() throws Exception {
+        RecipeResponse created = recipeService.create(validRequest(Set.of(DietType.VEGAN)));
+
+        mockMvc.perform(get("/api/internal/recipes/snapshot"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary.totalRecipes").value(1))
+                .andExpect(jsonPath("$.summary.totalCategories").value(1))
+                .andExpect(jsonPath("$.summary.totalIngredients").value(2))
+                .andExpect(jsonPath("$.summary.totalAllergens").value(1))
+                .andExpect(jsonPath("$.recipes[0].recipeId").value(created.recipeId()))
+                .andExpect(jsonPath("$.recipes[0].title").value("Peanut noodles"))
+                .andExpect(jsonPath("$.recipes[0].nutrition.vitaminB12").value(0.2))
+                .andExpect(jsonPath("$.ingredients[0].name").value("Peanut"));
+    }
+
+    @Test
+    void exposesBatchApiWithMissingIdsForAiSync() throws Exception {
+        RecipeResponse created = recipeService.create(validRequest(Set.of(DietType.VEGAN)));
+
+        mockMvc.perform(get("/api/internal/recipes/batch")
+                        .param("ids", created.recipeId().toString(), "999999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requestedIds[0]").value(created.recipeId()))
+                .andExpect(jsonPath("$.requestedIds[1]").value(999999))
+                .andExpect(jsonPath("$.missingIds[0]").value(999999))
+                .andExpect(jsonPath("$.recipes.length()").value(1))
+                .andExpect(jsonPath("$.recipes[0].recipeId").value(created.recipeId()));
     }
 
     private RecipeRequest validRequest(Set<DietType> dietTypes) {
@@ -208,8 +251,14 @@ class RecipeServiceIntegrationTest {
 
     private NutritionRequest nutrition() {
         return new NutritionRequest(
-                new BigDecimal("420"), new BigDecimal("15"), new BigDecimal("12"),
-                new BigDecimal("60"), new BigDecimal("8"), new BigDecimal("4"),
-                new BigDecimal("350"));
+                new BigDecimal("240"), new BigDecimal("420"), new BigDecimal("15"),
+                new BigDecimal("12"), new BigDecimal("3.5"), new BigDecimal("0.1"),
+                new BigDecimal("12"), new BigDecimal("60"), new BigDecimal("8"),
+                new BigDecimal("4"), new BigDecimal("350"), new BigDecimal("540"),
+                new BigDecimal("150"), new BigDecimal("1.4"), new BigDecimal("2.1"),
+                new BigDecimal("22"), new BigDecimal("0.2"), new BigDecimal("0.1"),
+                new BigDecimal("5.4"), new BigDecimal("0.3"), new BigDecimal("48"),
+                new BigDecimal("0.2"), new BigDecimal("10"), new BigDecimal("80"),
+                new BigDecimal("2.5"));
     }
 }

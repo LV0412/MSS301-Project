@@ -55,8 +55,32 @@ public class RecipeMapper {
 
         NutritionInfo nutrition = recipe.getNutrition();
         NutritionResponse nutritionResponse = new NutritionResponse(
-                nutrition.getNutritionId(), nutrition.getCalories(), nutrition.getProtein(), nutrition.getFat(),
-                nutrition.getCarbs(), nutrition.getFiber(), nutrition.getSugar(), nutrition.getSodium());
+                nutrition.getNutritionId(),
+                nutrition.getServingSizeGrams(),
+                nutrition.getCalories(),
+                nutrition.getProtein(),
+                nutrition.getFat(),
+                nutrition.getSaturatedFat(),
+                nutrition.getTransFat(),
+                nutrition.getCholesterol(),
+                nutrition.getCarbs(),
+                nutrition.getFiber(),
+                nutrition.getSugar(),
+                nutrition.getSodium(),
+                nutrition.getPotassium(),
+                nutrition.getVitaminA(),
+                nutrition.getVitaminD(),
+                nutrition.getVitaminE(),
+                nutrition.getVitaminK(),
+                nutrition.getVitaminB1(),
+                nutrition.getVitaminB2(),
+                nutrition.getVitaminB3(),
+                nutrition.getVitaminB6(),
+                nutrition.getVitaminB9(),
+                nutrition.getVitaminB12(),
+                nutrition.getVitaminC(),
+                nutrition.getCalcium(),
+                nutrition.getIron());
 
         return new RecipeResponse(
                 recipe.getRecipeId(), toResponse(recipe.getCategory()), recipe.getTitle(), recipe.getDescription(),

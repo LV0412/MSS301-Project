@@ -1,10 +1,14 @@
 package com.mss301.recipeservice.api;
 
+import com.mss301.recipeservice.api.dto.CatalogDtos.CatalogSnapshotResponse;
+import com.mss301.recipeservice.api.dto.CatalogDtos.RecipeBatchResponse;
 import com.mss301.recipeservice.api.dto.CatalogDtos.RecipeResponse;
 import com.mss301.recipeservice.api.dto.RecipeSearchCriteria;
+import com.mss301.recipeservice.application.InternalCatalogService;
 import com.mss301.recipeservice.application.RecipeManagementService;
 import com.mss301.recipeservice.domain.DietType;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +27,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class InternalRecipeController {
 
     private final RecipeManagementService recipeService;
+    private final InternalCatalogService internalCatalogService;
+
+    @GetMapping("/snapshot")
+    public CatalogSnapshotResponse snapshot() {
+        return internalCatalogService.getSnapshot();
+    }
+
+    @GetMapping("/batch")
+    public RecipeBatchResponse batch(@RequestParam List<Long> ids) {
+        return internalCatalogService.getBatch(ids);
+    }
 
     @GetMapping("/{recipeId}")
     public RecipeResponse get(@PathVariable Long recipeId) {

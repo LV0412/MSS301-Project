@@ -145,13 +145,31 @@ public class RecipeManagementService {
             nutrition = NutritionInfo.builder().recipe(recipe).build();
             recipe.setNutrition(nutrition);
         }
+        nutrition.setServingSizeGrams(input.servingSizeGrams());
         nutrition.setCalories(input.calories());
         nutrition.setProtein(input.protein());
         nutrition.setFat(input.fat());
+        nutrition.setSaturatedFat(input.saturatedFat());
+        nutrition.setTransFat(input.transFat());
+        nutrition.setCholesterol(input.cholesterol());
         nutrition.setCarbs(input.carbs());
         nutrition.setFiber(input.fiber());
         nutrition.setSugar(input.sugar());
         nutrition.setSodium(input.sodium());
+        nutrition.setPotassium(input.potassium());
+        nutrition.setVitaminA(input.vitaminA());
+        nutrition.setVitaminD(input.vitaminD());
+        nutrition.setVitaminE(input.vitaminE());
+        nutrition.setVitaminK(input.vitaminK());
+        nutrition.setVitaminB1(input.vitaminB1());
+        nutrition.setVitaminB2(input.vitaminB2());
+        nutrition.setVitaminB3(input.vitaminB3());
+        nutrition.setVitaminB6(input.vitaminB6());
+        nutrition.setVitaminB9(input.vitaminB9());
+        nutrition.setVitaminB12(input.vitaminB12());
+        nutrition.setVitaminC(input.vitaminC());
+        nutrition.setCalcium(input.calcium());
+        nutrition.setIron(input.iron());
     }
 
     private void validateRequest(RecipeRequest request) {

@@ -68,24 +68,60 @@ public final class CatalogDtos {
     }
 
     public record NutritionRequest(
+            @NotNull @PositiveOrZero BigDecimal servingSizeGrams,
             @NotNull @PositiveOrZero BigDecimal calories,
             @NotNull @PositiveOrZero BigDecimal protein,
             @NotNull @PositiveOrZero BigDecimal fat,
+            @NotNull @PositiveOrZero BigDecimal saturatedFat,
+            @NotNull @PositiveOrZero BigDecimal transFat,
+            @NotNull @PositiveOrZero BigDecimal cholesterol,
             @NotNull @PositiveOrZero BigDecimal carbs,
             @NotNull @PositiveOrZero BigDecimal fiber,
             @NotNull @PositiveOrZero BigDecimal sugar,
-            @NotNull @PositiveOrZero BigDecimal sodium) {
+            @NotNull @PositiveOrZero BigDecimal sodium,
+            @NotNull @PositiveOrZero BigDecimal potassium,
+            @NotNull @PositiveOrZero BigDecimal vitaminA,
+            @NotNull @PositiveOrZero BigDecimal vitaminD,
+            @NotNull @PositiveOrZero BigDecimal vitaminE,
+            @NotNull @PositiveOrZero BigDecimal vitaminK,
+            @NotNull @PositiveOrZero BigDecimal vitaminB1,
+            @NotNull @PositiveOrZero BigDecimal vitaminB2,
+            @NotNull @PositiveOrZero BigDecimal vitaminB3,
+            @NotNull @PositiveOrZero BigDecimal vitaminB6,
+            @NotNull @PositiveOrZero BigDecimal vitaminB9,
+            @NotNull @PositiveOrZero BigDecimal vitaminB12,
+            @NotNull @PositiveOrZero BigDecimal vitaminC,
+            @NotNull @PositiveOrZero BigDecimal calcium,
+            @NotNull @PositiveOrZero BigDecimal iron) {
     }
 
     public record NutritionResponse(
             Long nutritionId,
+            BigDecimal servingSizeGrams,
             BigDecimal calories,
             BigDecimal protein,
             BigDecimal fat,
+            BigDecimal saturatedFat,
+            BigDecimal transFat,
+            BigDecimal cholesterol,
             BigDecimal carbs,
             BigDecimal fiber,
             BigDecimal sugar,
-            BigDecimal sodium) {
+            BigDecimal sodium,
+            BigDecimal potassium,
+            BigDecimal vitaminA,
+            BigDecimal vitaminD,
+            BigDecimal vitaminE,
+            BigDecimal vitaminK,
+            BigDecimal vitaminB1,
+            BigDecimal vitaminB2,
+            BigDecimal vitaminB3,
+            BigDecimal vitaminB6,
+            BigDecimal vitaminB9,
+            BigDecimal vitaminB12,
+            BigDecimal vitaminC,
+            BigDecimal calcium,
+            BigDecimal iron) {
     }
 
     public record RecipeRequest(
@@ -119,5 +155,27 @@ public final class CatalogDtos {
             NutritionResponse nutrition,
             LocalDateTime createdAt,
             LocalDateTime updatedAt) {
+    }
+
+    public record RecipeBatchResponse(
+            List<Long> requestedIds,
+            List<Long> missingIds,
+            List<RecipeResponse> recipes) {
+    }
+
+    public record CatalogSnapshotSummaryResponse(
+            long totalRecipes,
+            long totalCategories,
+            long totalIngredients,
+            long totalAllergens) {
+    }
+
+    public record CatalogSnapshotResponse(
+            LocalDateTime generatedAt,
+            CatalogSnapshotSummaryResponse summary,
+            List<CategoryResponse> categories,
+            List<AllergenResponse> allergens,
+            List<IngredientResponse> ingredients,
+            List<RecipeResponse> recipes) {
     }
 }

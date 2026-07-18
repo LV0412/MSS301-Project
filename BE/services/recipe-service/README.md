@@ -51,9 +51,17 @@ GET /api/recipes?query=noodles
 Read-only service-to-service endpoints for the AI service use the same filters:
 
 ```text
+GET /api/internal/recipes/snapshot
+GET /api/internal/recipes/batch?ids=1&ids=2&ids=3
 GET /api/internal/recipes/{recipeId}
 GET /api/internal/recipes?ingredientIds=2,3&excludedAllergenIds=4&size=10
 ```
+
+Recommended internal usage:
+
+- `snapshot`: full catalog sync for embeddings, feature generation, or scheduled AI refresh.
+- `batch`: refresh many known recipe IDs in one round trip and detect missing records.
+- `search`: pre-filter candidates by allergen, diet, ingredient, and calories before AI ranking.
 
 ### Create recipe example
 
@@ -97,16 +105,36 @@ Then submit the returned `imageUrl` when creating or updating a recipe:
     {"stepOrder": 2, "instruction": "Stir-fry all ingredients."}
   ],
   "nutrition": {
+    "servingSizeGrams": 240,
     "calories": 430,
     "protein": 18,
     "fat": 12,
+    "saturatedFat": 3.5,
+    "transFat": 0.1,
+    "cholesterol": 18,
     "carbs": 62,
     "fiber": 7,
     "sugar": 5,
-    "sodium": 520
+    "sodium": 520,
+    "potassium": 640,
+    "vitaminA": 180,
+    "vitaminD": 2.4,
+    "vitaminE": 3.1,
+    "vitaminK": 24,
+    "vitaminB1": 0.18,
+    "vitaminB2": 0.22,
+    "vitaminB3": 6.8,
+    "vitaminB6": 0.44,
+    "vitaminB9": 52,
+    "vitaminB12": 0.9,
+    "vitaminC": 16,
+    "calcium": 120,
+    "iron": 3.4
   }
 }
 ```
+
+Unit note: `vitaminA`, `vitaminD`, `vitaminK`, `vitaminB9`, and `vitaminB12` are stored per serving in `mcg`. The remaining vitamin and mineral fields are stored in `mg`.
 
 Difficulty values: `EASY`, `MEDIUM`, `HARD`.
 

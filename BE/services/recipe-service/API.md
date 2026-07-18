@@ -186,6 +186,8 @@ Endpoints:
 
 | Method | Path | Description |
 | --- | --- | --- |
+| `GET` | `/api/internal/recipes/snapshot` | Get a full catalog snapshot for AI indexing or offline recommendation jobs |
+| `GET` | `/api/internal/recipes/batch?ids=1&ids=2` | Get many recipes in one call and report missing IDs |
 | `GET` | `/api/internal/recipes/{recipeId}` | Get a recipe for service-to-service use |
 | `GET` | `/api/internal/recipes` | Search recipes for service-to-service use |
 
@@ -194,6 +196,42 @@ Value:
 - These endpoints let other microservices reuse recipe data without duplicating recipe logic.
 - The AI Recommendation Service can query recipe information directly from the source of truth.
 - This keeps internal integrations read-only and easier to reason about.
+- `snapshot` is best for initial sync, embeddings, vector indexing, or nightly refresh jobs.
+- `batch` is best when the AI service already knows recipe IDs and needs the latest full detail payloads.
+- `search` is best for real-time filtering before ranking, for example by calories, diet type, ingredient, or excluded allergens.
+
+Example snapshot response shape:
+
+```json
+{
+  "generatedAt": "2026-07-18T10:30:00",
+  "summary": {
+    "totalRecipes": 50,
+    "totalCategories": 6,
+    "totalIngredients": 78,
+    "totalAllergens": 10
+  },
+  "categories": [],
+  "allergens": [],
+  "ingredients": [],
+  "recipes": []
+}
+```
+
+Example batch response shape:
+
+```json
+{
+  "requestedIds": [1, 2, 999],
+  "missingIds": [999],
+  "recipes": [
+    {
+      "recipeId": 1,
+      "title": "Vegetable egg noodles"
+    }
+  ]
+}
+```
 
 ## Data Rules
 
@@ -230,16 +268,36 @@ After uploading the image, copy the returned `imageUrl` into the payload below.
     {"stepOrder": 2, "instruction": "Stir-fry all ingredients."}
   ],
   "nutrition": {
+    "servingSizeGrams": 240,
     "calories": 430,
     "protein": 18,
     "fat": 12,
+    "saturatedFat": 3.5,
+    "transFat": 0.1,
+    "cholesterol": 18,
     "carbs": 62,
     "fiber": 7,
     "sugar": 5,
-    "sodium": 520
+    "sodium": 520,
+    "potassium": 640,
+    "vitaminA": 180,
+    "vitaminD": 2.4,
+    "vitaminE": 3.1,
+    "vitaminK": 24,
+    "vitaminB1": 0.18,
+    "vitaminB2": 0.22,
+    "vitaminB3": 6.8,
+    "vitaminB6": 0.44,
+    "vitaminB9": 52,
+    "vitaminB12": 0.9,
+    "vitaminC": 16,
+    "calcium": 120,
+    "iron": 3.4
   }
 }
 ```
+
+Unit note: `vitaminA`, `vitaminD`, `vitaminK`, `vitaminB9`, and `vitaminB12` are stored per serving in `mcg`. The remaining vitamin and mineral fields are stored in `mg`.
 
 ## Summary
 
