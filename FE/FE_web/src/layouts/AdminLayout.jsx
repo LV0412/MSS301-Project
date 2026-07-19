@@ -42,7 +42,7 @@ const pageTitles = {
   "/nutrition/new": "Tạo nguyên liệu",
   "/reports": "Báo cáo hệ thống",
   "/users": "Quản lý người dùng",
-  "/users/new": "Tạo người dùng",
+  "/users/new": "Mời người dùng",
   "/ai-overview": "AI Service Overview",
   "/ai-knowledge": "AI Knowledge Base",
   "/ai-recommendation-sandbox": "Recommendation Sandbox",

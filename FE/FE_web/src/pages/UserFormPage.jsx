@@ -1,10 +1,13 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Save, ShieldCheck, UserPlus } from "lucide-react";
-import { users } from "../data/mockData.js";
+import { CalendarDays, KeyRound, Mail, Save, UserPlus } from "lucide-react";
 import { createUser } from "../api/userManagement.js";
 
-const defaultCountries = ["Việt Nam", "Hoa Kỳ", "Canada", "Đức", "Anh"];
+const genderOptions = [
+  { value: "MALE", label: "Nam" },
+  { value: "FEMALE", label: "Nữ" },
+  { value: "OTHER", label: "Khác" }
+];
 
 function validate(form) {
   const errors = {};
@@ -16,12 +19,23 @@ function validate(form) {
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
     errors.email = "Email là bắt buộc và phải đúng định dạng.";
-  } else if (users.some((user) => user.email.toLowerCase() === normalizedEmail)) {
-    errors.email = "Email này đã tồn tại trong hệ thống.";
   }
 
-  if (!form.country) {
-    errors.country = "Vui lòng chọn quốc gia.";
+  if (!form.passwordHash.trim()) {
+    errors.passwordHash = "Vui lòng nhập mật khẩu tạm thời.";
+  }
+
+  if (!form.gender) {
+    errors.gender = "Vui lòng chọn giới tính.";
+  }
+
+  if (form.dob) {
+    const dob = new Date(form.dob);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (Number.isNaN(dob.getTime()) || dob >= today) {
+      errors.dob = "Ngày sinh phải là một ngày trong quá khứ.";
+    }
   }
 
   return errors;
@@ -29,17 +43,16 @@ function validate(form) {
 
 export default function UserFormPage() {
   const navigate = useNavigate();
-  const countries = useMemo(() => Array.from(new Set([...defaultCountries, ...users.map((user) => user.country)])), []);
   const [form, setForm] = useState({
     fullName: "",
     email: "",
-    country: "",
-    initialStatus: "Chờ kích hoạt",
-    sendInvitation: true,
-    requireOnboarding: true
+    passwordHash: "",
+    dob: "",
+    gender: ""
   });
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   function updateField(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -56,42 +69,40 @@ export default function UserFormPage() {
       return;
     }
 
-    await createUser({
-      fullName: form.fullName.trim(),
-      email: form.email.trim(),
-      country: form.country,
-      initialStatus: form.initialStatus,
-      sendInvitation: form.sendInvitation,
-      requireOnboarding: form.requireOnboarding
-    });
-    setToast(form.sendInvitation ? "Tạo người dùng thành công. Email mời đã được gửi." : "Tạo người dùng thành công.");
-    window.setTimeout(() => navigate("/users"), 900);
+    setSubmitting(true);
+    setErrors({});
+    try {
+      await createUser({
+        fullName: form.fullName.trim(),
+        email: form.email.trim().toLowerCase(),
+        passwordHash: form.passwordHash.trim(),
+        dob: form.dob || null,
+        gender: form.gender
+      });
+      setToast("Mời người dùng thành công.");
+      window.setTimeout(() => navigate("/users"), 800);
+    } catch (error) {
+      setErrors({ submit: error.message || "Không tạo được người dùng. Vui lòng thử lại." });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <div className="page-stack">
       <div className="page-toolbar">
         <div>
-          <p className="eyebrow">Quyền CSKH</p>
-          <h2>Tạo người dùng mới</h2>
-          <p>Tạo tài khoản cơ bản và gửi lời mời để người dùng tự hoàn tất đăng nhập và onboarding.</p>
+          <p className="eyebrow">Quản lý người dùng</p>
+          <h2>Mời người dùng mới</h2>
+          <p>Gửi lời mời tạo tài khoản người dùng cơ bản vào hệ thống NutriChef AI.</p>
         </div>
       </div>
 
-      <section className="privacy-banner">
-        <ShieldCheck size={24} />
-        <div>
-          <strong>Form tối thiểu dữ liệu</strong>
-          <p>Màn hình này không thu thập dữ liệu sức khỏe, dị ứng, mục tiêu calo, macro, meal plan hoặc lịch sử AI của người dùng.</p>
-        </div>
-      </section>
-
-      <section className="user-create-layout">
+      <section className="user-create-layout single-form-layout">
         <form className="form-card user-create-form" onSubmit={handleSubmit} noValidate>
           <div className="panel-heading">
             <div>
-              <h2><UserPlus size={18} /> Thông tin cơ bản</h2>
-              <p>Người dùng mới sẽ ở trạng thái Chờ kích hoạt cho đến khi đặt mật khẩu và đăng nhập lần đầu. Dữ liệu sức khỏe sẽ do người dùng tự khai báo trong onboarding.</p>
+              <h2><UserPlus size={18} /> Thông tin tài khoản</h2>
             </div>
           </div>
 
@@ -121,72 +132,68 @@ export default function UserFormPage() {
           </label>
 
           <label>
-            Quốc gia
-            <select
-              value={form.country}
-              onChange={(event) => updateField("country", event.target.value)}
-              aria-invalid={Boolean(errors.country)}
-            >
-              <option value="">Chọn quốc gia</option>
-              {countries.map((country) => (
-                <option key={country} value={country}>{country}</option>
-              ))}
-            </select>
-            {errors.country ? <span className="field-error">{errors.country}</span> : null}
+            Mật khẩu tạm thời
+            <div className="field form-field-with-icon">
+              <KeyRound size={16} />
+              <input
+                value={form.passwordHash}
+                onChange={(event) => updateField("passwordHash", event.target.value)}
+                placeholder="Nhập mật khẩu tạm thời"
+                aria-invalid={Boolean(errors.passwordHash)}
+              />
+            </div>
+            {errors.passwordHash ? <span className="field-error">{errors.passwordHash}</span> : null}
           </label>
 
           <label>
-            Trạng thái sau khi tạo
-            <select value={form.initialStatus} onChange={(event) => updateField("initialStatus", event.target.value)}>
-              <option>Chờ kích hoạt</option>
-              <option>Hoạt động</option>
-            </select>
+            Ngày sinh
+            <div className="field form-field-with-icon">
+              <CalendarDays size={16} />
+              <input
+                type="date"
+                value={form.dob}
+                onChange={(event) => updateField("dob", event.target.value)}
+                aria-invalid={Boolean(errors.dob)}
+              />
+            </div>
+            {errors.dob ? <span className="field-error">{errors.dob}</span> : null}
           </label>
 
-          <div className="checkbox-stack">
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={form.sendInvitation}
-                onChange={(event) => updateField("sendInvitation", event.target.checked)}
-              />
-              <span>Gửi email mời người dùng đặt mật khẩu</span>
-            </label>
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={form.requireOnboarding}
-                onChange={(event) => updateField("requireOnboarding", event.target.checked)}
-              />
-              <span>Yêu cầu người dùng hoàn tất onboarding ở lần đăng nhập đầu tiên</span>
-            </label>
-          </div>
+          <label>
+            Giới tính
+            <select
+              value={form.gender}
+              onChange={(event) => updateField("gender", event.target.value)}
+              aria-invalid={Boolean(errors.gender)}
+            >
+              <option value="">Chọn giới tính</option>
+              {genderOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            {errors.gender ? <span className="field-error">{errors.gender}</span> : null}
+          </label>
+
+          {errors.submit ? (
+            <div className="login-error" role="alert">
+              {errors.submit}
+            </div>
+          ) : null}
 
           {toast ? (
             <div className="success-note">
-              <ShieldCheck size={18} />
               {toast}
             </div>
           ) : null}
 
           <div className="form-actions">
             <Link className="ghost-btn" to="/users">Hủy</Link>
-            <button className="primary-btn" type="submit">
+            <button className="primary-btn" type="submit" disabled={submitting}>
               <Save size={16} />
-              {form.sendInvitation ? "Tạo và gửi lời mời" : "Tạo người dùng"}
+              {submitting ? "Đang gửi..." : "Mời người dùng"}
             </button>
           </div>
         </form>
-
-        <aside className="panel user-create-summary">
-          <h2>Nguyên tắc quyền riêng tư</h2>
-          <ul className="privacy-list">
-            <li>Chỉ lưu thông tin định danh cơ bản.</li>
-            <li>Không nhập dữ liệu sức khỏe trong luồng CSKH.</li>
-            <li>Dữ liệu nhạy cảm mặc định hiển thị ở trạng thái masking.</li>
-            <li>Người dùng tự hoàn tất hồ sơ sức khỏe trong onboarding.</li>
-          </ul>
-        </aside>
       </section>
     </div>
   );

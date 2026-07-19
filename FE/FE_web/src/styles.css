@@ -1341,7 +1341,29 @@ textarea {
 }
 
 .user-management-filter-grid {
-  grid-template-columns: repeat(4, minmax(145px, 1fr)) minmax(250px, 1.3fr) auto;
+  grid-template-columns: minmax(260px, 1.35fr) repeat(3, minmax(170px, 1fr));
+  align-items: end;
+}
+
+.user-management-filter-grid label {
+  min-width: 0;
+}
+
+.user-management-filter-grid .ghost-btn {
+  min-height: 42px;
+  white-space: nowrap;
+  justify-self: start;
+}
+
+.user-management-filter-grid input,
+.user-management-filter-grid select,
+.user-management-filter-grid .field {
+  width: 100%;
+}
+
+.user-management-filter-grid input[type="date"] {
+  min-width: 0;
+  padding-right: 12px;
 }
 
 .action-menu {
@@ -1368,18 +1390,43 @@ textarea {
 }
 
 .action-menu-list {
-  position: absolute;
-  right: 0;
-  top: 40px;
-  z-index: 30;
   display: grid;
   gap: 4px;
-  min-width: 230px;
+}
+
+.action-floating-menu {
+  position: fixed;
+  z-index: 1000;
+  width: 250px;
   padding: 8px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   background: #fff;
-  box-shadow: 0 18px 40px rgba(33, 44, 36, 0.16);
+  box-shadow: 0 18px 45px rgba(33, 44, 36, 0.2);
+}
+
+.action-floating-header {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid #edf1e7;
+  margin-bottom: 6px;
+}
+
+.action-floating-header strong {
+  color: #263c2e;
+  font-size: 13px;
+}
+
+.action-floating-header span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.action-trigger {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
 .action-menu-list button {
@@ -1514,6 +1561,10 @@ textarea {
 
 .user-create-form {
   max-width: 720px;
+}
+
+.single-form-layout {
+  grid-template-columns: minmax(0, 720px);
 }
 
 .form-field-with-icon {
