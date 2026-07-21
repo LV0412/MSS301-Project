@@ -18,11 +18,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/users/{userId}/nutrition-goal")
+@RequestMapping({"/api/v1/users/me/nutrition-goal", "/api/v1/users/{userId:\\d+}/nutrition-goal"})
 @RequiredArgsConstructor
 @Tag(name = "Nutrition Goals", description = "User nutrition goal APIs")
 public class NutritionGoalController {
@@ -38,10 +39,10 @@ public class NutritionGoalController {
             @ApiResponse(responseCode = "409", description = "Nutrition goal already exists")
     })
     public ResponseEntity<NutritionGoalResponse> createNutritionGoal(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @Valid @RequestBody CreateNutritionGoalRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(nutritionGoalService.createNutritionGoal(userId, request));
+                .body(nutritionGoalService.createNutritionGoal(authenticatedUserId, request));
     }
 
     @GetMapping
@@ -50,8 +51,9 @@ public class NutritionGoalController {
             @ApiResponse(responseCode = "200", description = "Nutrition goal found"),
             @ApiResponse(responseCode = "404", description = "Nutrition goal not found")
     })
-    public ResponseEntity<NutritionGoalResponse> getNutritionGoal(@PathVariable Long userId) {
-        return ResponseEntity.ok(nutritionGoalService.getNutritionGoal(userId));
+    public ResponseEntity<NutritionGoalResponse> getNutritionGoal(
+            @RequestHeader("X-User-Id") Long authenticatedUserId) {
+        return ResponseEntity.ok(nutritionGoalService.getNutritionGoal(authenticatedUserId));
     }
 
     @PutMapping
@@ -62,9 +64,9 @@ public class NutritionGoalController {
             @ApiResponse(responseCode = "404", description = "Nutrition goal not found")
     })
     public ResponseEntity<NutritionGoalResponse> updateNutritionGoal(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @Valid @RequestBody UpdateNutritionGoalRequest request) {
-        return ResponseEntity.ok(nutritionGoalService.updateNutritionGoal(userId, request));
+        return ResponseEntity.ok(nutritionGoalService.updateNutritionGoal(authenticatedUserId, request));
     }
 
     @DeleteMapping
@@ -73,8 +75,9 @@ public class NutritionGoalController {
             @ApiResponse(responseCode = "204", description = "Nutrition goal deleted"),
             @ApiResponse(responseCode = "404", description = "Nutrition goal not found")
     })
-    public ResponseEntity<Void> deleteNutritionGoal(@PathVariable Long userId) {
-        nutritionGoalService.deleteNutritionGoal(userId);
+    public ResponseEntity<Void> deleteNutritionGoal(
+            @RequestHeader("X-User-Id") Long authenticatedUserId) {
+        nutritionGoalService.deleteNutritionGoal(authenticatedUserId);
         return ResponseEntity.noContent().build();
     }
 }

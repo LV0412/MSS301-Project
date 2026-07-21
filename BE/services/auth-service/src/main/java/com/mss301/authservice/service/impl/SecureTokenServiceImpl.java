@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 public class SecureTokenServiceImpl implements SecureTokenService {
 
     private static final int TOKEN_BYTES = 32;
+    private static final int TEMPORARY_PASSWORD_BYTES = 18;
     private static final int OTP_BOUND = 1_000_000;
 
     private final SecureRandom secureRandom = new SecureRandom();
@@ -25,6 +26,13 @@ public class SecureTokenServiceImpl implements SecureTokenService {
     @Override
     public String generateToken() {
         byte[] bytes = new byte[TOKEN_BYTES];
+        secureRandom.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    @Override
+    public String generateTemporaryPassword() {
+        byte[] bytes = new byte[TEMPORARY_PASSWORD_BYTES];
         secureRandom.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }

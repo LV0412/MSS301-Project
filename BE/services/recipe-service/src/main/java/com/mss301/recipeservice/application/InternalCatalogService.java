@@ -7,6 +7,7 @@ import com.mss301.recipeservice.api.dto.CatalogDtos.CategoryResponse;
 import com.mss301.recipeservice.api.dto.CatalogDtos.IngredientResponse;
 import com.mss301.recipeservice.api.dto.CatalogDtos.RecipeBatchResponse;
 import com.mss301.recipeservice.api.dto.CatalogDtos.RecipeResponse;
+import com.mss301.recipeservice.exception.ResourceNotFoundException;
 import com.mss301.recipeservice.infrastructure.repositories.AllergenRepository;
 import com.mss301.recipeservice.infrastructure.repositories.CategoryRepository;
 import com.mss301.recipeservice.infrastructure.repositories.IngredientRepository;
@@ -66,6 +67,18 @@ public class InternalCatalogService {
                 allergens,
                 ingredients,
                 recipes);
+    }
+
+    public List<AllergenResponse> getAllergens() {
+        return allergenRepository.findAll(ALLERGEN_SORT).stream()
+                .map(mapper::toResponse)
+                .toList();
+    }
+
+    public AllergenResponse getAllergen(Long allergenId) {
+        return allergenRepository.findById(allergenId)
+                .map(mapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Allergen", allergenId));
     }
 
     public RecipeBatchResponse getBatch(List<Long> recipeIds) {
