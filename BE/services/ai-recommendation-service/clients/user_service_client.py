@@ -13,7 +13,7 @@ class UserServiceClient:
     def __init__(
         self,
         base_url: str = settings.user_service_url,
-        timeout_seconds: float = 5.0,
+        timeout_seconds: float = 3.0,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds

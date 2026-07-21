@@ -1,0 +1,9 @@
+services:
+  ai-recommendation-service:
+    build:
+      context: ./BE/services/ai-recommendation-service
+      dockerfile: Dockerfile.gpu
+    gpus: all
+    environment:
+      AI_LLM_PROVIDER: foodyllm
+      AI_LLM_STRICT: "true"

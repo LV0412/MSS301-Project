@@ -1,6 +1,7 @@
 from dto.request import RecommendationRequest
-from dto.response import RecommendedItem
+from dto.response import RecommendedItem, RecipeIngredient, RecipeStep
 from rag.vector_store import RecipeDocument
+from rules.rule_engine import RuleEngine
 
 
 class MealOptimizer:
@@ -22,20 +23,42 @@ class MealOptimizer:
             key=lambda item: self._optimization_score(item[0], item[1], request, scores_by_recipe),
             reverse=True,
         )
-        return [
-            RecommendedItem(
-                recipe_id=item.recipe_id,
-                name=item.name,
-                calories=item.calories,
-                protein=item.protein,
-                estimated_cost=item.estimated_cost,
-                tags=item.tags,
-                suitability_score=self._llm_score(item, scores_by_recipe),
-                reason=str(scores_by_recipe.get(item.recipe_id, {}).get("reason") or ""),
-                warnings=self._llm_warnings(item, scores_by_recipe),
-            )
-            for _index, item in ranked_candidates
-        ]
+        return [self._to_item(item, request, scores_by_recipe) for _index, item in ranked_candidates]
+
+    def _to_item(
+        self,
+        item: RecipeDocument,
+        request: RecommendationRequest,
+        scores_by_recipe: dict[str, dict],
+    ) -> RecommendedItem:
+        metadata = item.metadata
+        match_ratio, missing = RuleEngine().ingredient_match(item, request)
+        return RecommendedItem(
+            recipe_id=item.recipe_id,
+            name=item.name,
+            calories=item.calories,
+            protein=item.protein,
+            estimated_cost=item.estimated_cost,
+            tags=item.tags,
+            suitability_score=self._llm_score(item, scores_by_recipe),
+            reason=str(scores_by_recipe.get(item.recipe_id, {}).get("reason") or ""),
+            warnings=self._llm_warnings(item, scores_by_recipe),
+            description=str(metadata.get("description", "")),
+            image_url=metadata.get("image_url"),
+            servings=metadata.get("servings"),
+            preparation_time=int(metadata.get("preparation_time", 0) or 0),
+            cook_time=int(metadata.get("cook_time", metadata.get("cooking_time", 0)) or 0),
+            difficulty=metadata.get("difficulty"),
+            carbs=int(metadata.get("carbs", 0) or 0),
+            fat=int(metadata.get("fat", 0) or 0),
+            fiber=int(metadata.get("fiber", 0) or 0),
+            nutrition=metadata.get("nutrition", {}),
+            ingredients=[RecipeIngredient(**ingredient) for ingredient in metadata.get("ingredient_details", [])],
+            steps=[RecipeStep(**step) for step in metadata.get("steps", [])],
+            ingredient_match_ratio=round(match_ratio, 3),
+            missing_ingredients=missing,
+            source=str(metadata.get("source", "unknown")),
+        )
 
     def _optimization_score(
         self,
@@ -67,7 +90,8 @@ class MealOptimizer:
 
     def _llm_score(self, candidate: RecipeDocument, scores_by_recipe: dict[str, dict]) -> float:
         try:
-            return float(scores_by_recipe.get(candidate.recipe_id, {}).get("suitability_score", 0.0))
+            value = float(scores_by_recipe.get(candidate.recipe_id, {}).get("suitability_score", 0.0))
+            return max(0.0, min(100.0, value))
         except (TypeError, ValueError):
             return 0.0
 

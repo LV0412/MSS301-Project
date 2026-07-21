@@ -2,6 +2,7 @@ import math
 import re
 import unicodedata
 from collections import Counter
+from hashlib import sha256
 
 
 TOKEN_PATTERN = re.compile(r"[a-zA-Z0-9]+")
@@ -42,3 +43,14 @@ def build_recipe_text(recipe: dict) -> str:
         " ".join(str(item) for item in allergens if item),
     ]
     return " ".join(text_parts)
+
+
+def embed_recipe(recipe: dict, dimensions: int = 384) -> list[float]:
+    """Return a deterministic local hashing embedding for Chroma indexing."""
+    vector = [0.0] * dimensions
+    for token in TOKEN_PATTERN.findall(normalize_text(build_recipe_text(recipe))):
+        digest = sha256(token.encode("utf-8")).digest()
+        index = int.from_bytes(digest[:4], "big") % dimensions
+        vector[index] += -1.0 if digest[4] & 1 else 1.0
+    magnitude = math.sqrt(sum(value * value for value in vector)) or 1.0
+    return [value / magnitude for value in vector]

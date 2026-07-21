@@ -49,10 +49,29 @@ class ModelLoader:
                 "diet": diet,
                 "allergens": allergens,
                 "ingredients": ingredients,
+                "ingredient_details": [
+                    {"ingredient_id": None, "name": name, "quantity": None, "unit": None}
+                    for name in ingredients
+                ],
+                "ingredient_ids": [],
                 "description": str(recipe.get("description", "")),
                 "carbs": int(recipe["carbs"]),
                 "fat": int(recipe["fat"]),
                 "cooking_time": int(recipe["cooking_time"]),
+                "preparation_time": 0,
+                "cook_time": int(recipe["cooking_time"]),
+                "servings": None,
+                "difficulty": None,
+                "image_url": None,
+                "fiber": int(recipe.get("fiber", 0)),
+                "nutrition": {
+                    "calories": float(recipe["calories"]),
+                    "protein": float(recipe["protein"]),
+                    "carbs": float(recipe["carbs"]),
+                    "fat": float(recipe["fat"]),
+                    "fiber": float(recipe.get("fiber", 0)),
+                },
+                "steps": [],
                 "source": "local-recipes-json",
             },
         )

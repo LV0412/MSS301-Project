@@ -19,10 +19,30 @@ pip install -r requirements.txt
 uvicorn app:app --reload --port 8004
 ```
 
+For development and tests, install `requirements-dev.txt` instead.
+Install `requirements-llm.txt` only on the machine that will run real FoodyLLM inference.
+
 ## Endpoints
 
 - `GET /health`
 - `POST /api/ai/recommendations`
+
+The recommendation endpoint accepts a user ID plus ingredient names or Recipe Service ingredient IDs. `query` is optional:
+
+```json
+{
+  "user_id": "1",
+  "available_ingredients": ["ức gà", "gạo lứt", "cà chua"],
+  "ingredient_ids": [2, 3],
+  "meal_type": "lunch",
+  "goal": "muscle_gain",
+  "strict_ingredients": false,
+  "use_user_profile": true,
+  "limit": 5
+}
+```
+
+The response contains ranked catalog recipes with nutrition (including micronutrients supplied by Recipe Service), ingredient quantities, cooking steps, missing ingredients, FoodyLLM reasons, and explicit `llm_mode`. A value of `foodyllm` means real model output was parsed; `fallback` means deterministic local scoring was used.
 
 Swagger UI:
 
@@ -50,6 +70,8 @@ RECIPE_SERVICE_URL=http://localhost:8002
 ```
 
 The service keeps deterministic fallbacks so local development can run before GPU/model access is configured, but the target design is FoodyLLM-based.
+
+The request path currently uses the in-memory hybrid vector store. ChromaDB indexing utilities are experimental and intentionally excluded from the production Docker dependencies because older ChromaDB releases conflict with FoodyLLM's Transformers/tokenizers versions.
 
 ## FoodyLLM
 
@@ -89,7 +111,24 @@ FOODY_MODEL_SOURCE=FoodyLLM: FAIR-aligned specialized LLM for food and nutrition
 FOODY_SUPPORTED_TASKS=nutrition_profile,traffic_light_label,food_ner,food_ontology_linking
 ```
 
-The model is lazy-loaded on the first recommendation request. If CUDA, dependencies, model access, or generation fails, the service falls back to the deterministic local explanation instead of failing the API request.
+The model is lazy-loaded on the first recommendation request. Set `AI_LLM_STRICT=true` when a failed model load must return HTTP 503 instead of deterministic fallback. Real deployment needs a Hugging Face token authorized for the gated base model. GPU inference is strongly recommended; CPU loading is supported for compatibility but is not suitable for normal API latency.
+
+## Docker
+
+From the repository root:
+
+```powershell
+docker compose up --build ai-recommendation-service api-gateway-service
+```
+
+The gateway exposes the same endpoint at `http://localhost:8080/api/ai/recommendations`. The default lightweight image uses `AI_LLM_PROVIDER=local` and intentionally excludes PyTorch/CUDA so the integration flow can be tested quickly. The GPU override uses `Dockerfile.gpu` and installs `requirements-llm.txt` for real FoodyLLM inference.
+
+On a Docker host with NVIDIA Container Toolkit, use the GPU override:
+
+```powershell
+$env:HUGGINGFACE_TOKEN="hf_token_with_llama_access"
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build ai-recommendation-service api-gateway-service
+```
 
 The reference FoodyLLM files kept in `../FoodyLLM` are the model/research source. This service wraps that foundation model inside the production recommendation API instead of replacing the app-specific retrieval, rules, and optimizer layers.
 

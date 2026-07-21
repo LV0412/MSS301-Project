@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from dto.request import RecommendationRequest
+from rag.embedding import normalize_text
 from rag.vector_store import RecipeDocument
 
 
@@ -59,8 +60,48 @@ class RuleEngine:
             violations.append(f"vuot {request.max_fat}g fat")
         if request.budget and candidate.estimated_cost and candidate.estimated_cost > request.budget:
             violations.append(f"vuot ngan sach {request.budget} VND")
+        if request.strict_ingredients and self.ingredient_match(candidate, request)[0] < 1.0:
+            violations.append("thieu nguyen lieu bat buoc")
 
         return violations
+
+    def ingredient_match(
+        self,
+        candidate: RecipeDocument,
+        request: RecommendationRequest,
+    ) -> tuple[float, list[str]]:
+        recipe_names = [str(item) for item in candidate.metadata.get("ingredients", [])]
+        recipe_ids = set(candidate.metadata.get("ingredient_ids", []))
+        available_names = {normalize_text(item) for item in request.available_ingredients if item.strip()}
+        available_ids = set(request.ingredient_ids)
+        if not available_names and not available_ids:
+            return 0.0, []
+
+        missing = [
+            name
+            for name in recipe_names
+            if not any(
+                normalize_text(name) in available or available in normalize_text(name)
+                for available in available_names
+            )
+            and not self._ingredient_id_available(name, candidate, available_ids)
+        ]
+        matched = len(recipe_names) - len(missing)
+        if not recipe_names and recipe_ids:
+            matched = len(recipe_ids.intersection(available_ids))
+        total = len(recipe_names) or len(recipe_ids) or 1
+        return min(1.0, matched / total), missing
+
+    def _ingredient_id_available(
+        self,
+        name: str,
+        candidate: RecipeDocument,
+        available_ids: set[int],
+    ) -> bool:
+        for item in candidate.metadata.get("ingredient_details", []):
+            if str(item.get("name")) == name and item.get("ingredient_id") in available_ids:
+                return True
+        return False
 
     def _has_allergy_match(self, candidate: RecipeDocument, allergies: list[str]) -> bool:
         if not allergies:
