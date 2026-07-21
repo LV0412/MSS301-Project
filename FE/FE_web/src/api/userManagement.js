@@ -1,7 +1,7 @@
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080").replace(/\/$/, "");
 
 export class UserApiError extends Error {
-  constructor(message, status, details) {
+  constructor(message, status = 0, details = null) {
     super(message);
     this.name = "UserApiError";
     this.status = status;
@@ -10,14 +10,33 @@ export class UserApiError extends Error {
 }
 
 function getAccessToken() {
+  if (typeof localStorage === "undefined") return null;
   return localStorage.getItem("accessToken") || localStorage.getItem("access_token");
+}
+
+async function parseResponse(response) {
+  if (response.status === 204 || response.status === 205) return null;
+
+  const text = await response.text();
+  if (!text) return null;
+
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("json")) {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
+  }
+
+  return text;
 }
 
 async function request(path, options = {}) {
   const token = getAccessToken();
   const headers = {
     Accept: "application/json",
-    ...options.headers
+    ...(options.headers || {})
   };
 
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
@@ -27,18 +46,10 @@ async function request(path, options = {}) {
   try {
     response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
   } catch {
-    throw new UserApiError(
-      "Không thể kết nối User Service. Hãy kiểm tra API Gateway tại " + API_BASE_URL + ".",
-      0
-    );
+    throw new UserApiError(`Không thể kết nối API Gateway tại ${API_BASE_URL}.`, 0);
   }
 
-  const contentType = response.headers.get("content-type") || "";
-  const body = response.status === 204
-    ? null
-    : contentType.includes("application/json")
-      ? await response.json()
-      : await response.text();
+  const body = await parseResponse(response);
 
   if (!response.ok) {
     const message = body?.message || body?.error || body || `Yêu cầu thất bại (${response.status}).`;
@@ -61,127 +72,30 @@ export function getUsers(params = {}) {
   return request(`/api/v1/users${queryString(params)}`);
 }
 
-export function getUser(userId) {
-  return request(`/api/v1/users/${userId}`);
+export function getInternalUser(userId) {
+  return request(`/api/internal/users/${encodeURIComponent(String(userId))}`);
 }
 
-export function createUser(payload) {
+export function createUserProfile(payload) {
   return request("/api/v1/users", { method: "POST", body: JSON.stringify(payload) });
 }
 
-export function createAccountByAdmin(payload) {
+export function inviteUserByAdmin(payload) {
   return request("/api/v1/auth/admin/accounts", { method: "POST", body: JSON.stringify(payload) });
 }
 
-export function updateUser(userId, payload) {
-  return request(`/api/v1/users/${userId}`, { method: "PUT", body: JSON.stringify(payload) });
+export function resendVerificationOtp(email) {
+  return request("/api/v1/auth/resend-otp", {
+    method: "POST",
+    body: JSON.stringify({ email })
+  });
 }
 
-export function deleteUser(userId) {
-  return request(`/api/v1/users/${userId}`, { method: "DELETE" });
+export function requestPasswordReset(email) {
+  return request("/api/v1/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email })
+  });
 }
 
-export function getHealthProfile(userId) {
-  return request(`/api/v1/users/${userId}/health-profile`);
-}
-
-export function createHealthProfile(userId, payload) {
-  return request(`/api/v1/users/${userId}/health-profile`, { method: "POST", body: JSON.stringify(payload) });
-}
-
-export function updateHealthProfile(userId, payload) {
-  return request(`/api/v1/users/${userId}/health-profile`, { method: "PUT", body: JSON.stringify(payload) });
-}
-
-export function deleteHealthProfile(userId) {
-  return request(`/api/v1/users/${userId}/health-profile`, { method: "DELETE" });
-}
-
-export function getNutritionGoal(userId) {
-  return request(`/api/v1/users/${userId}/nutrition-goal`);
-}
-
-export function createNutritionGoal(userId, payload) {
-  return request(`/api/v1/users/${userId}/nutrition-goal`, { method: "POST", body: JSON.stringify(payload) });
-}
-
-export function updateNutritionGoal(userId, payload) {
-  return request(`/api/v1/users/${userId}/nutrition-goal`, { method: "PUT", body: JSON.stringify(payload) });
-}
-
-export function deleteNutritionGoal(userId) {
-  return request(`/api/v1/users/${userId}/nutrition-goal`, { method: "DELETE" });
-}
-
-export function getDietPreferences(userId) {
-  return request(`/api/v1/users/${userId}/diet-preferences`);
-}
-
-export function addDietPreference(userId, payload) {
-  return request(`/api/v1/users/${userId}/diet-preferences`, { method: "POST", body: JSON.stringify(payload) });
-}
-
-export function updateDietPreference(userId, preferenceId, payload) {
-  return request(`/api/v1/users/${userId}/diet-preferences/${preferenceId}`, { method: "PUT", body: JSON.stringify(payload) });
-}
-
-export function deleteDietPreference(userId, preferenceId) {
-  return request(`/api/v1/users/${userId}/diet-preferences/${preferenceId}`, { method: "DELETE" });
-}
-
-export function getAllergies(userId) {
-  return request(`/api/v1/users/${userId}/allergies`);
-}
-
-export function addAllergy(userId, payload) {
-  return request(`/api/v1/users/${userId}/allergies`, { method: "POST", body: JSON.stringify(payload) });
-}
-
-export function updateAllergy(userId, allergyId, payload) {
-  return request(`/api/v1/users/${userId}/allergies/${allergyId}`, { method: "PUT", body: JSON.stringify(payload) });
-}
-
-export function deleteAllergy(userId, allergyId) {
-  return request(`/api/v1/users/${userId}/allergies/${allergyId}`, { method: "DELETE" });
-}
-
-export function getFavorites(userId) {
-  return request(`/api/v1/users/${userId}/favorites`);
-}
-
-export function addFavorite(userId, payload) {
-  return request(`/api/v1/users/${userId}/favorites`, { method: "POST", body: JSON.stringify(payload) });
-}
-
-export function updateFavorite(userId, favoriteId, payload) {
-  return request(`/api/v1/users/${userId}/favorites/${favoriteId}`, { method: "PUT", body: JSON.stringify(payload) });
-}
-
-export function deleteFavorite(userId, favoriteId) {
-  return request(`/api/v1/users/${userId}/favorites/${favoriteId}`, { method: "DELETE" });
-}
-
-export function getFoodLogs(userId, params = {}) {
-  return request(`/api/v1/users/${userId}/food-logs${queryString(params)}`);
-}
-
-export function createFoodLog(userId, payload) {
-  return request(`/api/v1/users/${userId}/food-logs`, { method: "POST", body: JSON.stringify(payload) });
-}
-
-export function updateFoodLog(userId, logId, payload) {
-  return request(`/api/v1/users/${userId}/food-logs/${logId}`, { method: "PUT", body: JSON.stringify(payload) });
-}
-
-export function deleteFoodLog(userId, logId) {
-  return request(`/api/v1/users/${userId}/food-logs/${logId}`, { method: "DELETE" });
-}
-
-export async function optionalResource(loader) {
-  try {
-    return await loader();
-  } catch (error) {
-    if (error instanceof UserApiError && error.status === 404) return null;
-    throw error;
-  }
-}
+export const createAccountByAdmin = inviteUserByAdmin;
