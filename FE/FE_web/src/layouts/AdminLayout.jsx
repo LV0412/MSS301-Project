@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart3,
   Bell,
@@ -17,6 +17,7 @@ import {
   Users,
   Utensils
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const navItems = [
   { to: "/overview", label: "Tổng quan", icon: LayoutDashboard },
@@ -41,7 +42,7 @@ const pageTitles = {
   "/nutrition/new": "Tạo nguyên liệu",
   "/reports": "Báo cáo hệ thống",
   "/users": "Quản lý người dùng",
-  "/users/new": "Tạo người dùng",
+  "/users/new": "Mời người dùng",
   "/ai-overview": "AI Service Overview",
   "/ai-knowledge": "AI Knowledge Base",
   "/ai-recommendation-sandbox": "Recommendation Sandbox",
@@ -61,6 +62,23 @@ function getTitle(pathname) {
 
 export default function AdminLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { account, logout } = useAuth();
+
+  const displayName = account?.fullName || "Admin Panel";
+  const displayEmail = account?.email || "admin@nutrichef.ai";
+  const initials = displayName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase() || "AD";
+
+  async function handleLogout() {
+    await logout();
+    navigate("/login", { replace: true });
+  }
 
   return (
     <div className="admin-shell">
@@ -85,12 +103,14 @@ export default function AdminLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="admin-avatar">AD</div>
+          <div className="admin-avatar">{initials}</div>
           <div className="admin-meta">
-            <strong>Admin Panel</strong>
-            <span>v1.0.4</span>
+            <strong>{displayName}</strong>
+            <span>{displayEmail}</span>
           </div>
-          <LogOut size={16} />
+          <button className="icon-btn" type="button" onClick={handleLogout} aria-label="Đăng xuất">
+            <LogOut size={16} />
+          </button>
         </div>
       </aside>
 
@@ -112,9 +132,13 @@ export default function AdminLayout() {
             <button className="icon-btn" aria-label="AI shortcuts">
               <Sparkles size={18} />
             </button>
-            <button className="profile-pill" aria-label="Admin profile">
+            <button className="profile-pill" aria-label="Admin profile" type="button">
               <UserCircle size={20} />
-              <span>ADMIN</span>
+              <span>{account?.role || "ADMIN"}</span>
+            </button>
+            <button className="ghost-btn logout-btn" type="button" onClick={handleLogout}>
+              <LogOut size={16} />
+              Đăng xuất
             </button>
           </div>
         </header>

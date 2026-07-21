@@ -1,5 +1,8 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AdminLayout from "./layouts/AdminLayout.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import RegisterPage from "./pages/RegisterPage.jsx";
 import OverviewPage from "./pages/OverviewPage.jsx";
 import RecipesPage from "./pages/RecipesPage.jsx";
 import RecipeFormPage from "./pages/RecipeFormPage.jsx";
@@ -20,7 +23,9 @@ import SettingsPage from "./pages/SettingsPage.jsx";
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<AdminLayout />}>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="/overview" replace />} />
         <Route path="overview" element={<OverviewPage />} />
         <Route path="recipes" element={<RecipesPage />} />
