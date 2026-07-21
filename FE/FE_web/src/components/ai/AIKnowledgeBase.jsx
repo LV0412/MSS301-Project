@@ -2,13 +2,13 @@ import { BrainCircuit, Eye, FileText, RefreshCw, Send, ShieldAlert, Sparkles, Tr
 import { knowledgeSources } from "../../data/mockData.js";
 import RecipeIndexCard from "./RecipeIndexCard.jsx";
 
-export default function AIKnowledgeBase() {
+export default function AIKnowledgeBase({ embedded = false }) {
   return (
-    <div className="page-stack">
-      <div className="page-toolbar">
+    <div className={embedded ? "ai-knowledge-tab-content" : "page-stack"}>
+      {!embedded ? <div className="page-toolbar">
         <div><p className="eyebrow">NutriChef AI</p><h2>AI Knowledge Base</h2><p>Quản lý dataset proprietary dùng cho nutrition intelligence và RAG retrieval.</p></div>
         <button className="primary-btn"><Upload size={16} /> Upload nguồn</button>
-      </div>
+      </div> : null}
 
       <section className="knowledge-layout">
         <div className="page-stack">

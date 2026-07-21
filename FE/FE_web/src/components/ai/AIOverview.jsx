@@ -1,5 +1,6 @@
 import { Activity, Bot, Clock, Database, FileText, ShieldAlert, Sparkles, Utensils } from "lucide-react";
 import { aiOverviewCards } from "../../data/mockData.js";
+import AILogs from "./AILogs.jsx";
 
 const icons = [Activity, Bot, Sparkles, Database, Utensils, FileText, Clock, Clock, ShieldAlert, Sparkles];
 
@@ -36,6 +37,7 @@ export default function AIOverview() {
           </div>
         ))}
       </section>
+      <AILogs embedded />
     </div>
   );
 }

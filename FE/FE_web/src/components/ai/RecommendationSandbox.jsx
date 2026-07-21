@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AlertTriangle, SearchCheck, Sparkles } from "lucide-react";
 import { recommendationResults } from "../../data/mockData.js";
 
-export default function RecommendationSandbox() {
+export default function RecommendationSandbox({ embedded = false }) {
   const [state, setState] = useState("ready");
 
   function runSimulation(event) {
@@ -12,14 +12,14 @@ export default function RecommendationSandbox() {
   }
 
   return (
-    <div className="page-stack">
-      <div className="page-toolbar">
+    <div className={embedded ? "ai-sandbox-tab-content" : "page-stack"}>
+      {!embedded ? <div className="page-toolbar">
         <div>
           <p className="eyebrow">AI Sandbox</p>
           <h2>Recommendation Sandbox</h2>
           <p>Test gợi ý món ăn theo user context, allergy filtering, nutrition scoring và citation.</p>
         </div>
-      </div>
+      </div> : null}
 
       <section className="ai-sandbox-layout">
         <form className="panel ai-sandbox-form" onSubmit={runSimulation}>
