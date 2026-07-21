@@ -19,11 +19,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/users/{userId}/favorites")
+@RequestMapping({"/api/v1/users/me/favorites", "/api/v1/users/{userId:\\d+}/favorites"})
 @RequiredArgsConstructor
 @Tag(name = "Favorites", description = "User favorite recipe APIs")
 public class FavoriteController {
@@ -39,10 +40,10 @@ public class FavoriteController {
             @ApiResponse(responseCode = "409", description = "Duplicate favorite")
     })
     public ResponseEntity<FavoriteResponse> addFavorite(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @Valid @RequestBody CreateFavoriteRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(favoriteService.addFavorite(userId, request));
+                .body(favoriteService.addFavorite(authenticatedUserId, request));
     }
 
     @GetMapping
@@ -51,8 +52,9 @@ public class FavoriteController {
             @ApiResponse(responseCode = "200", description = "Favorites returned"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    public ResponseEntity<List<FavoriteResponse>> getFavorites(@PathVariable Long userId) {
-        return ResponseEntity.ok(favoriteService.getFavorites(userId));
+    public ResponseEntity<List<FavoriteResponse>> getFavorites(
+            @RequestHeader("X-User-Id") Long authenticatedUserId) {
+        return ResponseEntity.ok(favoriteService.getFavorites(authenticatedUserId));
     }
 
     @PutMapping("/{favoriteId}")
@@ -63,10 +65,10 @@ public class FavoriteController {
             @ApiResponse(responseCode = "404", description = "Favorite not found")
     })
     public ResponseEntity<FavoriteResponse> updateFavorite(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @PathVariable Long favoriteId,
             @Valid @RequestBody UpdateFavoriteRequest request) {
-        return ResponseEntity.ok(favoriteService.updateFavorite(userId, favoriteId, request));
+        return ResponseEntity.ok(favoriteService.updateFavorite(authenticatedUserId, favoriteId, request));
     }
 
     @DeleteMapping("/{favoriteId}")
@@ -76,9 +78,9 @@ public class FavoriteController {
             @ApiResponse(responseCode = "404", description = "Favorite not found")
     })
     public ResponseEntity<Void> deleteFavorite(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @PathVariable Long favoriteId) {
-        favoriteService.deleteFavorite(userId, favoriteId);
+        favoriteService.deleteFavorite(authenticatedUserId, favoriteId);
         return ResponseEntity.noContent().build();
     }
 }

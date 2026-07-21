@@ -1,5 +1,6 @@
 package com.mss301.userservice.service;
 
+import com.mss301.userservice.client.RecipeCatalogReferenceValidator;
 import com.mss301.userservice.dto.CreateFoodLogRequest;
 import com.mss301.userservice.dto.FoodLogResponse;
 import com.mss301.userservice.dto.UpdateFoodLogRequest;
@@ -26,9 +27,11 @@ public class FoodLogService {
 
     private final FoodLogRepository foodLogRepository;
     private final UserRepository userRepository;
+    private final RecipeCatalogReferenceValidator recipeCatalogReferenceValidator;
 
     public FoodLogResponse createFoodLog(Long userId, CreateFoodLogRequest request) {
         User user = findUser(userId);
+        recipeCatalogReferenceValidator.requireRecipeExists(request.recipeId());
 
         FoodLog foodLog = FoodLog.builder()
                 .user(user)
@@ -59,6 +62,7 @@ public class FoodLogService {
 
     public FoodLogResponse updateFoodLog(Long userId, Long logId, UpdateFoodLogRequest request) {
         FoodLog foodLog = findFoodLog(userId, logId);
+        recipeCatalogReferenceValidator.requireRecipeExists(request.recipeId());
 
         foodLog.setRecipeId(request.recipeId());
         foodLog.setQuantity(request.quantity());

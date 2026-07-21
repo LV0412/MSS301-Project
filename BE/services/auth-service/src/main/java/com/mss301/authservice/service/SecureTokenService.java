@@ -4,6 +4,8 @@ public interface SecureTokenService {
 
     String generateToken();
 
+    String generateTemporaryPassword();
+
     String generateOtp();
 
     String hashToken(String token);

@@ -19,11 +19,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/users/{userId}/allergies")
+@RequestMapping({"/api/v1/users/me/allergies", "/api/v1/users/{userId:\\d+}/allergies"})
 @RequiredArgsConstructor
 @Tag(name = "User Allergies", description = "User allergy APIs")
 public class UserAllergyController {
@@ -39,10 +40,10 @@ public class UserAllergyController {
             @ApiResponse(responseCode = "409", description = "Duplicate allergy")
     })
     public ResponseEntity<UserAllergyResponse> addAllergy(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @Valid @RequestBody CreateUserAllergyRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(userAllergyService.addAllergy(userId, request));
+                .body(userAllergyService.addAllergy(authenticatedUserId, request));
     }
 
     @GetMapping
@@ -51,8 +52,9 @@ public class UserAllergyController {
             @ApiResponse(responseCode = "200", description = "Allergies returned"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    public ResponseEntity<List<UserAllergyResponse>> getAllergies(@PathVariable Long userId) {
-        return ResponseEntity.ok(userAllergyService.getAllergies(userId));
+    public ResponseEntity<List<UserAllergyResponse>> getAllergies(
+            @RequestHeader("X-User-Id") Long authenticatedUserId) {
+        return ResponseEntity.ok(userAllergyService.getAllergies(authenticatedUserId));
     }
 
     @PutMapping("/{allergyId}")
@@ -63,10 +65,10 @@ public class UserAllergyController {
             @ApiResponse(responseCode = "404", description = "Allergy not found")
     })
     public ResponseEntity<UserAllergyResponse> updateAllergy(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @PathVariable Long allergyId,
             @Valid @RequestBody UpdateUserAllergyRequest request) {
-        return ResponseEntity.ok(userAllergyService.updateAllergy(userId, allergyId, request));
+        return ResponseEntity.ok(userAllergyService.updateAllergy(authenticatedUserId, allergyId, request));
     }
 
     @DeleteMapping("/{allergyId}")
@@ -76,9 +78,9 @@ public class UserAllergyController {
             @ApiResponse(responseCode = "404", description = "Allergy not found")
     })
     public ResponseEntity<Void> deleteAllergy(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @PathVariable Long allergyId) {
-        userAllergyService.deleteAllergy(userId, allergyId);
+        userAllergyService.deleteAllergy(authenticatedUserId, allergyId);
         return ResponseEntity.noContent().build();
     }
 }

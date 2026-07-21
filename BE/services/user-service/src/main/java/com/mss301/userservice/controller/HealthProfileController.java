@@ -18,11 +18,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/users/{userId}/health-profile")
+@RequestMapping({"/api/v1/users/me/health-profile", "/api/v1/users/{userId:\\d+}/health-profile"})
 @RequiredArgsConstructor
 @Tag(name = "Health Profiles", description = "User health profile APIs")
 public class HealthProfileController {
@@ -38,10 +39,10 @@ public class HealthProfileController {
             @ApiResponse(responseCode = "409", description = "Health profile already exists")
     })
     public ResponseEntity<HealthProfileResponse> createHealthProfile(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @Valid @RequestBody CreateHealthProfileRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(healthProfileService.createHealthProfile(userId, request));
+                .body(healthProfileService.createHealthProfile(authenticatedUserId, request));
     }
 
     @GetMapping
@@ -50,8 +51,9 @@ public class HealthProfileController {
             @ApiResponse(responseCode = "200", description = "Health profile found"),
             @ApiResponse(responseCode = "404", description = "Health profile not found")
     })
-    public ResponseEntity<HealthProfileResponse> getHealthProfile(@PathVariable Long userId) {
-        return ResponseEntity.ok(healthProfileService.getHealthProfile(userId));
+    public ResponseEntity<HealthProfileResponse> getHealthProfile(
+            @RequestHeader("X-User-Id") Long authenticatedUserId) {
+        return ResponseEntity.ok(healthProfileService.getHealthProfile(authenticatedUserId));
     }
 
     @PutMapping
@@ -62,9 +64,9 @@ public class HealthProfileController {
             @ApiResponse(responseCode = "404", description = "Health profile not found")
     })
     public ResponseEntity<HealthProfileResponse> updateHealthProfile(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @Valid @RequestBody UpdateHealthProfileRequest request) {
-        return ResponseEntity.ok(healthProfileService.updateHealthProfile(userId, request));
+        return ResponseEntity.ok(healthProfileService.updateHealthProfile(authenticatedUserId, request));
     }
 
     @DeleteMapping
@@ -73,8 +75,9 @@ public class HealthProfileController {
             @ApiResponse(responseCode = "204", description = "Health profile deleted"),
             @ApiResponse(responseCode = "404", description = "Health profile not found")
     })
-    public ResponseEntity<Void> deleteHealthProfile(@PathVariable Long userId) {
-        healthProfileService.deleteHealthProfile(userId);
+    public ResponseEntity<Void> deleteHealthProfile(
+            @RequestHeader("X-User-Id") Long authenticatedUserId) {
+        healthProfileService.deleteHealthProfile(authenticatedUserId);
         return ResponseEntity.noContent().build();
     }
 }

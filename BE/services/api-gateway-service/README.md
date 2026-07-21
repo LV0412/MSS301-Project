@@ -6,8 +6,26 @@ Single entry point for frontend requests.
 
 - Route frontend API calls to backend services.
 - Centralize CORS configuration.
-- Add JWT validation/filtering before protected routes.
+- Validate JWTs before protected routes.
+- Strip client-supplied identity headers, then inject trusted `X-Account-Id`, `X-User-Id`, `X-User-Email`, and `X-User-Role` from the verified JWT.
+- Reject `/admin/**` routes unless the JWT role is `ADMIN`.
 - Add request logging, rate limiting, or tracing later if needed.
+
+## Authentication Behavior
+
+Public routes do not require a token:
+
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/google`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/verify-email`
+- `POST /api/v1/auth/resend-otp`
+- `POST /api/v1/auth/forgot-password`
+- `POST /api/v1/auth/reset-password`
+
+All other application routes require a valid `Authorization: Bearer <access_token>`.
+Expired tokens return `401`; the client must call the refresh endpoint itself.
 
 ## Default Routes
 
@@ -36,9 +54,8 @@ AI Recommendation is intentionally not included yet.
 ## Local Ports
 
 - Gateway: `8080`
-- User service: `8001`
-- Recipe service: `8002`
-- AI recommendation service: `8003`
+- Auth/User/Recipe services: internal Docker network only in `docker-compose.yml`; access them through the Gateway.
+- AI recommendation service: `8003` when the future profile is enabled.
 
 ## Environment Variables
 

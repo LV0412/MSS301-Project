@@ -21,3 +21,7 @@ spring:
 app:
   seed:
     enabled: ${APP_SEED_ENABLED:false}
+  recipe-service:
+    base-url: ${RECIPE_SERVICE_URL:http://localhost:8002}
+    recipe-cache-ttl: ${RECIPE_CACHE_TTL:10m}
+    allergen-cache-ttl: ${ALLERGEN_CACHE_TTL:12h}

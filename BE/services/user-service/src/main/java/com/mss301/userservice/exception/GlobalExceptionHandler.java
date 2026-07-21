@@ -107,6 +107,34 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.CONFLICT, exception.getMessage(), request, null);
     }
 
+    @ExceptionHandler({InvalidRecipeReferenceException.class, InvalidAllergenReferenceException.class})
+    public ResponseEntity<ErrorResponse> handleInvalidCatalogReference(
+            RuntimeException exception,
+            HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, exception.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(RecipeCatalogUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleRecipeCatalogUnavailable(
+            RecipeCatalogUnavailableException exception,
+            HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(InvalidDateOfBirthException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidDateOfBirth(
+            InvalidDateOfBirthException exception,
+            HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, exception.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(InvalidNutritionGoalException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidNutritionGoal(
+            InvalidNutritionGoalException exception,
+            HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, exception.getMessage(), request, null);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(
             MethodArgumentNotValidException exception,

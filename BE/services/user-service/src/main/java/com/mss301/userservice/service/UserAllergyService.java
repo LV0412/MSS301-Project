@@ -1,5 +1,6 @@
 package com.mss301.userservice.service;
 
+import com.mss301.userservice.client.RecipeCatalogReferenceValidator;
 import com.mss301.userservice.dto.CreateUserAllergyRequest;
 import com.mss301.userservice.dto.UpdateUserAllergyRequest;
 import com.mss301.userservice.dto.UserAllergyResponse;
@@ -22,10 +23,12 @@ public class UserAllergyService {
 
     private final UserAllergyRepository userAllergyRepository;
     private final UserRepository userRepository;
+    private final RecipeCatalogReferenceValidator recipeCatalogReferenceValidator;
 
     public UserAllergyResponse addAllergy(Long userId, CreateUserAllergyRequest request) {
         User user = findUser(userId);
         ensureAllergenIsAvailable(userId, request.allergenId(), null);
+        recipeCatalogReferenceValidator.requireAllergenExists(request.allergenId());
 
         UserAllergy userAllergy = UserAllergy.builder()
                 .user(user)
@@ -50,6 +53,7 @@ public class UserAllergyService {
             UpdateUserAllergyRequest request) {
         UserAllergy userAllergy = findUserAllergy(userId, allergyId);
         ensureAllergenIsAvailable(userId, request.allergenId(), allergyId);
+        recipeCatalogReferenceValidator.requireAllergenExists(request.allergenId());
 
         userAllergy.setAllergenId(request.allergenId());
         userAllergy.setSeverity(request.severity());

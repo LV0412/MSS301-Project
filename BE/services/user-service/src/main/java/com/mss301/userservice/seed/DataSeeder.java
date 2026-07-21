@@ -88,7 +88,12 @@ public class DataSeeder implements CommandLineRunner {
     private void createNutritionGoal(User user, SeedUser seedUser) {
         NutritionGoal nutritionGoal = NutritionGoal.builder()
                 .user(user)
-                .calories(seedUser.nutritionGoal().calories())
+                .goalType(seedUser.nutritionGoal().goalType())
+                .targetWeight(seedUser.nutritionGoal().targetWeight())
+                .durationWeeks(seedUser.nutritionGoal().durationWeeks())
+                .weeklyRateKg(seedUser.nutritionGoal().weeklyRateKg())
+                .recommendedCalories(seedUser.nutritionGoal().recommendedCalories())
+                .dailyCaloriesGoal(seedUser.nutritionGoal().dailyCaloriesGoal())
                 .protein(seedUser.nutritionGoal().protein())
                 .carbs(seedUser.nutritionGoal().carbs())
                 .fat(seedUser.nutritionGoal().fat())

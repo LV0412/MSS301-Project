@@ -68,4 +68,31 @@ public class EmailServiceImpl implements EmailService {
             log.warn("Failed to send password reset token to {}. Token fallback: {}", toEmail, resetToken, exception);
         }
     }
+
+    @Override
+    public void sendTemporaryPassword(String toEmail, String temporaryPassword) {
+        if (!StringUtils.hasText(mailHost)) {
+            log.info("MAIL_HOST is not configured. Temporary password for {} is {}", toEmail, temporaryPassword);
+            return;
+        }
+
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            if (StringUtils.hasText(mailUsername)) {
+                message.setFrom(mailUsername);
+            }
+            message.setTo(toEmail);
+            message.setSubject("MSS301 temporary password");
+            message.setText("Your MSS301 account has been created with Google Sign-In.\n"
+                    + "Temporary password: " + temporaryPassword + "\n"
+                    + "You can use this password for email/password login, then change it in your account settings.");
+            mailSender.send(message);
+        } catch (RuntimeException exception) {
+            log.warn(
+                    "Failed to send temporary password to {}. Temporary password fallback: {}",
+                    toEmail,
+                    temporaryPassword,
+                    exception);
+        }
+    }
 }
