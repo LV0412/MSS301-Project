@@ -18,10 +18,12 @@ class FoodyLLM:
         self.model: Any | None = None
         self._load_attempted = False
         self._fallback_reason: str | None = None
+        self._mode = "fallback"
 
     def generate(self, prompt: str) -> str:
         self._load_model()
         if self.model is None or self.tokenizer is None:
+            self._raise_if_strict()
             return self._mock_generate(prompt)
 
         try:
@@ -39,9 +41,11 @@ class FoodyLLM:
 
             generated_ids = output_ids[0][input_ids.shape[-1] :]
             generated_text = self.tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
+            self._mode = "foodyllm"
             return generated_text or self._mock_generate(prompt)
         except Exception as exc:
             self._fallback_reason = str(exc)
+            self._mode = "fallback"
             logger.exception("FoodyLLM generation failed. Falling back to mock response: %s", exc)
             return self._mock_generate(prompt)
 
@@ -53,16 +57,45 @@ class FoodyLLM:
         rule_warnings: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         self._load_model()
+        if self.model is None or self.tokenizer is None:
+            self._raise_if_strict()
         if self.model is not None and self.tokenizer is not None:
             try:
-                payload = json.loads(self.generate(prompt))
+                payload = self._parse_json_payload(self.generate(prompt))
                 recommendations = payload.get("recommendations")
                 if isinstance(recommendations, list):
                     return [item for item in recommendations if isinstance(item, dict)]
             except (json.JSONDecodeError, AttributeError, TypeError) as exc:
                 logger.warning("FoodyLLM did not return valid recommendation JSON: %s", exc)
+                self._mode = "foodyllm_invalid_json_fallback"
+                self._fallback_reason = "FoodyLLM response was not valid recommendation JSON"
 
         return self._mock_score_recipes(candidates, request, rule_warnings or [])
+
+    def _parse_json_payload(self, text: str) -> dict[str, Any]:
+        cleaned = text.strip()
+        if cleaned.startswith("```"):
+            cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
+            cleaned = re.sub(r"\s*```$", "", cleaned)
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start < 0 or end < start:
+            raise json.JSONDecodeError("No JSON object found", cleaned, 0)
+        payload = json.loads(cleaned[start : end + 1])
+        if not isinstance(payload, dict):
+            raise TypeError("FoodyLLM response must be a JSON object")
+        return payload
+
+    def runtime_info(self) -> dict[str, str | None]:
+        return {
+            "provider": settings.llm_provider,
+            "mode": self._mode,
+            "fallback_reason": self._fallback_reason,
+        }
+
+    def _raise_if_strict(self) -> None:
+        if settings.llm_strict and settings.llm_provider.lower() in {"foodyllm", "real", "huggingface"}:
+            raise RuntimeError(f"FoodyLLM is unavailable: {self._fallback_reason or 'unknown reason'}")
 
     def _load_model(self) -> None:
         if self._load_attempted:
@@ -138,6 +171,7 @@ class FoodyLLM:
             self.tokenizer = None
             self.model = None
             self._fallback_reason = str(exc)
+            self._mode = "fallback"
             logger.exception("Failed to load FoodyLLM. Falling back to mock response: %s", exc)
 
     def _resolve_adapter_source(self) -> str | None:

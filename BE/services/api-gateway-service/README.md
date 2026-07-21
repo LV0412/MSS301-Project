@@ -71,7 +71,7 @@ When running with Docker Compose, set service URLs to Compose DNS names:
 - `AUTH_SERVICE_URL=http://auth-service:8000`
 - `USER_SERVICE_URL=http://user-service:8001`
 - `RECIPE_SERVICE_URL=http://recipe-service:8002`
-- `AI_RECOMMENDATION_SERVICE_URL=http://ai-recommendation-service:8003`
+- `AI_RECOMMENDATION_SERVICE_URL=http://ai-recommendation-service:8004`
 
 ## Package Layout
 

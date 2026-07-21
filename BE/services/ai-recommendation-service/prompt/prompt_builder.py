@@ -18,7 +18,8 @@ class PromptBuilder:
                 f"- id={item.recipe_id}; name={item.name}; {item.calories} kcal; "
                 f"protein={item.protein}g; carbs={item.metadata.get('carbs', 0)}g; "
                 f"fat={item.metadata.get('fat', 0)}g; cost={item.estimated_cost} VND; "
-                f"tags={', '.join(item.tags)}"
+                f"tags={', '.join(item.tags)}; "
+                f"ingredients={', '.join(str(value) for value in item.metadata.get('ingredients', []))}"
             )
             for item in candidates
         )
@@ -39,6 +40,8 @@ class PromptBuilder:
             f"User query: {request.query}\n"
             f"Diet: {request.diet or 'not specified'}\n"
             f"Goal: {request.goal or 'balanced recommendation'}\n"
+            f"Meal type: {request.meal_type or 'not specified'}\n"
+            f"Available ingredients: {', '.join(request.available_ingredients) or 'not specified'}\n"
             f"Nutrition constraints: {nutrition_constraints}\n"
             f"Retrieved recipes:\n{context or '- No matching recipe found'}\n"
             f"Rule engine warnings:\n{warnings_context or '- none'}\n"

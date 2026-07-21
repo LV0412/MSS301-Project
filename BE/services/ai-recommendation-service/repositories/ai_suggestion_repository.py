@@ -25,7 +25,7 @@ def create_suggested_recipes(
         SuggestedRecipe(
             suggestion_id=suggestion_id,
             recipe_id=_to_int(recipe.recipe_id),
-            score=Decimal(str(getattr(recipe, "score", 0.0))),
+            score=Decimal(str(recipe.suitability_score)),
             reason=_build_reason(recipe),
             rank=rank,
         )
@@ -57,8 +57,9 @@ def get_user_history(session: Session, user_id: int, limit: int = 20) -> list[Ai
 
 
 def _build_reason(recipe: RecommendedItem) -> str:
-    score = getattr(recipe, "score", 0.0)
-    return f"Recipe ranked by AI recommendation optimizer with score {score}."
+    if recipe.reason:
+        return recipe.reason
+    return f"Recipe ranked by AI recommendation optimizer with score {recipe.suitability_score}."
 
 
 def _to_int(value: str) -> int:

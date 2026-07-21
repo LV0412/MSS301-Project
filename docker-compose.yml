@@ -158,10 +158,54 @@ services:
     expose:
       - "8002"
 
+  ai-postgres:
+    image: postgres:16-alpine
+    container_name: mss301-ai-postgres
+    environment:
+      POSTGRES_DB: ai_recommendation
+      POSTGRES_USER: ${AI_DATABASE_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${AI_DATABASE_PASSWORD:-postgres}
+    ports:
+      - "${AI_POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - ai_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AI_DATABASE_USERNAME:-postgres} -d ai_recommendation"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   ai-recommendation-service:
-    profiles: ["future"]
     build:
       context: ./BE/services/ai-recommendation-service
+    container_name: mss301-ai-recommendation-service
+    depends_on:
+      ai-postgres:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      recipe-service:
+        condition: service_started
+    environment:
+      AI_SERVICE_PORT: 8004
+      AI_TOP_K: ${AI_TOP_K:-5}
+      AI_LLM_PROVIDER: ${AI_LLM_PROVIDER:-local}
+      AI_LLM_STRICT: ${AI_LLM_STRICT:-false}
+      AI_PERSIST_RECOMMENDATIONS: ${AI_PERSIST_RECOMMENDATIONS:-true}
+      USER_SERVICE_URL: http://user-service:8001
+      RECIPE_SERVICE_URL: http://recipe-service:8002
+      DATABASE_URL: postgresql+psycopg://${AI_DATABASE_USERNAME:-postgres}:${AI_DATABASE_PASSWORD:-postgres}@ai-postgres:5432/ai_recommendation
+      FOODY_BASE_MODEL: ${FOODY_BASE_MODEL:-meta-llama/Meta-Llama-3-8B-Instruct}
+      FOODY_ADAPTER: ${FOODY_ADAPTER:-Matej/FoodyLLM}
+      HUGGINGFACE_TOKEN: ${HUGGINGFACE_TOKEN:-}
+      LLM_MAX_NEW_TOKENS: ${LLM_MAX_NEW_TOKENS:-512}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.3}
+      LLM_LOAD_IN_4BIT: ${LLM_LOAD_IN_4BIT:-true}
+      CHROMA_PATH: /data/chroma
+    ports:
+      - "${AI_SERVICE_PORT:-8004}:8004"
+    volumes:
+      - ai_chroma_data:/data/chroma
 
   api-gateway-service:
     build:
@@ -171,13 +215,13 @@ services:
       - auth-service
       - user-service
       - recipe-service
+      - ai-recommendation-service
     environment:
       APP_PORT: 8080
       AUTH_SERVICE_URL: http://auth-service:8000
       USER_SERVICE_URL: http://user-service:8001
       RECIPE_SERVICE_URL: http://recipe-service:8002
-      AI_RECOMMENDATION_SERVICE_URL: http://ai-recommendation-service:8003
-      JWT_SECRET: ${JWT_SECRET:-change-this-to-a-long-random-secret-at-least-32-bytes-long}
+      AI_RECOMMENDATION_SERVICE_URL: http://ai-recommendation-service:8004
     ports:
       - "${API_GATEWAY_PORT:-8080}:8080"
 
@@ -195,3 +239,5 @@ volumes:
   auth_mysql_data:
   user_mysql_data:
   recipe_mysql_data:
+  ai_postgres_data:
+  ai_chroma_data:

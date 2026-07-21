@@ -99,11 +99,10 @@ Da co route:
 - `/api/recipes/**`, `/api/v1/recipes/**`, `/api/ingredients/**`, `/api/categories/**`, `/api/allergens/**`, `/api/internal/recipes/**` -> Recipe Service.
 - `/api/ai/**` -> AI Recommendation Service.
 
-Gap can sua:
+Gap con lai:
 
 - Gateway chua co JWT filter/authorization layer, trong khi BR-47 yeu cau API AI Recommendation phai xac thuc JWT truoc khi xu ly.
-- `docker-compose.yml` dang route AI den `http://ai-recommendation-service:8003`, trong khi AI config va RUN_COMMANDS dung port `8004`.
-- AI service nam trong profile `future`, chua phai mot service core chay cung compose.
+- AI route va service da thong nhat port `8004`; AI service hien la core service trong Compose.
 
 ### AI Recommendation Service
 

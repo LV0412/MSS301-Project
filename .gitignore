@@ -60,6 +60,9 @@ FE/FE_app/windows/flutter/generated_plugins.cmake
 **/macos/Pods/
 
 # Logs and temporary files
+__pycache__/
+*.py[cod]
+.pytest_cache/
 *.log
 *.tmp
 *.temp
