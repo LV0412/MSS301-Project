@@ -1,15 +1,10 @@
+import { useEffect, useMemo, useState } from "react";
 import {
-  Activity,
   AlertTriangle,
-  Bot,
-  DatabaseZap,
-  HeartPulse,
-  LineChart as LineChartIcon,
+  CalendarDays,
+  Database,
   SearchCheck,
   ServerCog,
-  ShieldAlert,
-  Sparkles,
-  Target,
   Users,
   Utensils
 } from "lucide-react";
@@ -19,139 +14,218 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   LabelList,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis
 } from "recharts";
-import { goalDistribution, recipes } from "../data/mockData.js";
+import { getAllergens, getCategories, getIngredients, getRecipes } from "../api/recipeManagement.js";
+import { getUsers } from "../api/userManagement.js";
 
-const primaryKpis = [
-  { label: "Tổng người dùng", value: "12,482", note: "Tổng tài khoản đã đăng ký", icon: Users },
-  { label: "DAU", value: "843", note: "Người dùng hoạt động hôm nay", trend: "+12% so với hôm qua", icon: Activity },
-  { label: "WAU", value: "5,920", note: "Hoạt động trong 7 ngày", trend: "+6.4% so với tuần trước", icon: LineChartIcon },
-  { label: "MAU", value: "10,684", note: "Hoạt động trong 30 ngày", trend: "+8.1% so với tháng trước", icon: HeartPulse },
-  { label: "System Alerts", value: "3", note: "AI, embedding, health device", icon: AlertTriangle, danger: true }
-];
+const emptyPage = { content: [], totalElements: 0, totalPages: 0 };
 
-const userActivityData = [
-  { day: "01", dau: 640, wau: 4820, mau: 9200 },
-  { day: "05", dau: 690, wau: 5040, mau: 9460 },
-  { day: "10", dau: 735, wau: 5280, mau: 9820 },
-  { day: "15", dau: 762, wau: 5520, mau: 10120 },
-  { day: "20", dau: 810, wau: 5780, mau: 10420 },
-  { day: "25", dau: 824, wau: 5900, mau: 10610 },
-  { day: "30", dau: 843, wau: 5920, mau: 10684 }
-];
+function formatNumber(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "0";
+  return new Intl.NumberFormat("vi-VN").format(Number(value));
+}
 
-const activitySummary = [
-  { label: "DAU", value: "843" },
-  { label: "WAU", value: "5,920" },
-  { label: "MAU", value: "10,684" },
-  { label: "Stickiness", value: "7.9%", note: "DAU / MAU" }
-];
+function parseDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
-const aiPerformance = [
-  { label: "AI Chef Requests", value: "8,420", note: "+14% so với tuần trước", icon: Bot },
-  { label: "Recipe Recommendations", value: "12,860", note: "Công thức AI đã gợi ý", icon: Sparkles },
-  { label: "Meal Plans Generated", value: "1,120", note: "+9.6% so với tuần trước", icon: Utensils },
-  { label: "AI Success Rate", value: "96.8%", note: "Fallback rate 2.1%", icon: Target },
-  { label: "Safety Warnings", value: "32", note: "Cảnh báo an toàn cần rà soát", icon: ShieldAlert, warning: true }
-];
+function isWithinDays(value, days) {
+  const date = parseDate(value);
+  if (!date) return false;
+  const from = new Date();
+  from.setHours(0, 0, 0, 0);
+  from.setDate(from.getDate() - (days - 1));
+  return date >= from;
+}
 
-const popularRecipes = [
-  { ...recipes[0], views: "18.4k", saved: "4.2k", mealPlanAdds: "1.8k" },
-  { ...recipes[1], views: "16.7k", saved: "3.9k", mealPlanAdds: "1.5k" },
-  { ...recipes[3], views: "13.2k", saved: "2.7k", mealPlanAdds: "1.1k" },
-  { ...recipes[2], views: "9.8k", saved: "2.1k", mealPlanAdds: "840" }
-];
+function buildProfileGrowth(users) {
+  const today = new Date();
+  return [30, 25, 20, 15, 10, 5, 0].map((offset) => {
+    const day = new Date(today);
+    day.setDate(today.getDate() - offset);
+    day.setHours(23, 59, 59, 999);
+    const label = new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit" }).format(day);
+    const registered = users.filter((user) => {
+      const createdAt = parseDate(user.createdAt);
+      return createdAt && createdAt <= day;
+    }).length;
+    const updated = users.filter((user) => {
+      const updatedAt = parseDate(user.updatedAt);
+      return updatedAt && updatedAt <= day;
+    }).length;
+    return { day: label, registered, updated };
+  });
+}
 
-const recipeStatusMetrics = [
-  { label: "Tổng công thức", value: "4,892" },
-  { label: "Đã xuất bản", value: "4,120" },
-  { label: "Bản nháp", value: "312" },
-  { label: "Cần duyệt AI", value: "46" },
-  { label: "Đã ẩn/lưu trữ", value: "414" }
-];
-
-const searchedIngredients = [
-  { name: "Ức gà", searches: "9.4k", trend: "+18%", group: "Nhóm đạm" },
-  { name: "Trứng", searches: "8.1k", trend: "+12%", group: "Nhóm đạm" },
-  { name: "Yến mạch", searches: "7.6k", trend: "+9%", group: "Ngũ cốc" },
-  { name: "Bơ", searches: "6.2k", trend: "+15%", group: "Rau củ / Thực phẩm tươi" },
-  { name: "Cá hồi", searches: "5.9k", trend: "-3%", group: "Nhóm đạm", down: true }
-];
-
-const allergyProfile = [
-  { name: "Sữa", value: 32 },
-  { name: "Hạt", value: 25 },
-  { name: "Hải sản", value: 18 },
-  { name: "Gluten", value: 15 },
-  { name: "Trứng", value: 10 }
-];
-
-const systemAlerts = [
-  {
-    title: "Lỗi AI recommendation",
-    description: "Tỷ lệ fallback tăng ở nhóm truy vấn keto dessert.",
-    severity: "Warning",
-    tone: "warning",
-    icon: Sparkles
-  },
-  {
-    title: "Embedding queue chậm",
-    description: "Dataset recipe mới còn 312 chunks đang chờ index.",
-    severity: "Delayed",
-    tone: "delayed",
-    icon: DatabaseZap
-  },
-  {
-    title: "API health device",
-    description: "Endpoint đồng bộ health device timeout 2.4% request.",
-    severity: "Critical",
-    tone: "critical",
-    icon: ServerCog
-  }
-];
-
-const operationActivity = [
-  { title: "Admin cập nhật bộ quy tắc dị ứng", detail: "Safety matrix v1.4 được bật cho nhóm dairy-free.", time: "8 phút trước" },
-  { title: "AI index hoàn tất tài liệu WHO", detail: "482 chunks đã sẵn sàng cho retrieval sandbox.", time: "22 phút trước" },
-  { title: "Recipe dataset được đồng bộ", detail: "36 công thức mới đang chờ kiểm duyệt nội dung.", time: "1 giờ trước" },
-  { title: "Health device sync retry", detail: "Retry policy tự động chạy cho 214 request timeout.", time: "2 giờ trước" }
-];
+function getRecipeAllergens(recipe) {
+  return [...new Map((recipe.ingredients || [])
+    .flatMap((item) => item.allergens || [])
+    .map((allergen) => [allergen.allergenId, allergen]))
+    .values()];
+}
 
 export default function OverviewPage() {
+  const [usersPage, setUsersPage] = useState(emptyPage);
+  const [recipesPage, setRecipesPage] = useState(emptyPage);
+  const [ingredientsPage, setIngredientsPage] = useState(emptyPage);
+  const [categoriesPage, setCategoriesPage] = useState(emptyPage);
+  const [allergensPage, setAllergensPage] = useState(emptyPage);
+  const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadOverview() {
+      setLoading(true);
+      const requests = await Promise.allSettled([
+        getUsers({ page: 0, size: 1000, sort: "createdAt,desc" }),
+        getRecipes({ page: 0, size: 500, sort: "createdAt,desc" }),
+        getIngredients({ page: 0, size: 1000, sort: "name,asc" }),
+        getCategories({ page: 0, size: 500, sort: "name,asc" }),
+        getAllergens({ page: 0, size: 500, sort: "name,asc" })
+      ]);
+
+      if (!active) return;
+
+      const [users, recipes, ingredients, categories, allergens] = requests;
+      if (users.status === "fulfilled") setUsersPage(users.value || emptyPage);
+      if (recipes.status === "fulfilled") setRecipesPage(recipes.value || emptyPage);
+      if (ingredients.status === "fulfilled") setIngredientsPage(ingredients.value || emptyPage);
+      if (categories.status === "fulfilled") setCategoriesPage(categories.value || emptyPage);
+      if (allergens.status === "fulfilled") setAllergensPage(allergens.value || emptyPage);
+
+      setErrors(requests
+        .filter((result) => result.status === "rejected")
+        .map((result) => result.reason?.message || "Không tải được dữ liệu."));
+      setLoading(false);
+    }
+
+    loadOverview();
+    return () => { active = false; };
+  }, []);
+
+  const users = usersPage.content || [];
+  const recipes = recipesPage.content || [];
+  const ingredients = ingredientsPage.content || [];
+  const categories = categoriesPage.content || [];
+  const allergens = allergensPage.content || [];
+
+  const newUsersToday = users.filter((user) => isWithinDays(user.createdAt, 1)).length;
+  const newUsers7Days = users.filter((user) => isWithinDays(user.createdAt, 7)).length;
+  const newUsers30Days = users.filter((user) => isWithinDays(user.createdAt, 30)).length;
+  const linkedUsers = users.filter((user) => user.authAccountId != null).length;
+  const usersWithDob = users.filter((user) => Boolean(user.dob)).length;
+  const recipesWithDiet = recipes.filter((recipe) => recipe.dietTypes?.length).length;
+  const recipesWithAllergens = recipes.filter((recipe) => getRecipeAllergens(recipe).length).length;
+  const systemHealth = errors.length ? Math.max(0, 100 - errors.length * 25) : 100;
+
+  const userActivityData = useMemo(() => buildProfileGrowth(users), [users]);
+
+  const allergyProfile = useMemo(() => {
+    const counts = new Map();
+    ingredients.forEach((ingredient) => {
+      (ingredient.allergens || []).forEach((allergen) => {
+        counts.set(allergen.name, (counts.get(allergen.name) || 0) + 1);
+      });
+    });
+
+    const totalTagged = [...counts.values()].reduce((sum, value) => sum + value, 0);
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({
+        name,
+        value: totalTagged ? Math.round((count / totalTagged) * 100) : 0,
+        count
+      }));
+  }, [ingredients]);
+
+  const primaryKpis = [
+    { label: "Tổng người dùng", value: usersPage.totalElements, note: "Tổng hồ sơ", icon: Users },
+    { label: "Người dùng mới hôm nay", value: newUsersToday, note: "createdAt", icon: CalendarDays },
+    { label: "Người dùng mới 7 ngày", value: newUsers7Days, note: "createdAt", icon: CalendarDays },
+    { label: "Người dùng mới 30 ngày", value: newUsers30Days, note: "createdAt", icon: CalendarDays },
+    { label: "Cảnh báo hệ thống", value: errors.length, note: "API lỗi", icon: AlertTriangle, danger: Boolean(errors.length) }
+  ];
+
+  const userSummary = [
+    { label: "Tổng hồ sơ", value: usersPage.totalElements },
+    { label: "Đã liên kết Auth", value: linkedUsers },
+    { label: "Có ngày sinh", value: usersWithDob },
+    { label: "Mới 30 ngày", value: newUsers30Days }
+  ];
+
+  const recipeStatusMetrics = [
+    { label: "Tổng công thức", value: recipesPage.totalElements },
+    { label: "Danh mục", value: categoriesPage.totalElements },
+    { label: "Nguyên liệu", value: ingredientsPage.totalElements },
+    { label: "Nhãn dị ứng", value: allergensPage.totalElements },
+    { label: "Có diet tags", value: recipesWithDiet },
+    { label: "Có dị ứng", value: recipesWithAllergens }
+  ];
+
+  const recentRecipes = recipes.slice(0, 5);
+  const catalogIngredients = ingredients.slice(0, 5).map((ingredient) => ({
+    name: ingredient.name,
+    group: ingredient.allergens?.length ? "Có dị ứng" : "Không có dị ứng",
+    allergenCount: ingredient.allergens?.length || 0
+  }));
+
+  const systemAlerts = errors.length
+    ? errors.map((message, index) => ({
+      title: `API #${index + 1}`,
+      description: message,
+      severity: "Warning",
+      tone: "warning",
+      icon: ServerCog
+    }))
+    : [{
+      title: "API",
+      description: "Hoạt động",
+      severity: "OK",
+      tone: "ok",
+      icon: Database
+    }];
+
   return (
     <div className="page-stack">
       <section className="overview-hero">
         <div>
           <p className="eyebrow">Overview Dashboard</p>
           <h2>Tình trạng toàn hệ thống</h2>
-          <p>Theo dõi nhanh người dùng, AI, công thức, meal plan và cảnh báo vận hành.</p>
         </div>
         <div className="overview-health">
           <span>System Health</span>
-          <strong>97.6%</strong>
-          <small>Dựa trên API uptime, AI success rate, embedding queue và health device sync trong 24h.</small>
-          <b>3 cảnh báo cần xử lý</b>
+          <strong>{loading ? "..." : `${systemHealth}%`}</strong>
+          <b>{errors.length ? `${errors.length} cảnh báo` : "Hoạt động"}</b>
         </div>
       </section>
 
+      {errors.length ? (
+        <section className="warning-panel">
+          <AlertTriangle size={20} />
+          <div>
+            <strong>Lỗi tải dữ liệu</strong>
+            {errors.map((error) => <p key={error}>{error}</p>)}
+          </div>
+        </section>
+      ) : null}
+
       <section className="kpi-grid overview-main-kpis">
-        {primaryKpis.map(({ label, value, note, trend, icon: Icon, danger }) => (
+        {primaryKpis.map(({ label, value, note, icon: Icon, danger }) => (
           <article className={`kpi-card ${danger ? "danger-card" : ""}`} key={label}>
-            <div className="kpi-icon">
-              <Icon size={20} />
-            </div>
+            <div className="kpi-icon"><Icon size={20} /></div>
             <span>{label}</span>
-            <strong>{value}</strong>
+            <strong>{loading ? "..." : formatNumber(value)}</strong>
             <small>{note}</small>
-            {trend ? <em className="kpi-trend">{trend}</em> : null}
           </article>
         ))}
       </section>
@@ -159,14 +233,8 @@ export default function OverviewPage() {
       <section className="overview-section user-activity-section">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">User Activity</p>
-            <h2>Xu hướng hoạt động người dùng</h2>
-            <p>Line/area chart DAU, WAU, MAU trong 30 ngày gần nhất.</p>
-          </div>
-          <div className="chip-row">
-            <span className="chip">7 ngày</span>
-            <span className="chip active">30 ngày</span>
-            <span className="chip">90 ngày</span>
+            <p className="eyebrow">User Service</p>
+            <h2>Xu hướng hồ sơ người dùng</h2>
           </div>
         </div>
         <div className="activity-chart-grid">
@@ -177,24 +245,18 @@ export default function OverviewPage() {
                 <XAxis dataKey="day" />
                 <YAxis />
                 <Tooltip />
-                <Area type="monotone" dataKey="mau" name="MAU" stroke="#8a6a46" fill="#efe4ce" strokeWidth={2} />
-                <Area type="monotone" dataKey="wau" name="WAU" stroke="#8da290" fill="#dbe5d3" strokeWidth={2} />
-                <Area type="monotone" dataKey="dau" name="DAU" stroke="#536b58" fill="#b9cbb7" strokeWidth={3} />
+                <Area type="monotone" dataKey="registered" name="Hồ sơ đã tạo" stroke="#536b58" fill="#b9cbb7" strokeWidth={3} />
+                <Area type="monotone" dataKey="updated" name="Hồ sơ đã cập nhật" stroke="#8a6a46" fill="#efe4ce" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
           <div className="activity-summary">
-            {activitySummary.map((item) => (
+            {userSummary.map((item) => (
               <div className="compact-stat" key={item.label}>
                 <span>{item.label}</span>
-                <strong>{item.value}</strong>
-                {item.note ? <small>{item.note}</small> : null}
+                <strong>{loading ? "..." : formatNumber(item.value)}</strong>
               </div>
             ))}
-            <div className="stickiness-note">
-              <strong>Stickiness 7.9%</strong>
-              <span>Tỷ lệ người dùng quay lại hằng ngày.</span>
-            </div>
           </div>
         </div>
       </section>
@@ -202,51 +264,22 @@ export default function OverviewPage() {
       <section className="overview-section">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">AI Performance</p>
-            <h2>Hiệu suất AI</h2>
-            <p>Theo dõi AI Chef, recipe recommendation, meal plan và cảnh báo an toàn.</p>
-          </div>
-        </div>
-        <div className="ai-performance-grid">
-          {aiPerformance.map(({ label, value, note, icon: Icon, warning }) => (
-            <article className={`mini-panel ai-performance-card ${warning ? "warning-card" : ""}`} key={label}>
-              <div className="kpi-icon">
-                <Icon size={19} />
-              </div>
-              <span>{label}</span>
-              <strong>{value}</strong>
-              <small>{note}</small>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="overview-section">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Recipe Insights</p>
+            <p className="eyebrow">Recipe Service</p>
             <h2>Phân tích công thức & nguyên liệu</h2>
-            <p>Theo dõi hiệu suất công thức, lượt tương tác và nguyên liệu được tìm kiếm nhiều trong hệ thống.</p>
-          </div>
-          <div className="chip-row recipe-period-filter" aria-label="Lọc thời gian phân tích công thức">
-            <button className="chip">7 ngày</button>
-            <button className="chip active">30 ngày</button>
-            <button className="chip">90 ngày</button>
           </div>
         </div>
         <div className="recipe-insights-grid">
           <article className="panel recipe-status-panel">
             <div className="panel-heading compact-heading">
               <div>
-                <h2><Utensils size={20} /> Trạng thái nội dung</h2>
-                <p>Tổng quan kho công thức hiện tại.</p>
+                <h2><Utensils size={20} /> Catalog hiện tại</h2>
               </div>
             </div>
             <div className="recipe-status-grid">
               {recipeStatusMetrics.map((item) => (
                 <div className="recipe-status-metric" key={item.label}>
                   <span>{item.label}</span>
-                  <strong>{item.value}</strong>
+                  <strong>{loading ? "..." : formatNumber(item.value)}</strong>
                 </div>
               ))}
             </div>
@@ -254,36 +287,30 @@ export default function OverviewPage() {
 
           <article className="panel recipe-table-panel">
             <div className="panel-heading">
-              <h2>Top công thức phổ biến trong 30 ngày</h2>
-              <button className="link-btn">Xem tất cả</button>
+              <h2>Công thức mới nhất</h2>
             </div>
             <div className="table-scroll compact-table-scroll">
               <table className="data-table overview-recipe-table">
                 <thead>
                   <tr>
                     <th>Công thức</th>
-                    <th>Lượt xem</th>
-                    <th>Đã lưu</th>
-                    <th>Kế hoạch</th>
-                    <th>Đánh giá</th>
+                    <th>Danh mục</th>
+                    <th>Kcal</th>
+                    <th>Khẩu phần</th>
+                    <th>Dị ứng</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {popularRecipes.map((recipe) => (
-                    <tr key={recipe.id}>
-                      <td className="recipe-name">
-                        <img src={recipe.image} alt={recipe.name} />
-                        <div>
-                          <strong>{recipe.name}</strong>
-                          <span>{recipe.cuisine} · {recipe.calories} kcal</span>
-                        </div>
-                      </td>
-                      <td>{recipe.views}</td>
-                      <td>{recipe.saved}</td>
-                      <td>{recipe.mealPlanAdds}</td>
-                      <td>{recipe.rating} ★</td>
+                  {recentRecipes.map((recipe) => (
+                    <tr key={recipe.recipeId}>
+                      <td><strong>{recipe.title}</strong></td>
+                      <td>{recipe.category?.name || "-"}</td>
+                      <td>{recipe.nutrition?.calories ?? "-"}</td>
+                      <td>{recipe.servings ?? "-"}</td>
+                      <td>{getRecipeAllergens(recipe).length}</td>
                     </tr>
                   ))}
+                  {!recentRecipes.length ? <tr><td colSpan="5">Không có dữ liệu.</td></tr> : null}
                 </tbody>
               </table>
             </div>
@@ -292,25 +319,24 @@ export default function OverviewPage() {
           <article className="panel ingredient-search-panel">
             <div className="panel-heading">
               <div>
-                <h2><SearchCheck size={20} /> Nguyên liệu được tìm nhiều</h2>
-                <p>Lượt tìm kiếm và mức tăng/giảm trong 30 ngày.</p>
+                <h2><SearchCheck size={20} /> Nguyên liệu</h2>
               </div>
             </div>
             <div className="searched-ingredient-list">
-              {searchedIngredients.map((item) => (
+              {catalogIngredients.map((item) => (
                 <div className="searched-ingredient" key={item.name}>
                   <div>
                     <strong>{item.name}</strong>
                     <span>{item.group}</span>
                   </div>
                   <div>
-                    <b>{item.searches} lượt</b>
-                    <small className={item.down ? "trend-down" : ""}>{item.trend}</small>
+                    <b>{formatNumber(item.allergenCount)}</b>
+                    <small>nhãn</small>
                   </div>
                 </div>
               ))}
+              {!catalogIngredients.length ? <div className="empty-state">Không có dữ liệu.</div> : null}
             </div>
-            <button className="ghost-btn trend-btn">Xem xu hướng</button>
           </article>
         </div>
       </section>
@@ -318,54 +344,22 @@ export default function OverviewPage() {
       <section className="overview-section">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">User Profile Insights</p>
-            <h2>User Profile Insights</h2>
-            <p>Dựa trên hồ sơ người dùng đã hoàn tất onboarding.</p>
+            <p className="eyebrow">Safety Catalog</p>
+            <h2>Phân bố nhãn dị ứng</h2>
           </div>
         </div>
-        <div className="dashboard-grid">
-          <article className="panel goal-panel">
-            <h2><Target size={20} /> Phân bố mục tiêu</h2>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={goalDistribution} innerRadius={70} outerRadius={96} dataKey="value" paddingAngle={3}>
-                  {goalDistribution.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="legend-list">
-              {goalDistribution.map((item) => (
-                <span key={item.name}>
-                  <i style={{ background: item.color }} />
-                  {item.name}
-                  <b>{item.value}%</b>
-                </span>
-              ))}
-            </div>
-          </article>
-
-          <article className="panel allergy-profile-panel">
-            <div className="panel-heading">
-              <div>
-                <h2>Phân bố dị ứng</h2>
-                <p>Dựa trên hồ sơ người dùng đã hoàn tất onboarding.</p>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={270}>
-              <BarChart data={allergyProfile} layout="vertical" margin={{ right: 34 }}>
-                <XAxis type="number" hide domain={[0, 40]} />
-                <YAxis type="category" dataKey="name" width={78} />
-                <Tooltip />
-                <Bar dataKey="value" fill="#8da290" radius={[0, 8, 8, 0]}>
-                  <LabelList dataKey="value" position="right" formatter={(value) => `${value}%`} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </article>
-        </div>
+        <article className="panel allergy-profile-panel">
+          <ResponsiveContainer width="100%" height={270}>
+            <BarChart data={allergyProfile} layout="vertical" margin={{ right: 34 }}>
+              <XAxis type="number" hide domain={[0, 100]} />
+              <YAxis type="category" dataKey="name" width={110} />
+              <Tooltip formatter={(value, name, item) => [`${value}% (${item.payload.count})`, "Tỷ lệ"]} />
+              <Bar dataKey="value" fill="#8da290" radius={[0, 8, 8, 0]}>
+                <LabelList dataKey="value" position="right" formatter={(value) => `${value}%`} />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </article>
       </section>
 
       <section className="overview-section">
@@ -373,7 +367,6 @@ export default function OverviewPage() {
           <div>
             <p className="eyebrow">Operations</p>
             <h2>Vận hành & cảnh báo</h2>
-            <p>Những tín hiệu cần admin xử lý ngay trong ngày.</p>
           </div>
         </div>
         <div className="dashboard-grid">
@@ -391,7 +384,6 @@ export default function OverviewPage() {
                       <span className={`severity-pill ${tone}`}>{severity}</span>
                     </div>
                     <span>{description}</span>
-                    <button className="link-btn">Xem chi tiết</button>
                   </div>
                 </article>
               ))}
@@ -400,20 +392,30 @@ export default function OverviewPage() {
 
           <article className="panel">
             <div className="panel-heading">
-              <h2>Hoạt động vận hành gần đây</h2>
-              <button className="link-btn">Xem tất cả</button>
+              <h2>Dữ liệu đã tải</h2>
             </div>
             <div className="activity-list">
-              {operationActivity.map((item) => (
-                <div className="activity-item" key={`${item.title}-${item.time}`}>
-                  <span className="avatar-xs">OP</span>
-                  <div>
-                    <strong>{item.title}</strong>
-                    <p>{item.detail}</p>
-                    <small>{item.time}</small>
-                  </div>
+              <div className="activity-item">
+                <span className="avatar-xs">US</span>
+                <div>
+                  <strong>User Service</strong>
+                  <p>{formatNumber(users.length)} hồ sơ</p>
                 </div>
-              ))}
+              </div>
+              <div className="activity-item">
+                <span className="avatar-xs">RS</span>
+                <div>
+                  <strong>Recipe Service</strong>
+                  <p>{formatNumber(recipes.length)} công thức</p>
+                </div>
+              </div>
+              <div className="activity-item">
+                <span className="avatar-xs">NT</span>
+                <div>
+                  <strong>Nutrition Catalog</strong>
+                  <p>{formatNumber(ingredients.length)} nguyên liệu</p>
+                </div>
+              </div>
             </div>
           </article>
         </div>
