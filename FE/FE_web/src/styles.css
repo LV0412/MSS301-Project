@@ -3708,6 +3708,232 @@ textarea {
   background: #fff;
 }
 
+.recommendation-sandbox-layout {
+  grid-template-columns: minmax(360px, 0.85fr) minmax(0, 1.35fr);
+  align-items: stretch;
+}
+
+.recommendation-form,
+.recommendation-result-panel {
+  align-self: start;
+}
+
+.recommendation-form .panel-heading {
+  margin-bottom: 4px;
+}
+
+.recommendation-query {
+  display: grid;
+  gap: 8px;
+  color: #3c4e41;
+  font-weight: 700;
+}
+
+.recommendation-query textarea {
+  min-height: 118px;
+}
+
+.recommendation-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.recommendation-form-grid label {
+  display: grid;
+  gap: 7px;
+  color: #3c4e41;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.recommendation-form-grid input,
+.recommendation-form-grid select {
+  min-height: 43px;
+}
+
+.recommendation-form-grid .wide-field {
+  grid-column: span 2;
+}
+
+.advanced-ai-options {
+  border: 1px solid #dfe7d6;
+  border-radius: 14px;
+  background: #f8faf1;
+}
+
+.advanced-ai-options summary {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  color: var(--primary-dark);
+  cursor: pointer;
+  font-weight: 900;
+  list-style: none;
+}
+
+.advanced-ai-options summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-ai-options > div {
+  padding: 0 14px 14px;
+}
+
+.toggle-row {
+  min-height: 43px;
+  display: flex !important;
+  align-items: center;
+  flex-direction: row;
+  gap: 10px !important;
+  padding: 0 12px;
+  border: 1px solid #d8dfcf;
+  border-radius: 12px;
+  background: #fbfcf6;
+}
+
+.toggle-row input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--primary-dark);
+}
+
+.recommendation-submit {
+  width: 100%;
+  min-height: 48px;
+}
+
+.recommendation-result-panel {
+  padding: 24px;
+}
+
+.recommendation-result-heading {
+  align-items: flex-start;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #edf0e6;
+}
+
+.recommendation-result-list {
+  gap: 12px;
+}
+
+.recommendation-result-card {
+  position: relative;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 14px;
+  padding: 16px;
+  border-color: #dfe7d6;
+  background: linear-gradient(180deg, #fbfcf6 0%, #f4f8ee 100%);
+}
+
+.recommendation-card-rank {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #e2ead7;
+  color: var(--primary-dark);
+  font-weight: 900;
+}
+
+.recommendation-card-body {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.recommendation-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recommendation-card-top h3 {
+  margin: 8px 0 0;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.recommendation-score {
+  min-width: 86px;
+  display: grid;
+  place-items: center;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--primary-dark);
+  color: #fff;
+  text-align: center;
+}
+
+.recommendation-score span {
+  font-size: 11px;
+  font-weight: 900;
+  opacity: 0.76;
+  text-transform: uppercase;
+}
+
+.recommendation-score strong {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.recommendation-metrics {
+  grid-template-columns: repeat(5, minmax(82px, 1fr));
+}
+
+.recommendation-metrics span {
+  min-height: 58px;
+  align-content: center;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.recommendation-metrics strong {
+  display: inline;
+  color: #263c2e;
+  font-size: 16px;
+}
+
+.compact-chip-row {
+  gap: 6px;
+}
+
+.recommendation-warning-list {
+  align-items: flex-start;
+  box-shadow: none;
+}
+
+.recommendation-warning-list svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.recommendation-warning-list strong {
+  color: #8f2f24;
+}
+
+.recommendation-warning-list ul {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.recommendation-warning-list li {
+  max-width: 100%;
+  color: #8f2f24;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.recommendation-warning-list small {
+  display: block;
+  margin-top: 8px;
+  color: #8f2f24;
+  font-weight: 900;
+}
+
 .meal-plan-table {
   min-width: 1100px;
 }
