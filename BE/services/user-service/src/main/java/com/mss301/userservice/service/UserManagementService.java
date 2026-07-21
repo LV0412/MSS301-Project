@@ -7,9 +7,12 @@ import com.mss301.userservice.dto.internal.InternalUserProvisionRequest;
 import com.mss301.userservice.entity.Gender;
 import com.mss301.userservice.entity.User;
 import com.mss301.userservice.exception.DuplicateEmailException;
+import com.mss301.userservice.exception.InvalidDateOfBirthException;
 import com.mss301.userservice.exception.UserNotFoundException;
 import com.mss301.userservice.repository.UserRepository;
 import com.mss301.userservice.util.PageableUtils;
+import java.time.LocalDate;
+import java.time.Period;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,9 +25,13 @@ import org.springframework.util.StringUtils;
 @Transactional
 public class UserManagementService {
 
+    private static final int MIN_AGE = 13;
+    private static final int MAX_AGE = 120;
+
     private final UserRepository userRepository;
 
     public UserResponse createUser(CreateUserRequest request) {
+        validateDateOfBirth(request.dob());
         ensureEmailIsAvailable(request.email());
 
         User user = User.builder()
@@ -82,6 +89,7 @@ public class UserManagementService {
             user.setFullName(request.fullName());
         }
         if (request.dob() != null) {
+            validateDateOfBirth(request.dob());
             user.setDob(request.dob());
         }
         if (request.gender() != null) {
@@ -104,6 +112,17 @@ public class UserManagementService {
     private void ensureEmailIsAvailable(String email) {
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new DuplicateEmailException(email);
+        }
+    }
+
+    private void validateDateOfBirth(LocalDate dob) {
+        if (dob == null) {
+            return;
+        }
+
+        int age = Period.between(dob, LocalDate.now()).getYears();
+        if (age < MIN_AGE || age > MAX_AGE) {
+            throw new InvalidDateOfBirthException(MIN_AGE, MAX_AGE);
         }
     }
 

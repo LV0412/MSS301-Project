@@ -13,13 +13,13 @@ import lombok.Builder;
 @Builder
 public record CreateHealthProfileRequest(
         @NotNull
-        @DecimalMin(value = "1.0")
-        @DecimalMax(value = "300.0")
+        @DecimalMin(value = "50.0")
+        @DecimalMax(value = "250.0")
         BigDecimal height,
 
         @NotNull
-        @DecimalMin(value = "1.0")
-        @DecimalMax(value = "500.0")
+        @DecimalMin(value = "10.0")
+        @DecimalMax(value = "300.0")
         BigDecimal weight,
 
         @NotNull

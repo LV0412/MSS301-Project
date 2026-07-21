@@ -11,12 +11,12 @@ import lombok.Builder;
 @Schema(description = "Update Health Profile Request")
 @Builder
 public record UpdateHealthProfileRequest(
-        @DecimalMin(value = "1.0")
-        @DecimalMax(value = "300.0")
+        @DecimalMin(value = "50.0")
+        @DecimalMax(value = "250.0")
         BigDecimal height,
 
-        @DecimalMin(value = "1.0")
-        @DecimalMax(value = "500.0")
+        @DecimalMin(value = "10.0")
+        @DecimalMax(value = "300.0")
         BigDecimal weight,
 
         ActivityLevel activityLevel

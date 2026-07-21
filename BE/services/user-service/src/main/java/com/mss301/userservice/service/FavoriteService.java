@@ -1,5 +1,6 @@
 package com.mss301.userservice.service;
 
+import com.mss301.userservice.client.RecipeCatalogReferenceValidator;
 import com.mss301.userservice.dto.CreateFavoriteRequest;
 import com.mss301.userservice.dto.FavoriteResponse;
 import com.mss301.userservice.dto.UpdateFavoriteRequest;
@@ -22,10 +23,12 @@ public class FavoriteService {
 
     private final FavoriteRepository favoriteRepository;
     private final UserRepository userRepository;
+    private final RecipeCatalogReferenceValidator recipeCatalogReferenceValidator;
 
     public FavoriteResponse addFavorite(Long userId, CreateFavoriteRequest request) {
         User user = findUser(userId);
         ensureRecipeIsAvailable(userId, request.recipeId(), null);
+        recipeCatalogReferenceValidator.requireRecipeExists(request.recipeId());
 
         Favorite favorite = Favorite.builder()
                 .user(user)
@@ -46,6 +49,7 @@ public class FavoriteService {
     public FavoriteResponse updateFavorite(Long userId, Long favoriteId, UpdateFavoriteRequest request) {
         Favorite favorite = findFavorite(userId, favoriteId);
         ensureRecipeIsAvailable(userId, request.recipeId(), favoriteId);
+        recipeCatalogReferenceValidator.requireRecipeExists(request.recipeId());
 
         favorite.setRecipeId(request.recipeId());
         return toResponse(favoriteRepository.save(favorite));

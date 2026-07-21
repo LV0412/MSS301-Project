@@ -67,7 +67,7 @@ spring:
         - id: recipe-service
           uri: ${RECIPE_SERVICE_URL:http://localhost:8002}
           predicates:
-            - Path=/api/recipes/**,/api/v1/recipes/**,/api/ingredients/**,/api/v1/ingredients/**,/api/categories/**,/api/v1/categories/**,/api/allergens/**,/api/v1/allergens/**,/api/internal/recipes/**
+            - Path=/api/recipes/**,/api/v1/recipes/**,/api/ingredients/**,/api/v1/ingredients/**,/api/categories/**,/api/v1/categories/**,/api/allergens/**,/api/v1/allergens/**,/api/internal/recipes/**,/api/internal/allergens/**
         - id: ai-recommendation-service
           uri: ${AI_RECOMMENDATION_SERVICE_URL:http://localhost:8003}
           predicates:

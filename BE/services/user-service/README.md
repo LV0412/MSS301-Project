@@ -230,12 +230,11 @@ Service URLs:
 
 | Service | URL |
 | --- | --- |
-| User Service | `http://localhost:8001` |
-| Swagger UI | `http://localhost:8001/swagger-ui/index.html` |
+| Gateway route | `http://localhost:8080/api/v1/users` |
 | User MySQL | `localhost:3308` |
 
-The root `docker-compose.yml` starts `user-service` with `user-mysql` and uses the `user_mysql_data` volume for database persistence.
+The root `docker-compose.yml` starts `user-service` with `user-mysql`, uses the `user_mysql_data` volume for database persistence, and exposes `user-service` only on the internal Docker network. Requests must go through the API Gateway.
 
 ## OpenAPI
 
-The service exposes Swagger/OpenAPI with a shared Bearer JWT security scheme for future gateway integration. JWT validation is not enabled inside `user-service` yet; authentication will be integrated later through API Gateway.
+The service exposes Swagger/OpenAPI with a shared Bearer JWT security scheme for Gateway usage. JWT validation is centralized in the API Gateway.

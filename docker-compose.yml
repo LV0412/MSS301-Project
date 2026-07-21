@@ -111,6 +111,7 @@ services:
       JPA_DDL_AUTO: ${USER_JPA_DDL_AUTO:-update}
       JPA_SHOW_SQL: ${USER_JPA_SHOW_SQL:-false}
       APP_SEED_ENABLED: true
+      RECIPE_SERVICE_URL: http://recipe-service:8002
     expose:
       - "8001"
 
