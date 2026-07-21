@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header
 
 from clients.recipe_service_client import RecipeServiceClient, normalize_diet_type
 from clients.user_service_client import UserServiceClient
@@ -47,9 +47,13 @@ rule_engine = RuleEngine()
         },
     },
 )
-def recommend(request: RecommendationRequest) -> RecommendationResponse:
-    user_profile = _load_user_profile(request)
-    enriched_request = _merge_profile(request, user_profile)
+def recommend(
+    request: RecommendationRequest,
+    x_user_id: str | None = Header(default=None),
+) -> RecommendationResponse:
+    authenticated_request = request.model_copy(update={"user_id": x_user_id})
+    user_profile = _load_user_profile(authenticated_request)
+    enriched_request = _merge_profile(authenticated_request, user_profile)
     recipe_candidates = _load_recipe_candidates(enriched_request)
     rule_result = rule_engine.filter(recipe_candidates, enriched_request, user_profile)
     top_k_candidates = _run_hybrid_rag(enriched_request, rule_result.candidates)

@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -44,14 +45,15 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(userManagementService.createUser(request));
     }
 
-    @GetMapping("/{userId}")
+    @GetMapping({"/me", "/{userId:\\d+}"})
     @Operation(summary = "Get user by ID", description = "Return one user profile by user ID.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "User found"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    public ResponseEntity<UserResponse> getUserById(@PathVariable Long userId) {
-        return ResponseEntity.ok(userManagementService.getUserById(userId));
+    public ResponseEntity<UserResponse> getUserById(
+            @RequestHeader("X-User-Id") Long authenticatedUserId) {
+        return ResponseEntity.ok(userManagementService.getUserById(authenticatedUserId));
     }
 
     @GetMapping
@@ -62,7 +64,7 @@ public class UserController {
         return ResponseEntity.ok(userManagementService.getAllUsers(pageable));
     }
 
-    @PutMapping("/{userId}")
+    @PutMapping({"/me", "/{userId:\\d+}"})
     @Operation(summary = "Update user", description = "Update an existing user profile.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "User updated"),
@@ -70,19 +72,19 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found")
     })
     public ResponseEntity<UserResponse> updateUser(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @Valid @RequestBody UpdateUserRequest request) {
-        return ResponseEntity.ok(userManagementService.updateUser(userId, request));
+        return ResponseEntity.ok(userManagementService.updateUser(authenticatedUserId, request));
     }
 
-    @DeleteMapping("/{userId}")
+    @DeleteMapping({"/me", "/{userId:\\d+}"})
     @Operation(summary = "Delete user", description = "Delete a user profile by user ID.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "User deleted"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
-        userManagementService.deleteUser(userId);
+    public ResponseEntity<Void> deleteUser(@RequestHeader("X-User-Id") Long authenticatedUserId) {
+        userManagementService.deleteUser(authenticatedUserId);
         return ResponseEntity.noContent().build();
     }
 }

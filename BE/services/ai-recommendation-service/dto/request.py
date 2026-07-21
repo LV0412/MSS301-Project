@@ -20,7 +20,10 @@ class RecommendationRequest(BaseModel):
     )
 
     query: str = Field(..., min_length=2, description="Natural-language food recommendation intent.")
-    user_id: str | None = Field(default=None, description="User ID used for persistence and profile enrichment.")
+    user_id: str | None = Field(
+        default=None,
+        description="Deprecated. The service uses X-User-Id from the Gateway for profile enrichment.",
+    )
     diet: str | None = Field(default=None, description="Diet preference, for example vegetarian, vegan, keto.")
     goal: str | None = Field(default=None, description="Nutrition goal, for example weight_loss, muscle_gain, healthy.")
     allergies: list[str] = Field(default_factory=list, description="Allergy names or allergen:id tokens.")

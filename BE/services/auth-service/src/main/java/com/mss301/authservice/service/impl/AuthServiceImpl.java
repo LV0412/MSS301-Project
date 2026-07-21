@@ -137,7 +137,7 @@ public class AuthServiceImpl implements AuthService {
                         "Invalid email or password",
                         HttpStatus.UNAUTHORIZED));
 
-        if (account.getProvider() != AuthProvider.LOCAL || account.getPasswordHash() == null) {
+        if (!hasPasswordCredential(account)) {
             throw new AuthException(
                     ErrorCode.INVALID_CREDENTIALS,
                     "Invalid email or password",
@@ -155,16 +155,7 @@ public class AuthServiceImpl implements AuthService {
         ensureAccountCanLogin(account);
         resetFailedLoginState(account);
 
-        String accessToken = jwtService.generateAccessToken(account);
-        CreatedRefreshToken refreshToken = createRefreshToken(account);
-
-        return AuthResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken.rawToken())
-                .tokenType(TOKEN_TYPE)
-                .expiresIn(jwtProperties.getAccessTokenExpirationMinutes() * 60)
-                .account(toAccountResponse(account))
-                .build();
+        return issueAuthResponse(account);
     }
 
     @Override
@@ -181,14 +172,7 @@ public class AuthServiceImpl implements AuthService {
         }
         ensureAccountCanLogin(account);
 
-        CreatedRefreshToken refreshToken = createRefreshToken(account);
-        return AuthResponse.builder()
-                .accessToken(jwtService.generateAccessToken(account))
-                .refreshToken(refreshToken.rawToken())
-                .tokenType(TOKEN_TYPE)
-                .expiresIn(jwtProperties.getAccessTokenExpirationMinutes() * 60)
-                .account(toAccountResponse(account))
-                .build();
+        return issueAuthResponse(account);
     }
 
     @Override
@@ -260,13 +244,7 @@ public class AuthServiceImpl implements AuthService {
         CreatedRefreshToken newRefreshToken = createRefreshToken(account);
         currentToken.setReplacedByTokenId(newRefreshToken.entity().getRefreshTokenId());
 
-        return AuthResponse.builder()
-                .accessToken(jwtService.generateAccessToken(account))
-                .refreshToken(newRefreshToken.rawToken())
-                .tokenType(TOKEN_TYPE)
-                .expiresIn(jwtProperties.getAccessTokenExpirationMinutes() * 60)
-                .account(toAccountResponse(account))
-                .build();
+        return issueAuthResponse(account, newRefreshToken);
     }
 
     @Override
@@ -284,8 +262,7 @@ public class AuthServiceImpl implements AuthService {
         rateLimiter.check("forgot-password", request.email(), rateLimitProperties.getForgotPasswordLimit());
 
         userAccountRepository.findByEmailIgnoreCase(request.email())
-                .filter(account -> account.getProvider() == AuthProvider.LOCAL)
-                .filter(account -> account.getPasswordHash() != null)
+                .filter(this::hasPasswordCredential)
                 .ifPresent(this::createAndSendPasswordResetToken);
 
         return MessageResponse.builder()
@@ -333,7 +310,7 @@ public class AuthServiceImpl implements AuthService {
         UserAccount account = findAccountById(accountId);
         ensureAccountCanLogin(account);
 
-        if (account.getProvider() != AuthProvider.LOCAL || account.getPasswordHash() == null) {
+        if (!hasPasswordCredential(account)) {
             throw new AuthException(
                     ErrorCode.PASSWORD_CHANGE_UNAVAILABLE,
                     "Password change is not available for this account",
@@ -388,6 +365,21 @@ public class AuthServiceImpl implements AuthService {
         return new CreatedRefreshToken(rawToken, savedToken);
     }
 
+    private AuthResponse issueAuthResponse(UserAccount account) {
+        return issueAuthResponse(account, createRefreshToken(account));
+    }
+
+    private AuthResponse issueAuthResponse(UserAccount account, CreatedRefreshToken refreshToken) {
+        AccountResponse accountResponse = toAccountResponse(account);
+        return AuthResponse.builder()
+                .accessToken(jwtService.generateAccessToken(account, accountResponse.userId()))
+                .refreshToken(refreshToken.rawToken())
+                .tokenType(TOKEN_TYPE)
+                .expiresIn(jwtProperties.getAccessTokenExpirationMinutes() * 60)
+                .account(accountResponse)
+                .build();
+    }
+
     private UserAccount findOrCreateGoogleAccount(
             GoogleTokenVerifier.GoogleAccountInfo googleAccount,
             String password) {
@@ -405,18 +397,24 @@ public class AuthServiceImpl implements AuthService {
                             "This email is already registered with another provider.",
                             HttpStatus.CONFLICT);
                 })
-                .orElseGet(() -> userAccountRepository.save(UserAccount.builder()
-                        .email(googleAccount.email())
-                        .fullName(googleAccount.fullName())
-                        .role(AccountRole.USER)
-                        .status(AccountStatus.ACTIVE)
-                        .emailVerified(true)
-                        .provider(AuthProvider.GOOGLE)
-                        .providerId(googleAccount.providerId())
-                        .googleProviderId(googleAccount.providerId())
-                        .googleLinkedAt(LocalDateTime.now())
-                        .failedLoginAttempts(0)
-                        .build()));
+                .orElseGet(() -> {
+                    String temporaryPassword = secureTokenService.generateTemporaryPassword();
+                    UserAccount createdAccount = userAccountRepository.save(UserAccount.builder()
+                            .email(googleAccount.email())
+                            .passwordHash(passwordEncoder.encode(temporaryPassword))
+                            .fullName(googleAccount.fullName())
+                            .role(AccountRole.USER)
+                            .status(AccountStatus.ACTIVE)
+                            .emailVerified(true)
+                            .provider(AuthProvider.GOOGLE)
+                            .providerId(googleAccount.providerId())
+                            .googleProviderId(googleAccount.providerId())
+                            .googleLinkedAt(LocalDateTime.now())
+                            .failedLoginAttempts(0)
+                            .build());
+                    emailService.sendTemporaryPassword(createdAccount.getEmail(), temporaryPassword);
+                    return createdAccount;
+                });
     }
 
     private UserAccount linkGoogleToLocalAccount(
@@ -485,6 +483,10 @@ public class AuthServiceImpl implements AuthService {
                     "Your account is not active.",
                     HttpStatus.FORBIDDEN);
         }
+    }
+
+    private boolean hasPasswordCredential(UserAccount account) {
+        return StringUtils.hasText(account.getPasswordHash());
     }
 
     private void createAndSendPasswordResetToken(UserAccount account) {

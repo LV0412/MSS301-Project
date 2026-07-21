@@ -1,6 +1,12 @@
 server:
   port: ${APP_PORT:8080}
 
+gateway:
+  jwt:
+    secret: ${JWT_SECRET:change-this-secret-before-running-change-this-secret-before-running}
+    issuer: ${JWT_ISSUER:}
+    audience: ${JWT_AUDIENCE:}
+
 spring:
   application:
     name: api-gateway-service

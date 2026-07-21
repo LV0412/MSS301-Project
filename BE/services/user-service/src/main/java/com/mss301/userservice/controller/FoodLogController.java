@@ -25,12 +25,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/users/{userId}/food-logs")
+@RequestMapping({"/api/v1/users/me/food-logs", "/api/v1/users/{userId:\\d+}/food-logs"})
 @RequiredArgsConstructor
 @Tag(name = "Food Logs", description = "User food log APIs")
 public class FoodLogController {
@@ -45,10 +46,10 @@ public class FoodLogController {
             @ApiResponse(responseCode = "404", description = "User not found")
     })
     public ResponseEntity<FoodLogResponse> createFoodLog(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @Valid @RequestBody CreateFoodLogRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(foodLogService.createFoodLog(userId, request));
+                .body(foodLogService.createFoodLog(authenticatedUserId, request));
     }
 
     @GetMapping
@@ -58,11 +59,11 @@ public class FoodLogController {
             @ApiResponse(responseCode = "404", description = "User not found")
     })
     public ResponseEntity<Page<FoodLogResponse>> getFoodLogHistory(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) MealType mealType,
             @ParameterObject @PageableDefault(size = 20, sort = "logDate") Pageable pageable) {
-        return ResponseEntity.ok(foodLogService.getFoodLogHistory(userId, date, mealType, pageable));
+        return ResponseEntity.ok(foodLogService.getFoodLogHistory(authenticatedUserId, date, mealType, pageable));
     }
 
     @PutMapping("/{logId}")
@@ -73,10 +74,10 @@ public class FoodLogController {
             @ApiResponse(responseCode = "404", description = "Food log not found")
     })
     public ResponseEntity<FoodLogResponse> updateFoodLog(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @PathVariable Long logId,
             @Valid @RequestBody UpdateFoodLogRequest request) {
-        return ResponseEntity.ok(foodLogService.updateFoodLog(userId, logId, request));
+        return ResponseEntity.ok(foodLogService.updateFoodLog(authenticatedUserId, logId, request));
     }
 
     @DeleteMapping("/{logId}")
@@ -86,9 +87,9 @@ public class FoodLogController {
             @ApiResponse(responseCode = "404", description = "Food log not found")
     })
     public ResponseEntity<Void> deleteFoodLog(
-            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
             @PathVariable Long logId) {
-        foodLogService.deleteFoodLog(userId, logId);
+        foodLogService.deleteFoodLog(authenticatedUserId, logId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -216,7 +216,9 @@ Important behavior:
 
 - Requires `GOOGLE_CLIENT_ID`.
 - Returns `GOOGLE_AUTH_UNAVAILABLE` when Google auth is not configured.
-- Blocks Google login if the email already exists under `LOCAL`.
+- If the Google email does not exist, creates an active `GOOGLE` account, stores a random temporary password hash, emails the temporary password to the user, and returns access/refresh tokens immediately.
+- If the Google account already exists, logs in and returns access/refresh tokens.
+- If the email already exists under `LOCAL`, returns `GOOGLE_LINK_PASSWORD_REQUIRED` unless the current local password is supplied for linking.
 
 ## Get Current Account
 

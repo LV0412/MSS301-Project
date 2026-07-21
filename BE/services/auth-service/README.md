@@ -132,5 +132,5 @@ forgot-password -> reset-password -> login
 ```
 
 ```text
-google login -> verify Google ID token -> create/find account -> issue tokens
+google login -> verify Google ID token -> create/find account -> send temporary password for first-time Google account -> issue tokens
 ```

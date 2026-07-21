@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 public class JwtService {
 
     private static final String ACCOUNT_ID_CLAIM = "accountId";
+    private static final String USER_ID_CLAIM = "userId";
     private static final String EMAIL_CLAIM = "email";
     private static final String ROLE_CLAIM = "role";
     private static final String STATUS_CLAIM = "status";
@@ -31,12 +32,13 @@ public class JwtService {
         this.jwtProperties = jwtProperties;
     }
 
-    public String generateAccessToken(UserAccount account) {
+    public String generateAccessToken(UserAccount account, Long userId) {
         Instant now = Instant.now();
         Instant expiresAt = now.plus(jwtProperties.getAccessTokenExpirationMinutes(), ChronoUnit.MINUTES);
 
         Map<String, Object> claims = Map.of(
                 ACCOUNT_ID_CLAIM, account.getAccountId(),
+                USER_ID_CLAIM, userId,
                 EMAIL_CLAIM, account.getEmail(),
                 ROLE_CLAIM, account.getRole().name(),
                 STATUS_CLAIM, account.getStatus().name(),
