@@ -30,6 +30,10 @@ public class NutritionGoalService {
         User user = findUser(userId);
         NutritionGoal nutritionGoal = NutritionGoal.builder()
                 .user(user)
+                .goalType(request.goalType())
+                .targetWeight(request.targetWeight())
+                .durationWeeks(request.durationWeeks())
+                .weeklyRateKg(request.weeklyRateKg())
                 .calories(request.calories())
                 .protein(request.protein())
                 .carbs(request.carbs())
@@ -47,6 +51,18 @@ public class NutritionGoalService {
     public NutritionGoalResponse updateNutritionGoal(Long userId, UpdateNutritionGoalRequest request) {
         NutritionGoal nutritionGoal = findNutritionGoal(userId);
 
+        if (request.goalType() != null) {
+            nutritionGoal.setGoalType(request.goalType());
+        }
+        if (request.targetWeight() != null) {
+            nutritionGoal.setTargetWeight(request.targetWeight());
+        }
+        if (request.durationWeeks() != null) {
+            nutritionGoal.setDurationWeeks(request.durationWeeks());
+        }
+        if (request.weeklyRateKg() != null) {
+            nutritionGoal.setWeeklyRateKg(request.weeklyRateKg());
+        }
         if (request.calories() != null) {
             nutritionGoal.setCalories(request.calories());
         }
@@ -82,6 +98,10 @@ public class NutritionGoalService {
         return NutritionGoalResponse.builder()
                 .goalId(nutritionGoal.getGoalId())
                 .userId(nutritionGoal.getUser().getUserId())
+                .goalType(nutritionGoal.getGoalType())
+                .targetWeight(nutritionGoal.getTargetWeight())
+                .durationWeeks(nutritionGoal.getDurationWeeks())
+                .weeklyRateKg(nutritionGoal.getWeeklyRateKg())
                 .calories(nutritionGoal.getCalories())
                 .protein(nutritionGoal.getProtein())
                 .carbs(nutritionGoal.getCarbs())

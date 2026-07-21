@@ -3,6 +3,7 @@ package com.mss301.userservice.seed;
 import com.mss301.userservice.entity.ActivityLevel;
 import com.mss301.userservice.entity.AllergySeverity;
 import com.mss301.userservice.entity.Gender;
+import com.mss301.userservice.entity.GoalType;
 import com.mss301.userservice.entity.MealType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,7 +28,7 @@ public final class SeedDataFactory {
                         LocalDate.of(2004, 3, 12),
                         Gender.MALE,
                         health("170", "65", ActivityLevel.MODERATE),
-                        nutrition("2500", "150", "300", "70"),
+                        nutrition(GoalType.MAINTAIN, "65", 12, "0.00", "2500", "150", "300", "70"),
                         List.of("HIGH_PROTEIN", "NORMAL"),
                         List.of(allergy(1L, AllergySeverity.HIGH), allergy(7L, AllergySeverity.LOW)),
                         List.of(1L, 3L, 8L, 15L),
@@ -38,7 +39,7 @@ public final class SeedDataFactory {
                         LocalDate.of(1998, 8, 4),
                         Gender.FEMALE,
                         health("160", "80", ActivityLevel.SEDENTARY),
-                        nutrition("1500", "90", "150", "45"),
+                        nutrition(GoalType.LOSE_WEIGHT, "68", 24, "0.50", "1500", "90", "150", "45"),
                         List.of("LOW_CARB", "WEIGHT_LOSS"),
                         List.of(allergy(2L, AllergySeverity.MEDIUM), allergy(4L, AllergySeverity.LOW)),
                         List.of(2L, 6L, 9L),
@@ -49,7 +50,7 @@ public final class SeedDataFactory {
                         LocalDate.of(1986, 11, 21),
                         Gender.MALE,
                         health("180", "90", ActivityLevel.VERY_ACTIVE),
-                        nutrition("3000", "170", "350", "90"),
+                        nutrition(GoalType.GAIN_WEIGHT, "95", 20, "0.25", "3000", "170", "350", "90"),
                         List.of("HIGH_PROTEIN", "MAINTAIN"),
                         List.of(allergy(3L, AllergySeverity.LOW)),
                         List.of(2L, 4L, 10L, 15L),
@@ -60,7 +61,7 @@ public final class SeedDataFactory {
                         LocalDate.of(1994, 1, 18),
                         Gender.FEMALE,
                         health("155", "48", ActivityLevel.LIGHT),
-                        nutrition("1800", "80", "220", "55"),
+                        nutrition(GoalType.MAINTAIN, "48", 12, "0.00", "1800", "80", "220", "55"),
                         List.of("VEGETARIAN", "LOW_FAT"),
                         List.of(allergy(5L, AllergySeverity.HIGH)),
                         List.of(3L, 7L, 12L),
@@ -71,7 +72,7 @@ public final class SeedDataFactory {
                         LocalDate.of(1958, 6, 2),
                         Gender.FEMALE,
                         health("158", "60", ActivityLevel.LIGHT),
-                        nutrition("1600", "70", "180", "50"),
+                        nutrition(GoalType.MAINTAIN, "60", 12, "0.00", "1600", "70", "180", "50"),
                         List.of("LOW_SODIUM", "NORMAL"),
                         List.of(allergy(6L, AllergySeverity.MEDIUM)),
                         List.of(3L, 4L, 11L),
@@ -82,7 +83,7 @@ public final class SeedDataFactory {
                         LocalDate.of(2001, 12, 29),
                         Gender.MALE,
                         health("172", "78", ActivityLevel.SEDENTARY),
-                        nutrition("2200", "100", "260", "65"),
+                        nutrition(GoalType.LOSE_WEIGHT, "72", 16, "0.38", "2200", "100", "260", "65"),
                         List.of("GLUTEN_FREE", "LOW_SUGAR"),
                         List.of(allergy(7L, AllergySeverity.HIGH)),
                         List.of(1L, 5L, 13L),
@@ -93,7 +94,7 @@ public final class SeedDataFactory {
                         LocalDate.of(1999, 5, 9),
                         Gender.OTHER,
                         health("168", "58", ActivityLevel.ACTIVE),
-                        nutrition("2100", "95", "250", "60"),
+                        nutrition(GoalType.GAIN_WEIGHT, "62", 16, "0.25", "2100", "95", "250", "60"),
                         List.of("VEGAN", "DAIRY_FREE"),
                         List.of(allergy(2L, AllergySeverity.HIGH), allergy(3L, AllergySeverity.MEDIUM)),
                         List.of(3L, 8L, 14L),
@@ -104,7 +105,7 @@ public final class SeedDataFactory {
                         LocalDate.of(1990, 9, 15),
                         Gender.MALE,
                         health("176", "72", ActivityLevel.ACTIVE),
-                        nutrition("2600", "150", "300", "75"),
+                        nutrition(GoalType.MAINTAIN, "72", 12, "0.00", "2600", "150", "300", "75"),
                         List.of("KETO", "HIGH_PROTEIN"),
                         List.of(allergy(4L, AllergySeverity.MEDIUM)),
                         List.of(2L, 4L, 15L),
@@ -115,7 +116,7 @@ public final class SeedDataFactory {
                         LocalDate.of(1982, 2, 25),
                         Gender.FEMALE,
                         health("162", "68", ActivityLevel.MODERATE),
-                        nutrition("1900", "100", "210", "60"),
+                        nutrition(GoalType.LOSE_WEIGHT, "62", 12, "0.50", "1900", "100", "210", "60"),
                         List.of("LOW_CARB", "DAIRY_FREE"),
                         List.of(allergy(1L, AllergySeverity.MEDIUM), allergy(2L, AllergySeverity.MEDIUM)),
                         List.of(3L, 9L, 11L),
@@ -126,7 +127,7 @@ public final class SeedDataFactory {
                         LocalDate.of(1972, 7, 30),
                         Gender.MALE,
                         health("169", "74", ActivityLevel.MODERATE),
-                        nutrition("2000", "110", "230", "65"),
+                        nutrition(GoalType.MAINTAIN, "74", 12, "0.00", "2000", "110", "230", "65"),
                         List.of("NORMAL", "BALANCED"),
                         List.of(allergy(5L, AllergySeverity.LOW), allergy(7L, AllergySeverity.MEDIUM)),
                         List.of(1L, 4L, 12L),
@@ -162,8 +163,20 @@ public final class SeedDataFactory {
         return new SeedHealthProfile(new BigDecimal(height), new BigDecimal(weight), activityLevel);
     }
 
-    private static SeedNutritionGoal nutrition(String calories, String protein, String carbs, String fat) {
+    private static SeedNutritionGoal nutrition(
+            GoalType goalType,
+            String targetWeight,
+            Integer durationWeeks,
+            String weeklyRateKg,
+            String calories,
+            String protein,
+            String carbs,
+            String fat) {
         return new SeedNutritionGoal(
+                goalType,
+                new BigDecimal(targetWeight),
+                durationWeeks,
+                new BigDecimal(weeklyRateKg),
                 new BigDecimal(calories),
                 new BigDecimal(protein),
                 new BigDecimal(carbs),
@@ -230,6 +243,10 @@ public final class SeedDataFactory {
     }
 
     public record SeedNutritionGoal(
+            GoalType goalType,
+            BigDecimal targetWeight,
+            Integer durationWeeks,
+            BigDecimal weeklyRateKg,
             BigDecimal calories,
             BigDecimal protein,
             BigDecimal carbs,

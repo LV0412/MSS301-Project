@@ -142,6 +142,10 @@ public class InternalUserService {
 
     private InternalNutritionGoalResponse toNutritionGoalResponse(NutritionGoal nutritionGoal) {
         return InternalNutritionGoalResponse.builder()
+                .goalType(nutritionGoal.getGoalType())
+                .targetWeight(nutritionGoal.getTargetWeight())
+                .durationWeeks(nutritionGoal.getDurationWeeks())
+                .weeklyRateKg(nutritionGoal.getWeeklyRateKg())
                 .calories(nutritionGoal.getCalories())
                 .protein(nutritionGoal.getProtein())
                 .carbs(nutritionGoal.getCarbs())
