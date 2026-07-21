@@ -19,7 +19,7 @@ class NutritionGoalRequestValidationTest {
                 null,
                 null,
                 null,
-                BigDecimal.valueOf(2000),
+                null,
                 BigDecimal.valueOf(120),
                 BigDecimal.valueOf(250),
                 BigDecimal.valueOf(70));
@@ -36,7 +36,7 @@ class NutritionGoalRequestValidationTest {
                 BigDecimal.valueOf(9.99),
                 0,
                 BigDecimal.valueOf(1.01),
-                BigDecimal.valueOf(2000),
+                null,
                 BigDecimal.valueOf(120),
                 BigDecimal.valueOf(250),
                 BigDecimal.valueOf(70));

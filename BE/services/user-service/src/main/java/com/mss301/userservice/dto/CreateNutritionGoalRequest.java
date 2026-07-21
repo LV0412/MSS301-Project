@@ -2,6 +2,7 @@ package com.mss301.userservice.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.mss301.userservice.entity.GoalType;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -32,9 +33,9 @@ public record CreateNutritionGoalRequest(
         @DecimalMax(value = "1.0")
         BigDecimal weeklyRateKg,
 
-        @NotNull
+        @JsonAlias("calories")
         @DecimalMin(value = "0.0", inclusive = false)
-        BigDecimal calories,
+        BigDecimal dailyCaloriesGoal,
 
         @NotNull
         @DecimalMin(value = "0.0")

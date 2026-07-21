@@ -98,8 +98,8 @@ def _merge_profile(
     updates = {
         "diet": request.diet or diet,
         "allergies": _unique([*request.allergies, *allergen_tokens]),
-        "target_calories": request.target_calories or _per_meal_int(nutrition_goal, "calories"),
-        "max_calories": request.max_calories or _per_meal_int(nutrition_goal, "calories", multiplier=1.25),
+        "target_calories": request.target_calories or _per_meal_int(nutrition_goal, "dailyCaloriesGoal", "daily_calories_goal", "calories"),
+        "max_calories": request.max_calories or _per_meal_int(nutrition_goal, "dailyCaloriesGoal", "daily_calories_goal", "calories", multiplier=1.25),
         "min_protein": request.min_protein or _per_meal_int(nutrition_goal, "protein", minimum=0),
         "max_carbs": request.max_carbs or _per_meal_int(nutrition_goal, "carbs", minimum=0),
         "max_fat": request.max_fat or _per_meal_int(nutrition_goal, "fat", minimum=0),
@@ -220,12 +220,12 @@ def _allergy_tokens(user_profile: dict[str, Any]) -> list[str]:
 
 def _per_meal_int(
     payload: dict[str, Any],
-    key: str,
+    *keys: str,
     meals_per_day: int = 3,
     multiplier: float = 1.0,
     minimum: int = 1,
 ) -> int | None:
-    value = _int_value(payload, key)
+    value = _int_value(payload, *keys)
     if value is None:
         return None
     return max(minimum, round((value / meals_per_day) * multiplier))

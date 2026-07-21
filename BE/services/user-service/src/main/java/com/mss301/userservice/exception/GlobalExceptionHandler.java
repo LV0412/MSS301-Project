@@ -128,6 +128,13 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, exception.getMessage(), request, null);
     }
 
+    @ExceptionHandler(InvalidNutritionGoalException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidNutritionGoal(
+            InvalidNutritionGoalException exception,
+            HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, exception.getMessage(), request, null);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(
             MethodArgumentNotValidException exception,

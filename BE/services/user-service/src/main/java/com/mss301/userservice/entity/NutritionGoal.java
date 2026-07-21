@@ -49,8 +49,11 @@ public class NutritionGoal {
     @Column(name = "weekly_rate_kg", nullable = false, precision = 4, scale = 2)
     private BigDecimal weeklyRateKg;
 
-    @Column(name = "calories", nullable = false, precision = 8, scale = 2)
-    private BigDecimal calories;
+    @Column(name = "recommended_calories", nullable = false, precision = 8, scale = 2)
+    private BigDecimal recommendedCalories;
+
+    @Column(name = "daily_calories_goal", nullable = false, precision = 8, scale = 2)
+    private BigDecimal dailyCaloriesGoal;
 
     @Column(name = "protein", nullable = false, precision = 8, scale = 2)
     private BigDecimal protein;

@@ -13,6 +13,8 @@ public record InternalNutritionGoalResponse(
         BigDecimal targetWeight,
         Integer durationWeeks,
         BigDecimal weeklyRateKg,
+        BigDecimal recommendedCalories,
+        BigDecimal dailyCaloriesGoal,
         BigDecimal calories,
         BigDecimal protein,
         BigDecimal carbs,
