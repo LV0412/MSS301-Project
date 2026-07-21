@@ -64,7 +64,7 @@ function formatScore(value) {
 
 function warningItems(result) {
   const recipeWarnings = (result?.recommendations || []).flatMap((recipe) => recipe.warnings || []);
-  return [...new Set([...(result?.warnings || []), ...recipeWarnings])].slice(0, 6);
+  return [...new Set([...(result?.warnings || []), ...recipeWarnings])];
 }
 
 export default function RecommendationSandbox({ embedded = false }) {
@@ -289,9 +289,9 @@ export default function RecommendationSandbox({ embedded = false }) {
                   <AlertTriangle size={18} />
                   <div>
                     <strong>Cảnh báo</strong>
-                    <div className="chip-row">
-                      {warnings.map((warning) => <span className="chip danger" key={warning}>{warning}</span>)}
-                    </div>
+                    <ul>
+                      {warnings.map((warning) => <li key={warning}>{warning}</li>)}
+                    </ul>
                   </div>
                 </article>
               ) : null}

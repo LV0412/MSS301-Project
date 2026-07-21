@@ -3904,8 +3904,34 @@ textarea {
   box-shadow: none;
 }
 
-.recommendation-warning-list .chip-row {
-  margin-top: 10px;
+.recommendation-warning-list svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.recommendation-warning-list strong {
+  color: #8f2f24;
+}
+
+.recommendation-warning-list ul {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.recommendation-warning-list li {
+  max-width: 100%;
+  color: #8f2f24;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.recommendation-warning-list small {
+  display: block;
+  margin-top: 8px;
+  color: #8f2f24;
+  font-weight: 900;
 }
 
 .meal-plan-table {
