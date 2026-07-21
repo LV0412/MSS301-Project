@@ -17,7 +17,6 @@ import AIOverview from "./components/ai/AIOverview.jsx";
 import RecommendationSandbox from "./components/ai/RecommendationSandbox.jsx";
 import MealPlanSandbox from "./components/ai/MealPlanSandbox.jsx";
 import AILogs from "./components/ai/AILogs.jsx";
-import FeedbackEvaluation from "./components/ai/FeedbackEvaluation.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 
 export default function App() {
@@ -43,7 +42,6 @@ export default function App() {
         <Route path="ai-recommendation-sandbox" element={<RecommendationSandbox />} />
         <Route path="ai-meal-plan-sandbox" element={<MealPlanSandbox />} />
         <Route path="ai-logs" element={<AILogs />} />
-        <Route path="ai-feedback" element={<FeedbackEvaluation />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/overview" replace />} />
       </Route>

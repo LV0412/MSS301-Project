@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   ListTree,
   LogOut,
-  MessageSquareHeart,
   Search,
   Settings,
   Sparkles,
@@ -30,7 +29,6 @@ const navItems = [
   { to: "/ai-recommendation-sandbox", label: "Recommendation Sandbox", icon: FlaskConical },
   { to: "/ai-meal-plan-sandbox", label: "Meal Plan Sandbox", icon: Utensils },
   { to: "/ai-logs", label: "AI Logs", icon: ListTree },
-  { to: "/ai-feedback", label: "Feedback", icon: MessageSquareHeart },
   { to: "/settings", label: "Cài đặt", icon: Settings }
 ];
 
@@ -48,7 +46,6 @@ const pageTitles = {
   "/ai-recommendation-sandbox": "Recommendation Sandbox",
   "/ai-meal-plan-sandbox": "Meal Plan Sandbox",
   "/ai-logs": "AI Logs",
-  "/ai-feedback": "Feedback & Evaluation",
   "/settings": "Cài đặt"
 };
 

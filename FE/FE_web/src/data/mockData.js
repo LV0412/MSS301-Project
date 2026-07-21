@@ -174,18 +174,6 @@ export const pipelineTrace = [
   { step: "Saved suggestion result", status: "OK", detail: "Lưu 5 recommendation vào mock audit log." }
 ];
 
-export const feedbackMetrics = [
-  { label: "Total recommendations", value: "128,420" },
-  { label: "Accepted recommendations", value: "74,680" },
-  { label: "Skipped recommendations", value: "31,204" },
-  { label: "Liked recipes", value: "42,118" },
-  { label: "Disliked recipes", value: "6,942" },
-  { label: "Average confidence", value: "91.6%" },
-  { label: "Low confidence queries", value: "1,284" },
-  { label: "Most recommended category", value: "Mediterranean" },
-  { label: "Acceptance rate", value: "58.2%" }
-];
-
 export const ratingDistribution = [
   { label: "5 sao", value: 72 },
   { label: "4 sao", value: 18 },
