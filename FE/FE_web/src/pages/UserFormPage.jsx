@@ -1,13 +1,26 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Save, ShieldCheck, UserPlus } from "lucide-react";
-import { createAccountByAdmin } from "../api/userManagement.js";
+import { ArrowLeft, Mail, Send, ShieldCheck, UserPlus } from "lucide-react";
+import { inviteUserByAdmin } from "../api/userManagement.js";
 
 function validate(form) {
   const errors = {};
-  if (form.fullName.trim().length < 2) errors.fullName = "Họ tên phải có ít nhất 2 ký tự.";
+  if (form.fullName.trim().length < 2) errors.fullName = "Họ và tên phải có ít nhất 2 ký tự.";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.email = "Email không đúng định dạng.";
   return errors;
+}
+
+function mapAccountToUser(account) {
+  return {
+    userId: account.userId,
+    authAccountId: account.accountId,
+    email: account.email,
+    fullName: account.fullName,
+    gender: "",
+    dob: "",
+    createdAt: account.createdAt,
+    updatedAt: account.updatedAt
+  };
 }
 
 export default function UserFormPage() {
@@ -32,14 +45,24 @@ export default function UserFormPage() {
     }
 
     setSubmitting(true);
+    setRequestError("");
     try {
-      const account = await createAccountByAdmin({
+      const account = await inviteUserByAdmin({
         fullName: form.fullName.trim(),
         email: form.email.trim().toLowerCase()
       });
-      navigate(`/users/${account.userId}`, { replace: true });
+      navigate(`/users/${account.userId}`, {
+        replace: true,
+        state: { user: mapAccountToUser(account) }
+      });
     } catch (error) {
-      setRequestError(error.message);
+      if (error.status === 401) {
+        setRequestError("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.");
+      } else if (error.status === 403) {
+        setRequestError("Tài khoản hiện tại không có quyền mời người dùng.");
+      } else {
+        setRequestError(error.message);
+      }
       if (error.details?.validationErrors) setErrors(error.details.validationErrors);
     } finally {
       setSubmitting(false);
@@ -48,35 +71,65 @@ export default function UserFormPage() {
 
   return (
     <div className="page-stack">
-      <div className="page-toolbar"><div><p className="eyebrow">Auth + User Service</p><h2>Tạo tài khoản người dùng</h2><p>Admin chỉ nhập thông tin định danh; mật khẩu tạm được Auth Service tự gán.</p></div></div>
+      <div className="page-toolbar">
+        <div>
+          <p className="eyebrow">Người dùng</p>
+          <h2>Mời người dùng</h2>
+          <p>Tạo lời mời tài khoản mới bằng họ tên và email.</p>
+        </div>
+        <Link className="ghost-btn" to="/users"><ArrowLeft size={16} /> Quay lại danh sách</Link>
+      </div>
 
-      <section className="privacy-banner">
-        <ShieldCheck size={24} />
-        <div><strong>Luồng tài khoản an toàn hơn</strong><p>Tài khoản được tạo ở trạng thái chờ xác minh, OTP được gửi đến email và hồ sơ User Service được liên kết ngay. Người dùng đăng nhập bằng mật khẩu tạm do hệ thống cấu hình và nên đổi mật khẩu trong ứng dụng.</p></div>
+      <section className="privacy-banner compact-privacy-banner">
+        <ShieldCheck size={22} />
+        <div>
+          <strong>Chỉ thu thập thông tin cơ bản</strong>
+          <p>Form này không yêu cầu thông tin sức khỏe, dị ứng, mục tiêu dinh dưỡng hoặc lịch sử sử dụng.</p>
+        </div>
       </section>
 
-      <section className="user-create-layout">
-        <form className="form-card user-create-form" onSubmit={handleSubmit} noValidate>
-          <div className="panel-heading"><div><h2><UserPlus size={18} /> Thông tin tài khoản</h2><p>Không nhập hoặc truyền mật khẩu từ trình duyệt admin.</p></div></div>
+      <section className="user-invite-layout">
+        <form className="form-card user-create-form user-invite-card" onSubmit={handleSubmit} noValidate>
+          <div className="panel-heading">
+            <div>
+              <h2><UserPlus size={18} /> Thông tin người được mời</h2>
+              <p>Người dùng sẽ nhận email xác minh sau khi lời mời được tạo.</p>
+            </div>
+          </div>
 
           <label>Họ và tên
-            <input value={form.fullName} onChange={(event) => updateField("fullName", event.target.value)} placeholder="Ví dụ: Nguyễn An" aria-invalid={Boolean(errors.fullName)} />
+            <input
+              value={form.fullName}
+              onChange={(event) => updateField("fullName", event.target.value)}
+              placeholder="Ví dụ: Nguyễn An"
+              aria-invalid={Boolean(errors.fullName)}
+            />
             {errors.fullName ? <span className="field-error">{errors.fullName}</span> : null}
           </label>
 
           <label>Email
-            <div className="field form-field-with-icon"><Mail size={16} /><input type="email" value={form.email} onChange={(event) => updateField("email", event.target.value)} placeholder="nguoidung@example.com" aria-invalid={Boolean(errors.email)} /></div>
+            <div className="field form-field-with-icon">
+              <Mail size={16} />
+              <input
+                type="email"
+                value={form.email}
+                onChange={(event) => updateField("email", event.target.value)}
+                placeholder="nguoidung@example.com"
+                aria-invalid={Boolean(errors.email)}
+              />
+            </div>
             {errors.email ? <span className="field-error">{errors.email}</span> : null}
           </label>
 
-          {requestError ? <div className="warning-panel"><span>{requestError}</span></div> : null}
+          {requestError ? <div className="warning-panel mini"><span>{requestError}</span></div> : null}
+
           <div className="form-actions">
             <Link className="ghost-btn" to="/users">Hủy</Link>
-            <button className="primary-btn" type="submit" disabled={submitting}><Save size={16} /> {submitting ? "Đang tạo..." : "Tạo tài khoản"}</button>
+            <button className="primary-btn" type="submit" disabled={submitting}>
+              <Send size={16} /> {submitting ? "Đang gửi..." : "Gửi lời mời"}
+            </button>
           </div>
         </form>
-
-        <aside className="panel user-create-summary"><h2>Sau khi tạo</h2><ul className="privacy-list"><li>Auth Service tự mã hóa mật khẩu tạm mặc định.</li><li>Email OTP được gửi để người dùng xác minh tài khoản.</li><li>User Service tạo hồ sơ và liên kết bằng account ID.</li><li>Người dùng nên đổi mật khẩu ngay sau lần đăng nhập đầu.</li></ul></aside>
       </section>
     </div>
   );

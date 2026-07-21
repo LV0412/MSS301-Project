@@ -1519,6 +1519,10 @@ textarea {
   line-height: 1.6;
 }
 
+.compact-privacy-banner {
+  max-width: 820px;
+}
+
 .permission-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(150px, 1fr));
@@ -1638,6 +1642,79 @@ textarea {
   color: var(--danger);
 }
 
+.floating-action-menu {
+  position: fixed;
+  z-index: 120;
+  width: 270px;
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fffdfa;
+  box-shadow: 0 22px 48px rgba(33, 44, 36, 0.18);
+}
+
+.floating-action-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 2px 6px;
+  color: var(--primary-dark);
+}
+
+.floating-action-header button,
+.floating-action-menu button,
+.floating-action-menu a {
+  font-family: inherit;
+}
+
+.floating-action-header button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: #eef4e7;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+
+.floating-action-menu > button,
+.floating-action-menu > a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 10px;
+  background: transparent;
+  color: #263c2e;
+  cursor: pointer;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: none;
+}
+
+.floating-action-menu > button:hover,
+.floating-action-menu > a:hover {
+  background: #f1f5e9;
+}
+
+.floating-action-menu > button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.floating-action-menu small {
+  padding: 6px 4px 2px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .support-action-list {
   display: flex;
   flex-wrap: wrap;
@@ -1674,6 +1751,132 @@ textarea {
 
 .account-info-grid {
   grid-template-columns: minmax(170px, 0.55fr) minmax(220px, 1fr);
+}
+
+.user-basic-profile {
+  gap: 22px;
+}
+
+.user-profile-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 22px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: linear-gradient(110deg, #ffffff 0%, #f4f8ed 58%, #eef4e7 100%);
+  box-shadow: 0 20px 46px rgba(33, 44, 36, 0.08);
+}
+
+.user-profile-main {
+  display: grid;
+  gap: 7px;
+}
+
+.user-profile-main h2 {
+  margin: 0;
+  color: var(--primary-dark);
+  font-size: 34px;
+  line-height: 1.05;
+  font-weight: 900;
+}
+
+.user-profile-main > span {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.user-profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.55fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.user-profile-card,
+.user-profile-side-card {
+  min-height: auto;
+}
+
+.user-profile-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+
+.user-profile-fields div {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid #e2e8d9;
+  border-radius: 14px;
+  background: #fbfcf7;
+}
+
+.user-profile-fields dt,
+.user-profile-timeline span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.user-profile-fields dd {
+  margin: 0;
+  color: #1e3528;
+  font-size: 16px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.user-profile-side-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.user-profile-side-card h2,
+.user-profile-side-card p {
+  margin: 0;
+}
+
+.user-profile-side-card strong {
+  color: var(--primary-dark);
+  font-size: 20px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.user-profile-side-card p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.user-profile-timeline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.user-profile-timeline div {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #f3f6eb;
+}
+
+.user-profile-timeline span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.user-profile-timeline strong {
+  color: #1e3528;
+  font-size: 17px;
 }
 
 .support-log-list li {
@@ -1744,8 +1947,18 @@ textarea {
   align-items: start;
 }
 
+.user-invite-layout {
+  display: grid;
+  max-width: 820px;
+}
+
 .user-create-form {
   max-width: 720px;
+}
+
+.user-invite-card {
+  max-width: 820px;
+  min-height: auto;
 }
 
 .form-field-with-icon {
@@ -3016,7 +3229,7 @@ textarea {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .dashboard-grid, .knowledge-layout, .form-layout, .nutrition-editor, .report-insight, .user-create-layout, .activity-chart-grid, .recipe-insights-grid, .user-management-filter-grid, .recipe-management-filter-grid, .recipe-basic-grid, .recipe-editor-grid, .recipe-editor-grid.half-grid, .ai-sandbox-layout, .ai-flow-panel, .recipe-index-metrics {
+  .dashboard-grid, .knowledge-layout, .form-layout, .nutrition-editor, .report-insight, .user-create-layout, .user-profile-grid, .activity-chart-grid, .recipe-insights-grid, .user-management-filter-grid, .recipe-management-filter-grid, .recipe-basic-grid, .recipe-editor-grid, .recipe-editor-grid.half-grid, .ai-sandbox-layout, .ai-flow-panel, .recipe-index-metrics {
     grid-template-columns: 1fr;
   }
 
@@ -3101,8 +3314,16 @@ textarea {
     width: min(100% - 24px, 760px);
   }
 
-  .kpi-grid, .kpi-grid.four, .kpi-grid.three, .kpi-grid.overview-main-kpis, .overview-kpis, .form-grid, .two-col, .macro-input-grid, .tags-panel, .two-col-panels, .filter-grid, .permission-grid, .masked-grid, .ai-performance-grid, .compact-form-grid, .micronutrient-grid, .tag-section-grid, .ai-suggestion-grid, .publish-checklist, .ai-service-grid, .ai-feedback-grid, .ai-result-metrics {
+  .kpi-grid, .kpi-grid.four, .kpi-grid.three, .kpi-grid.overview-main-kpis, .overview-kpis, .form-grid, .two-col, .macro-input-grid, .tags-panel, .two-col-panels, .filter-grid, .permission-grid, .masked-grid, .ai-performance-grid, .compact-form-grid, .micronutrient-grid, .tag-section-grid, .ai-suggestion-grid, .publish-checklist, .ai-service-grid, .ai-feedback-grid, .ai-result-metrics, .user-profile-fields, .user-profile-timeline {
     grid-template-columns: 1fr;
+  }
+
+  .user-profile-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .user-profile-main h2 {
+    font-size: 28px;
   }
 
   .structured-ingredient-row,
