@@ -2316,6 +2316,86 @@ textarea {
   align-items: center;
 }
 
+.recipe-admin-page {
+  gap: 22px;
+}
+
+.recipe-page-toolbar {
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.recipe-page-toolbar > div:first-child {
+  max-width: 760px;
+}
+
+.recipe-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 18px;
+}
+
+.recipe-kpi-card {
+  min-height: 170px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 22px;
+}
+
+.recipe-kpi-card .kpi-icon {
+  margin-bottom: 2px;
+}
+
+.recipe-kpi-card span {
+  color: #1d3026;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.recipe-kpi-card strong {
+  color: #0f3329;
+  font-size: 42px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.recipe-kpi-card small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.recipe-kpi-card.warm {
+  background: #f2eadb;
+}
+
+.recipe-filter-panel {
+  padding: 22px 24px;
+}
+
+.recipe-filter-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.35fr) minmax(180px, 0.8fr) minmax(180px, 0.8fr) minmax(200px, 0.9fr) auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.recipe-filter-grid select,
+.recipe-filter-grid .field,
+.recipe-filter-grid .ghost-btn {
+  min-height: 46px;
+}
+
+.recipe-filter-grid select {
+  width: 100%;
+}
+
+.recipe-filter-grid .ghost-btn {
+  justify-content: center;
+  white-space: nowrap;
+}
+
 .recipe-search-field {
   min-height: 42px;
 }
@@ -2379,11 +2459,25 @@ textarea {
 }
 
 .recipe-editor-page {
-  gap: 20px;
+  gap: 18px;
 }
 
 .recipe-editor-title {
   padding-bottom: 0;
+}
+
+.recipe-editor-page input,
+.recipe-editor-page select,
+.recipe-editor-page textarea {
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.recipe-editor-page input:focus,
+.recipe-editor-page select:focus,
+.recipe-editor-page textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(141, 162, 144, 0.18);
+  outline: none;
 }
 
 .recipe-action-bar {
@@ -2471,9 +2565,9 @@ textarea {
 
 .recipe-editor-section {
   scroll-margin-top: 190px;
-  padding: 24px;
+  padding: 22px;
   border: 1px solid rgba(215, 222, 207, 0.9);
-  border-radius: 16px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.82);
   box-shadow: var(--shadow);
 }
@@ -2505,11 +2599,85 @@ textarea {
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
   gap: 24px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .recipe-media-upload {
   min-height: 360px;
+}
+
+.recipe-image-panel {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #d7dfcf;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fbfcf7 0%, #f3f7eb 100%);
+  box-shadow: 0 14px 30px rgba(47, 61, 49, 0.08);
+}
+
+.recipe-image-panel img,
+.recipe-image-panel > div:first-child {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 16px;
+  border: 1px solid #dce5d5;
+  overflow: hidden;
+}
+
+.recipe-image-panel img {
+  display: block;
+  object-fit: cover;
+  background: #eef3e4;
+}
+
+.recipe-image-panel > div:first-child {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  border-style: dashed;
+  background:
+    linear-gradient(135deg, rgba(141, 162, 144, 0.12), rgba(240, 246, 230, 0.88)),
+    #f8faf1;
+  color: #4f6656;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.recipe-image-panel > div:first-child svg {
+  width: 42px;
+  height: 42px;
+  padding: 8px;
+  border-radius: 14px;
+  background: #e3ebd8;
+  color: var(--primary-dark);
+}
+
+.recipe-image-panel .ghost-btn {
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  border-color: #c9d5c4;
+  background: #fffef8;
+}
+
+.recipe-image-panel .ghost-btn:hover:not(:disabled) {
+  background: #eef3e4;
+}
+
+.recipe-image-panel label {
+  display: grid;
+  gap: 8px;
+  color: #263c2e;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.recipe-image-panel input[type="url"] {
+  width: 100%;
+  min-height: 44px;
 }
 
 .compact-form-grid {
@@ -2524,13 +2692,23 @@ textarea {
 }
 
 .recipe-editor-grid.half-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
 }
 
 .structured-list,
 .instruction-list {
   display: grid;
   gap: 12px;
+}
+
+.structured-list + .ghost-btn,
+.instruction-list + .ghost-btn {
+  margin-top: 14px;
+}
+
+.recipe-editor-section > .ghost-btn {
+  min-height: 44px;
+  padding-inline: 14px;
 }
 
 .structured-ingredient-row {
@@ -2559,6 +2737,28 @@ textarea {
   padding: 8px 10px;
 }
 
+.structured-ingredient-row.clean-ingredient-row {
+  grid-template-columns: 34px minmax(260px, 1fr) minmax(120px, 0.36fr) minmax(90px, 0.26fr) 34px;
+  gap: 12px;
+  align-items: end;
+  padding: 14px;
+  border-color: #dfe7d6;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fbfcf7 0%, #f5f8ed 100%);
+}
+
+.row-index {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #e2ead7;
+  color: var(--primary-dark);
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .calculation-result {
   margin: 12px 0 0;
   color: var(--primary-dark);
@@ -2578,6 +2778,16 @@ textarea {
 
 .instruction-row textarea {
   min-height: 92px;
+}
+
+.instruction-row.clean-instruction-row {
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  gap: 12px;
+  align-items: start;
+  padding: 14px;
+  border-color: #dfe7d6;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fbfcf7 0%, #f5f8ed 100%);
 }
 
 .step-number {
@@ -2668,7 +2878,17 @@ textarea {
 }
 
 .nutrition-unit-grid {
-  grid-template-columns: repeat(2, minmax(130px, 1fr));
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.nutrition-unit-grid label {
+  display: grid;
+  gap: 6px;
+  color: #3c4e41;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .unit-input {
@@ -2706,6 +2926,57 @@ textarea {
 .publish-checklist {
   display: grid;
   gap: 12px;
+}
+
+.recipe-diet-grid {
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+}
+
+.recipe-diet-grid .chip {
+  justify-content: flex-start;
+  min-height: 42px;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.recipe-diet-grid input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary-dark);
+}
+
+.recipe-editor-page .danger-footer {
+  position: sticky;
+  bottom: 14px;
+  z-index: 20;
+  padding: 12px;
+  border: 1px solid rgba(202, 214, 191, 0.95);
+  border-radius: 18px;
+  background: rgba(248, 252, 239, 0.96);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 42px rgba(35, 49, 39, 0.14);
+}
+
+.recipe-footer-actions {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+
+.recipe-editor-page .primary-btn.wide {
+  min-width: 280px;
+}
+
+.footer-error-note {
+  max-width: 640px;
+  padding: 10px 12px;
+  border: 1px solid #ffbbb5;
+  border-radius: 12px;
+  background: #fff1ef;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
 }
 
 .micronutrient-grid {
@@ -3233,6 +3504,18 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .recipe-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recipe-filter-grid {
+    grid-template-columns: minmax(260px, 1fr) repeat(2, minmax(170px, 0.7fr));
+  }
+
+  .recipe-filter-grid .ghost-btn {
+    width: fit-content;
+  }
+
   .span-2, .ingredients-box, .instructions-box {
     grid-column: auto;
   }
@@ -3248,6 +3531,14 @@ textarea {
 
   .recipe-action-bar .button-row {
     justify-content: flex-start;
+  }
+
+  .nutrition-unit-grid {
+    grid-template-columns: repeat(3, minmax(130px, 1fr));
+  }
+
+  .recipe-diet-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .structured-ingredient-row {
@@ -3318,6 +3609,19 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .recipe-kpi-grid,
+  .recipe-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recipe-kpi-card {
+    min-height: 0;
+  }
+
+  .recipe-filter-grid .ghost-btn {
+    width: 100%;
+  }
+
   .user-profile-hero {
     grid-template-columns: 1fr;
   }
@@ -3328,6 +3632,13 @@ textarea {
 
   .structured-ingredient-row,
   .instruction-row {
+    grid-template-columns: 1fr;
+  }
+
+  .structured-ingredient-row.clean-ingredient-row,
+  .instruction-row.clean-instruction-row,
+  .nutrition-unit-grid,
+  .recipe-diet-grid {
     grid-template-columns: 1fr;
   }
 
@@ -3351,6 +3662,19 @@ textarea {
     align-items: stretch;
     flex-direction: column;
     display: flex;
+  }
+
+  .recipe-editor-page .danger-footer {
+    position: static;
+  }
+
+  .recipe-footer-actions {
+    justify-items: stretch;
+  }
+
+  .recipe-editor-page .primary-btn.wide {
+    width: 100%;
+    min-width: 0;
   }
 
   .metric-triplet {

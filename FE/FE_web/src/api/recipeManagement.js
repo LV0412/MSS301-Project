@@ -147,6 +147,15 @@ export function deleteRecipe(recipeId) {
   return deleteResource("recipes", recipeId);
 }
 
+export function uploadRecipeImage(file) {
+  const body = new FormData();
+  body.append("file", file);
+  return request("/api/v1/recipes/upload-image", {
+    method: "POST",
+    body
+  });
+}
+
 export function getIngredients(params = {}) {
   return request(`/api/v1/ingredients${queryString(params)}`);
 }
