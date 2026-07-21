@@ -2,18 +2,18 @@ import { useState } from "react";
 import { CalendarDays, Wand2 } from "lucide-react";
 import { mealPlanRows } from "../../data/mockData.js";
 
-export default function MealPlanSandbox() {
+export default function MealPlanSandbox({ embedded = false }) {
   const [generated, setGenerated] = useState(false);
 
   return (
-    <div className="page-stack">
-      <div className="page-toolbar">
+    <div className={embedded ? "ai-sandbox-tab-content" : "page-stack"}>
+      {!embedded ? <div className="page-toolbar">
         <div>
           <p className="eyebrow">AI Sandbox</p>
           <h2>Meal Plan Sandbox</h2>
           <p>Test sinh kế hoạch ăn uống nhiều ngày theo calorie target, diet preference và allergy safety.</p>
         </div>
-      </div>
+      </div> : null}
 
       <section className="ai-sandbox-layout">
         <form className="panel ai-sandbox-form" onSubmit={(event) => { event.preventDefault(); setGenerated(true); }}>

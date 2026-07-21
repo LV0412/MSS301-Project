@@ -5,9 +5,7 @@ import {
   BrainCircuit,
   Bot,
   Database,
-  FlaskConical,
   LayoutDashboard,
-  ListTree,
   LogOut,
   Search,
   Settings,
@@ -25,10 +23,7 @@ const navItems = [
   { to: "/reports", label: "Báo cáo", icon: BarChart3 },
   { to: "/users", label: "Người dùng", icon: Users },
   { to: "/ai-overview", label: "AI Overview", icon: Bot },
-  { to: "/ai-knowledge", label: "AI Knowledge", icon: BrainCircuit },
-  { to: "/ai-recommendation-sandbox", label: "Recommendation Sandbox", icon: FlaskConical },
-  { to: "/ai-meal-plan-sandbox", label: "Meal Plan Sandbox", icon: Utensils },
-  { to: "/ai-logs", label: "AI Logs", icon: ListTree },
+  { to: "/ai-knowledge", label: "AI Knowledge Studio", icon: BrainCircuit },
   { to: "/settings", label: "Cài đặt", icon: Settings }
 ];
 
@@ -42,10 +37,7 @@ const pageTitles = {
   "/users": "Quản lý người dùng",
   "/users/new": "Mời người dùng",
   "/ai-overview": "AI Service Overview",
-  "/ai-knowledge": "AI Knowledge Base",
-  "/ai-recommendation-sandbox": "Recommendation Sandbox",
-  "/ai-meal-plan-sandbox": "Meal Plan Sandbox",
-  "/ai-logs": "AI Logs",
+  "/ai-knowledge": "AI Knowledge Studio",
   "/settings": "Cài đặt"
 };
 

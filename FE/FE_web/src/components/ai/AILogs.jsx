@@ -9,18 +9,18 @@ function statusClass(status) {
   return "warning";
 }
 
-export default function AILogs() {
+export default function AILogs({ embedded = false }) {
   const [selectedLog, setSelectedLog] = useState(null);
 
   return (
-    <div className="page-stack">
-      <div className="page-toolbar">
+    <div className={embedded ? "ai-logs-embedded" : "page-stack"}>
+      {!embedded ? <div className="page-toolbar">
         <div>
           <p className="eyebrow">AI Debugging</p>
           <h2>AI Logs / Pipeline Trace</h2>
           <p>Theo dõi retrieval, rule filtering, nutrition scoring, FoodyLLM generation và lỗi pipeline.</p>
         </div>
-      </div>
+      </div> : null}
 
       <section className="panel">
         <div className="panel-heading">

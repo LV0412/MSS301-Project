@@ -3615,6 +3615,39 @@ textarea {
   align-items: start;
 }
 
+.ai-sandbox-shell {
+  padding: 22px;
+}
+
+.ai-studio-page {
+  gap: 22px;
+}
+
+.ai-studio-shell {
+  padding: 22px;
+}
+
+.ai-knowledge-tab-content {
+  display: grid;
+  gap: 20px;
+}
+
+.ai-sandbox-tabs {
+  margin-bottom: 0;
+}
+
+.ai-sandbox-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-sandbox-tab-content,
+.ai-logs-embedded {
+  display: grid;
+  gap: 18px;
+}
+
 .ai-sandbox-form {
   display: grid;
   gap: 18px;

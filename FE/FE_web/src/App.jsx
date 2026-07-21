@@ -14,9 +14,6 @@ import UserFormPage from "./pages/UserFormPage.jsx";
 import UserDetailPage from "./pages/UserDetailPage.jsx";
 import AIKnowledgePage from "./pages/AIKnowledgePage.jsx";
 import AIOverview from "./components/ai/AIOverview.jsx";
-import RecommendationSandbox from "./components/ai/RecommendationSandbox.jsx";
-import MealPlanSandbox from "./components/ai/MealPlanSandbox.jsx";
-import AILogs from "./components/ai/AILogs.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 
 export default function App() {
@@ -39,9 +36,10 @@ export default function App() {
         <Route path="users/:id" element={<UserDetailPage />} />
         <Route path="ai-overview" element={<AIOverview />} />
         <Route path="ai-knowledge" element={<AIKnowledgePage />} />
-        <Route path="ai-recommendation-sandbox" element={<RecommendationSandbox />} />
-        <Route path="ai-meal-plan-sandbox" element={<MealPlanSandbox />} />
-        <Route path="ai-logs" element={<AILogs />} />
+        <Route path="ai-sandbox" element={<Navigate to="/ai-knowledge" replace />} />
+        <Route path="ai-recommendation-sandbox" element={<Navigate to="/ai-knowledge" replace />} />
+        <Route path="ai-meal-plan-sandbox" element={<Navigate to="/ai-knowledge" replace />} />
+        <Route path="ai-logs" element={<Navigate to="/ai-overview" replace />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/overview" replace />} />
       </Route>
