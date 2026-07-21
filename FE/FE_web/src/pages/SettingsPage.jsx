@@ -39,7 +39,7 @@ export default function SettingsPage() {
 
       <section className="form-card span-2">
         <h2><Bell size={18} /> Thông báo toàn cục</h2>
-        <div className="toggle-row"><div><strong>User feedback alerts</strong><span>Báo khi user flag recipe sai.</span></div><input type="checkbox" defaultChecked /></div>
+        <div className="toggle-row"><div><strong>Cảnh báo nội dung</strong><span>Báo khi công thức cần được kiểm tra lại.</span></div><input type="checkbox" defaultChecked /></div>
         <div className="toggle-row"><div><strong>Weekly system reports</strong><span>Tổng hợp performance và health trend.</span></div><input type="checkbox" defaultChecked /></div>
       </section>
 
