@@ -17,6 +17,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 public class GlobalExceptionHandler {
 
     private static final String NUTRITION_GOAL_NOT_FOUND = "NUTRITION_GOAL_NOT_FOUND";
+    private static final String INVALID_NUTRITION_GOAL = "INVALID_NUTRITION_GOAL";
 
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFound(
@@ -139,7 +140,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidNutritionGoal(
             InvalidNutritionGoalException exception,
             HttpServletRequest request) {
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, exception.getMessage(), request, null);
+        return buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                INVALID_NUTRITION_GOAL,
+                exception.getMessage(),
+                request,
+                null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -152,6 +158,7 @@ public class GlobalExceptionHandler {
 
         return buildErrorResponse(
                 HttpStatus.BAD_REQUEST,
+                nutritionGoalErrorCode(request),
                 "Request validation failed",
                 request,
                 validationErrors);
@@ -174,6 +181,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
         return buildErrorResponse(
                 HttpStatus.BAD_REQUEST,
+                nutritionGoalErrorCode(request),
                 "Malformed request body or invalid enum value",
                 request,
                 null);
@@ -215,5 +223,11 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(status).body(body);
+    }
+
+    private String nutritionGoalErrorCode(HttpServletRequest request) {
+        return request.getRequestURI().contains("/nutrition-goal")
+                ? INVALID_NUTRITION_GOAL
+                : null;
     }
 }

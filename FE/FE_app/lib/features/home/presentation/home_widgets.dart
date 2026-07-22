@@ -86,11 +86,26 @@ class _DailyCaloriesCardState extends State<DailyCaloriesCard> {
     return _DailyCaloriesData(
       fullName: profile.fullName,
       consumedCalories: consumedCalories,
-      targetCalories: _asDouble(nutritionGoal?['dailyCaloriesGoal']),
+      targetCalories: nutritionGoal.isConfigured
+          ? nutritionGoal.dailyCaloriesGoal
+          : null,
     );
   }
 
-  void _reload() => setState(() => _dataFuture = _loadData());
+  void _reload() {
+    final nextData = _loadData();
+    setState(() {
+      _dataFuture = nextData;
+    });
+  }
+
+  Future<void> _openNutritionGoalSetup() async {
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const NutritionGoalPlanScreen()),
+    );
+    if (mounted) _reload();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,16 +128,20 @@ class _DailyCaloriesCardState extends State<DailyCaloriesCard> {
             onAction: _reload,
           );
         }
-        return _DailyCaloriesContent(data: snapshot.data!);
+        return _DailyCaloriesContent(
+          data: snapshot.data!,
+          onSetupGoal: _openNutritionGoalSetup,
+        );
       },
     );
   }
 }
 
 class _DailyCaloriesContent extends StatelessWidget {
-  const _DailyCaloriesContent({required this.data});
+  const _DailyCaloriesContent({required this.data, required this.onSetupGoal});
 
   final _DailyCaloriesData data;
+  final VoidCallback onSetupGoal;
 
   @override
   Widget build(BuildContext context) {
@@ -165,9 +184,7 @@ class _DailyCaloriesContent extends StatelessWidget {
         ),
         const SizedBox(height: 32),
         if (target == null)
-          _NutritionGoalSetupCard(
-            onPressed: () => _openNutritionGoalSetup(context),
-          )
+          _NutritionGoalSetupCard(onPressed: onSetupGoal)
         else
           Container(
             padding: const EdgeInsets.fromLTRB(26, 22, 26, 24),
@@ -230,7 +247,7 @@ class _DailyCaloriesContent extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Đã nạp / ${_formatCalories(target!)}',
+                              'Đã nạp / ${_formatCalories(target)}',
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
@@ -249,17 +266,6 @@ class _DailyCaloriesContent extends StatelessWidget {
       ],
     );
   }
-}
-
-void _openNutritionGoalSetup(BuildContext context) {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => const LifestyleScreen(
-        completeDestination: MainShell(),
-      ),
-    ),
-  );
 }
 
 class _NutritionGoalSetupCard extends StatelessWidget {
@@ -287,11 +293,7 @@ class _NutritionGoalSetupCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 22),
-          const Icon(
-            Icons.track_changes,
-            color: AppColors.green,
-            size: 34,
-          ),
+          const Icon(Icons.track_changes, color: AppColors.green, size: 34),
           const SizedBox(height: 14),
           const Text(
             'Bạn chưa thiết lập mục tiêu calo',
@@ -555,11 +557,13 @@ class _MacroSummaryCardState extends State<MacroSummaryCard> {
       dependencies.userRepository.getNutritionGoal(),
       dependencies.foodLogStore.load(date: _foodLogIsoDate(DateTime.now())),
     ]);
+    final goal = results[0] as NutritionGoal?;
+    final hasGoal = goal?.isConfigured == true;
     return _MacroSummaryData(
       consumed: _NutritionTotals.fromLogs(results[1] as List<FoodLogEntry>),
-      proteinTarget: _asDouble((results[0] as Map?)?['protein']),
-      carbsTarget: _asDouble((results[0] as Map?)?['carbs']),
-      fatTarget: _asDouble((results[0] as Map?)?['fat']),
+      proteinTarget: hasGoal ? goal?.protein : null,
+      carbsTarget: hasGoal ? goal?.carbs : null,
+      fatTarget: hasGoal ? goal?.fat : null,
     );
   }
 

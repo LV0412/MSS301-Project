@@ -2,6 +2,7 @@ package com.mss301.userservice.service;
 
 import com.mss301.userservice.dto.CreateNutritionGoalRequest;
 import com.mss301.userservice.dto.NutritionGoalResponse;
+import com.mss301.userservice.dto.NutritionGoalPreviewResponse;
 import com.mss301.userservice.dto.UpdateNutritionGoalRequest;
 import com.mss301.userservice.entity.ActivityLevel;
 import com.mss301.userservice.entity.Gender;
@@ -43,6 +44,12 @@ public class NutritionGoalService {
     private static final BigDecimal MAX_WARNING_TARGET_BMI = BigDecimal.valueOf(30);
     private static final BigDecimal MAX_ABSOLUTE_TARGET_BMI = BigDecimal.valueOf(35);
     private static final BigDecimal MAINTAIN_WEIGHT_TOLERANCE_KG = BigDecimal.valueOf(0.05);
+    private static final BigDecimal PROTEIN_CALORIE_RATIO = BigDecimal.valueOf(0.20);
+    private static final BigDecimal CARBS_CALORIE_RATIO = BigDecimal.valueOf(0.50);
+    private static final BigDecimal FAT_CALORIE_RATIO = BigDecimal.valueOf(0.30);
+    private static final BigDecimal KCAL_PER_GRAM_PROTEIN = BigDecimal.valueOf(4);
+    private static final BigDecimal KCAL_PER_GRAM_CARBS = BigDecimal.valueOf(4);
+    private static final BigDecimal KCAL_PER_GRAM_FAT = BigDecimal.valueOf(9);
     private static final GoalType DEFAULT_GOAL_TYPE = GoalType.MAINTAIN;
 
     private final NutritionGoalRepository nutritionGoalRepository;
@@ -72,11 +79,12 @@ public class NutritionGoalService {
                 .targetWeight(evaluation.targetWeight())
                 .durationWeeks(evaluation.durationWeeks())
                 .weeklyRateKg(evaluation.weeklyRateKg())
+                .goalConfigured(evaluation.goalConfigured())
                 .recommendedCalories(evaluation.recommendedCalories())
                 .dailyCaloriesGoal(evaluation.dailyCaloriesGoal())
-                .protein(request.protein())
-                .carbs(request.carbs())
-                .fat(request.fat())
+                .protein(evaluation.protein())
+                .carbs(evaluation.carbs())
+                .fat(evaluation.fat())
                 .build();
 
         return toResponse(nutritionGoalRepository.save(nutritionGoal), evaluation);
@@ -84,30 +92,40 @@ public class NutritionGoalService {
 
     @Transactional(readOnly = true)
     public NutritionGoalResponse getNutritionGoal(Long userId) {
-        NutritionGoal nutritionGoal = findNutritionGoal(userId);
+        NutritionGoal nutritionGoal = nutritionGoalRepository.findByUserUserId(userId).orElse(null);
+        if (nutritionGoal == null) {
+            return notConfiguredResponse(userId);
+        }
+        boolean maintainWithoutPlan = nutritionGoal.getGoalType() == GoalType.MAINTAIN
+                && !hasAnyPlanField(
+                        nutritionGoal.getTargetWeight(),
+                        nutritionGoal.getDurationWeeks(),
+                        nutritionGoal.getWeeklyRateKg());
+        if (!nutritionGoal.isGoalConfigured()
+                || (!maintainWithoutPlan && !hasCompletePlanFieldValues(
+                        nutritionGoal.getTargetWeight(),
+                        nutritionGoal.getDurationWeeks(),
+                        nutritionGoal.getWeeklyRateKg()))) {
+            return notConfiguredResponse(userId);
+        }
+
         User user = findUser(userId);
         HealthProfile healthProfile = findHealthProfile(userId);
         NutritionGoalEvaluation evaluation = evaluateGoalForRead(user, healthProfile, nutritionGoal);
+        if (!evaluation.goalConfigured()) {
+            return notConfiguredResponse(userId);
+        }
         return toResponse(nutritionGoal, evaluation);
     }
 
     public NutritionGoalResponse updateNutritionGoal(Long userId, UpdateNutritionGoalRequest request) {
-        NutritionGoal nutritionGoal = findNutritionGoal(userId);
-        User user = nutritionGoal.getUser();
+        NutritionGoal nutritionGoal = nutritionGoalRepository.findByUserUserId(userId).orElse(null);
+        User user = nutritionGoal != null ? nutritionGoal.getUser() : findUser(userId);
         HealthProfile healthProfile = findHealthProfile(userId);
 
-        GoalType goalType = request.goalType() != null ? request.goalType() : nutritionGoal.getGoalType();
-        boolean switchToUnconfiguredMaintain = request.goalType() == GoalType.MAINTAIN
-                && !hasAnyPlanField(request.targetWeight(), request.durationWeeks(), request.weeklyRateKg());
-        BigDecimal targetWeight = switchToUnconfiguredMaintain
-                ? null
-                : request.targetWeight() != null ? request.targetWeight() : nutritionGoal.getTargetWeight();
-        Integer durationWeeks = switchToUnconfiguredMaintain
-                ? null
-                : request.durationWeeks() != null ? request.durationWeeks() : nutritionGoal.getDurationWeeks();
-        BigDecimal weeklyRateKg = switchToUnconfiguredMaintain
-                ? null
-                : request.weeklyRateKg() != null ? request.weeklyRateKg() : nutritionGoal.getWeeklyRateKg();
+        GoalType goalType = resolveGoalType(request, nutritionGoal);
+        BigDecimal targetWeight = resolveTargetWeight(request, nutritionGoal, goalType);
+        Integer durationWeeks = resolveDurationWeeks(request, nutritionGoal, goalType);
 
         NutritionGoalEvaluation evaluation = evaluateGoalForWrite(
                 user,
@@ -115,26 +133,56 @@ public class NutritionGoalService {
                 goalType,
                 targetWeight,
                 durationWeeks,
-                weeklyRateKg,
+                request.weeklyRateKg(),
                 request.dailyCaloriesGoal());
+
+        if (nutritionGoal == null) {
+            nutritionGoal = NutritionGoal.builder().user(user).build();
+        }
 
         nutritionGoal.setGoalType(evaluation.goalType());
         nutritionGoal.setTargetWeight(evaluation.targetWeight());
         nutritionGoal.setDurationWeeks(evaluation.durationWeeks());
         nutritionGoal.setWeeklyRateKg(evaluation.weeklyRateKg());
+        nutritionGoal.setGoalConfigured(evaluation.goalConfigured());
         nutritionGoal.setRecommendedCalories(evaluation.recommendedCalories());
         nutritionGoal.setDailyCaloriesGoal(evaluation.dailyCaloriesGoal());
-        if (request.protein() != null) {
-            nutritionGoal.setProtein(request.protein());
-        }
-        if (request.carbs() != null) {
-            nutritionGoal.setCarbs(request.carbs());
-        }
-        if (request.fat() != null) {
-            nutritionGoal.setFat(request.fat());
-        }
+        nutritionGoal.setProtein(evaluation.protein());
+        nutritionGoal.setCarbs(evaluation.carbs());
+        nutritionGoal.setFat(evaluation.fat());
 
         return toResponse(nutritionGoalRepository.save(nutritionGoal), evaluation);
+    }
+
+    @Transactional(readOnly = true)
+    public NutritionGoalPreviewResponse previewNutritionGoal(Long userId, UpdateNutritionGoalRequest request) {
+        NutritionGoal existingGoal = nutritionGoalRepository.findByUserUserId(userId).orElse(null);
+        User user = existingGoal != null ? existingGoal.getUser() : findUser(userId);
+        HealthProfile healthProfile = findHealthProfile(userId);
+        GoalType goalType = resolveGoalType(request, existingGoal);
+
+        NutritionGoalEvaluation evaluation = evaluateGoalForWrite(
+                user,
+                healthProfile,
+                goalType,
+                resolveTargetWeight(request, existingGoal, goalType),
+                resolveDurationWeeks(request, existingGoal, goalType),
+                request.weeklyRateKg(),
+                request.dailyCaloriesGoal());
+
+        return NutritionGoalPreviewResponse.builder()
+                .goalType(evaluation.goalType())
+                .targetWeight(evaluation.targetWeight())
+                .durationWeeks(evaluation.durationWeeks())
+                .weeklyRateKg(evaluation.weeklyRateKg())
+                .bmr(evaluation.bmr())
+                .recommendedCalories(evaluation.recommendedCalories())
+                .dailyCaloriesGoal(evaluation.dailyCaloriesGoal())
+                .protein(evaluation.protein())
+                .carbs(evaluation.carbs())
+                .fat(evaluation.fat())
+                .warnings(evaluation.warnings())
+                .build();
     }
 
     public void deleteNutritionGoal(Long userId) {
@@ -167,11 +215,19 @@ public class NutritionGoalService {
                 .weeklyRateKg(evaluation.weeklyRateKg())
                 .recommendedCalories(evaluation.recommendedCalories())
                 .dailyCaloriesGoal(evaluation.dailyCaloriesGoal())
-                .protein(nutritionGoal.getProtein())
-                .carbs(nutritionGoal.getCarbs())
-                .fat(nutritionGoal.getFat())
+                .protein(evaluation.protein())
+                .carbs(evaluation.carbs())
+                .fat(evaluation.fat())
                 .warnings(evaluation.warnings())
                 .goalConfigured(evaluation.goalConfigured())
+                .build();
+    }
+
+    private NutritionGoalResponse notConfiguredResponse(Long userId) {
+        return NutritionGoalResponse.builder()
+                .userId(userId)
+                .warnings(List.of())
+                .goalConfigured(false)
                 .build();
     }
 
@@ -184,11 +240,11 @@ public class NutritionGoalService {
             BigDecimal requestedWeeklyRateKg,
             BigDecimal requestedDailyCaloriesGoal) {
         validateRequiredProfile(user, healthProfile);
-        if (goalType == GoalType.MAINTAIN && !hasAnyPlanField(targetWeight, durationWeeks, requestedWeeklyRateKg)) {
-            return calculateMaintainGoal(user, healthProfile, requestedDailyCaloriesGoal, true);
+        if (goalType == GoalType.MAINTAIN) {
+            return calculateMaintainGoal(user, healthProfile, requestedDailyCaloriesGoal, true, true);
         }
 
-        requireCompletePlan(goalType, targetWeight, durationWeeks, requestedWeeklyRateKg);
+        requireCompletePlan(goalType, targetWeight, durationWeeks);
         return evaluateConfiguredGoal(
                 user,
                 healthProfile,
@@ -205,33 +261,57 @@ public class NutritionGoalService {
             HealthProfile healthProfile,
             NutritionGoal nutritionGoal) {
         validateRequiredProfile(user, healthProfile);
-        if (!hasCompletePlanFieldValues(
-                nutritionGoal.getTargetWeight(),
-                nutritionGoal.getDurationWeeks(),
-                nutritionGoal.getWeeklyRateKg())) {
-            log.warn(
-                    "Invalid or incomplete nutrition goal data for user {}. Falling back to maintain calories.",
-                    nutritionGoal.getUser().getUserId());
-            return calculateMaintainGoal(user, healthProfile, null, false);
+        if (nutritionGoal.getGoalType() == GoalType.MAINTAIN
+                && !hasAnyPlanField(
+                        nutritionGoal.getTargetWeight(),
+                        nutritionGoal.getDurationWeeks(),
+                        nutritionGoal.getWeeklyRateKg())) {
+            return storedGoalEvaluation(nutritionGoal, List.of());
         }
-
         try {
-            return evaluateConfiguredGoal(
-                    user,
-                    healthProfile,
-                    nutritionGoal.getGoalType(),
-                    nutritionGoal.getTargetWeight(),
-                    nutritionGoal.getDurationWeeks(),
-                    nutritionGoal.getWeeklyRateKg(),
-                    null,
-                    false);
+            List<String> warnings = buildTargetBmiWarnings(nutritionGoal.getTargetWeight(), healthProfile);
+            return storedGoalEvaluation(nutritionGoal, warnings);
         } catch (InvalidNutritionGoalException exception) {
             log.warn(
                     "Invalid nutrition goal data for user {}: {}. Falling back to maintain calories.",
                     nutritionGoal.getUser().getUserId(),
                     exception.getMessage());
-            return calculateMaintainGoal(user, healthProfile, null, false);
+            return notConfiguredEvaluation();
         }
+    }
+
+    private NutritionGoalEvaluation notConfiguredEvaluation() {
+        return new NutritionGoalEvaluation(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                List.of(),
+                false);
+    }
+
+    private NutritionGoalEvaluation storedGoalEvaluation(
+            NutritionGoal nutritionGoal,
+            List<String> warnings) {
+        return new NutritionGoalEvaluation(
+                nutritionGoal.getGoalType(),
+                nutritionGoal.getTargetWeight(),
+                nutritionGoal.getDurationWeeks(),
+                nutritionGoal.getWeeklyRateKg(),
+                null,
+                nutritionGoal.getRecommendedCalories(),
+                nutritionGoal.getDailyCaloriesGoal(),
+                nutritionGoal.getProtein(),
+                nutritionGoal.getCarbs(),
+                nutritionGoal.getFat(),
+                warnings,
+                true);
     }
 
     private NutritionGoalEvaluation evaluateConfiguredGoal(
@@ -272,13 +352,18 @@ public class NutritionGoalService {
             warnings.add("Recommended calories are below BMR; manual daily calories override was applied.");
         }
 
+        MacroTargets macroTargets = calculateMacroTargets(dailyCaloriesGoal);
         return new NutritionGoalEvaluation(
                 goalType,
                 targetWeight,
                 durationWeeks,
                 weeklyRateKg,
+                bmr,
                 recommendedCalories,
                 dailyCaloriesGoal,
+                macroTargets.protein(),
+                macroTargets.carbs(),
+                macroTargets.fat(),
                 warnings,
                 true);
     }
@@ -287,7 +372,8 @@ public class NutritionGoalService {
             User user,
             HealthProfile healthProfile,
             BigDecimal requestedDailyCaloriesGoal,
-            boolean rejectDailyCaloriesBelowBmr) {
+            boolean rejectDailyCaloriesBelowBmr,
+            boolean goalConfigured) {
         BigDecimal bmr = calculateBmr(user, healthProfile);
         BigDecimal tdee = calculateTdee(bmr, healthProfile.getActivityLevel());
         BigDecimal dailyCaloriesGoal = requestedDailyCaloriesGoal != null
@@ -301,15 +387,20 @@ public class NutritionGoalService {
             dailyCaloriesGoal = tdee;
         }
 
+        MacroTargets macroTargets = calculateMacroTargets(dailyCaloriesGoal);
         return new NutritionGoalEvaluation(
                 GoalType.MAINTAIN,
                 null,
                 null,
                 null,
+                bmr,
                 tdee,
                 dailyCaloriesGoal,
+                macroTargets.protein(),
+                macroTargets.carbs(),
+                macroTargets.fat(),
                 List.of(),
-                false);
+                goalConfigured);
     }
 
     private void validateRequiredProfile(User user, HealthProfile healthProfile) {
@@ -343,11 +434,13 @@ public class NutritionGoalService {
     private void requireCompletePlan(
             GoalType goalType,
             BigDecimal targetWeight,
-            Integer durationWeeks,
-            BigDecimal weeklyRateKg) {
-        if (!hasCompletePlanFieldValues(targetWeight, durationWeeks, weeklyRateKg)) {
+            Integer durationWeeks) {
+        if (targetWeight == null
+                || targetWeight.compareTo(BigDecimal.ZERO) <= 0
+                || durationWeeks == null
+                || durationWeeks <= 0) {
             throw new InvalidNutritionGoalException(
-                    "Target weight, duration weeks, and weekly rate are required for " + goalType);
+                    "Target weight and duration weeks are required for " + goalType);
         }
     }
 
@@ -374,19 +467,17 @@ public class NutritionGoalService {
             BigDecimal calculatedWeeklyRateKg,
             BigDecimal requestedWeeklyRateKg) {
         if (goalType == GoalType.MAINTAIN) {
-            if (requestedWeeklyRateKg.compareTo(BigDecimal.ZERO) != 0) {
-                throw new InvalidNutritionGoalException("Weekly rate must be 0 kg/week for MAINTAIN");
-            }
-            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            return null;
         }
 
-        if (requestedWeeklyRateKg.compareTo(MIN_SAFE_WEEKLY_RATE_KG) < 0
-                || requestedWeeklyRateKg.compareTo(MAX_SAFE_WEEKLY_RATE_KG) > 0) {
+        if (calculatedWeeklyRateKg.compareTo(MIN_SAFE_WEEKLY_RATE_KG) < 0
+                || calculatedWeeklyRateKg.compareTo(MAX_SAFE_WEEKLY_RATE_KG) > 0) {
             throw new InvalidNutritionGoalException("Weekly rate must be between 0.25 and 1.0 kg/week");
         }
 
-        BigDecimal rateDifference = requestedWeeklyRateKg.subtract(calculatedWeeklyRateKg).abs();
-        if (rateDifference.compareTo(WEEKLY_RATE_TOLERANCE_KG) > 0) {
+        if (requestedWeeklyRateKg != null
+                && requestedWeeklyRateKg.subtract(calculatedWeeklyRateKg).abs()
+                        .compareTo(WEEKLY_RATE_TOLERANCE_KG) > 0) {
             throw new InvalidNutritionGoalException("Weekly rate must match target weight and duration weeks");
         }
 
@@ -473,14 +564,64 @@ public class NutritionGoalService {
         return value.setScale(2, RoundingMode.HALF_UP);
     }
 
+    private GoalType resolveGoalType(UpdateNutritionGoalRequest request, NutritionGoal existingGoal) {
+        if (request.goalType() != null) {
+            return request.goalType();
+        }
+        return existingGoal != null && existingGoal.getGoalType() != null
+                ? existingGoal.getGoalType()
+                : DEFAULT_GOAL_TYPE;
+    }
+
+    private BigDecimal resolveTargetWeight(
+            UpdateNutritionGoalRequest request,
+            NutritionGoal existingGoal,
+            GoalType goalType) {
+        if (goalType == GoalType.MAINTAIN) {
+            return null;
+        }
+        return request.targetWeight() != null
+                ? request.targetWeight()
+                : existingGoal != null ? existingGoal.getTargetWeight() : null;
+    }
+
+    private Integer resolveDurationWeeks(
+            UpdateNutritionGoalRequest request,
+            NutritionGoal existingGoal,
+            GoalType goalType) {
+        if (goalType == GoalType.MAINTAIN) {
+            return null;
+        }
+        return request.durationWeeks() != null
+                ? request.durationWeeks()
+                : existingGoal != null ? existingGoal.getDurationWeeks() : null;
+    }
+
+    private MacroTargets calculateMacroTargets(BigDecimal dailyCaloriesGoal) {
+        BigDecimal protein = dailyCaloriesGoal.multiply(PROTEIN_CALORIE_RATIO)
+                .divide(KCAL_PER_GRAM_PROTEIN, 2, RoundingMode.HALF_UP);
+        BigDecimal carbs = dailyCaloriesGoal.multiply(CARBS_CALORIE_RATIO)
+                .divide(KCAL_PER_GRAM_CARBS, 2, RoundingMode.HALF_UP);
+        BigDecimal fat = dailyCaloriesGoal.multiply(FAT_CALORIE_RATIO)
+                .divide(KCAL_PER_GRAM_FAT, 2, RoundingMode.HALF_UP);
+        return new MacroTargets(protein, carbs, fat);
+    }
+
     private record NutritionGoalEvaluation(
             GoalType goalType,
             BigDecimal targetWeight,
             Integer durationWeeks,
             BigDecimal weeklyRateKg,
+            BigDecimal bmr,
             BigDecimal recommendedCalories,
             BigDecimal dailyCaloriesGoal,
+            BigDecimal protein,
+            BigDecimal carbs,
+            BigDecimal fat,
             List<String> warnings,
             boolean goalConfigured) {
+    }
+
+    private record MacroTargets(BigDecimal protein, BigDecimal carbs, BigDecimal fat) {
     }
 }

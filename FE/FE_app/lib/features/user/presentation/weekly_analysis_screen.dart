@@ -24,6 +24,7 @@ class _WeeklyAnalysisScreenState extends State<WeeklyAnalysisScreen> {
       ),
     );
     final goal = await goalFuture;
+    final hasGoal = goal.isConfigured;
     final dailyTotals = logsByDay.map(_NutritionTotals.fromLogs).toList();
     final total = dailyTotals.fold(
       const _NutritionTotals(),
@@ -33,10 +34,10 @@ class _WeeklyAnalysisScreenState extends State<WeeklyAnalysisScreen> {
       days: days,
       dailyTotals: dailyTotals,
       total: total,
-      caloriesTarget: _asDouble(goal?['dailyCaloriesGoal']),
-      proteinTarget: _asDouble(goal?['protein']),
-      carbsTarget: _asDouble(goal?['carbs']),
-      fatTarget: _asDouble(goal?['fat']),
+      caloriesTarget: hasGoal ? goal.dailyCaloriesGoal : null,
+      proteinTarget: hasGoal ? goal.protein : null,
+      carbsTarget: hasGoal ? goal.carbs : null,
+      fatTarget: hasGoal ? goal.fat : null,
     );
   }
 

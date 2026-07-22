@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping({"/api/v1/users/me/health-profile", "/api/v1/users/{userId:\\d+}/health-profile"})
+@RequestMapping("/api/v1/users/me/health-profile")
 @RequiredArgsConstructor
 @Tag(name = "Health Profiles", description = "User health profile APIs")
 public class HealthProfileController {

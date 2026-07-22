@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping({"/api/v1/users/me/diet-preferences", "/api/v1/users/{userId:\\d+}/diet-preferences"})
+@RequestMapping("/api/v1/users/me/diet-preferences")
 @RequiredArgsConstructor
 @Tag(name = "Diet Preferences", description = "User diet preference APIs")
 public class DietPreferenceController {

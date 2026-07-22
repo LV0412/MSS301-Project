@@ -360,9 +360,10 @@ class HealthProfileSection extends StatelessWidget {
 }
 
 class NutritionGoalSection extends StatelessWidget {
-  const NutritionGoalSection({super.key, this.nutritionGoal});
+  const NutritionGoalSection({super.key, this.nutritionGoal, this.onEdit});
 
-  final Map<String, dynamic>? nutritionGoal;
+  final NutritionGoal? nutritionGoal;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -374,26 +375,41 @@ class NutritionGoalSection extends StatelessWidget {
             title: 'Mục tiêu dinh dưỡng',
           ),
           const SizedBox(height: 24),
-          if (nutritionGoal == null)
+          if (nutritionGoal?.isConfigured != true)
             _NutritionGoalSetupCta(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const LifestyleScreen(
-                    completeDestination: ApiUserProfileScreen(),
+              onPressed:
+                  onEdit ??
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NutritionGoalPlanScreen(),
+                    ),
                   ),
-                ),
-              ),
             )
           else ...[
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed:
+                    onEdit ??
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            NutritionGoalPlanScreen(initialGoal: nutritionGoal),
+                      ),
+                    ),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Chỉnh sửa kế hoạch'),
+              ),
+            ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: ProfileMetricTile(
                     label: 'CALO\nMỖI NGÀY',
-                    value: _formatNumber(
-                      _asDouble(nutritionGoal?['dailyCaloriesGoal']),
-                    ),
+                    value: _formatNumber(nutritionGoal?.dailyCaloriesGoal),
                     unit: 'kcal',
                   ),
                 ),
@@ -401,7 +417,7 @@ class NutritionGoalSection extends StatelessWidget {
                 Expanded(
                   child: ProfileMetricTile(
                     label: 'CHẤT ĐẠM',
-                    value: _formatNumber(_asDouble(nutritionGoal?['protein'])),
+                    value: _formatNumber(nutritionGoal?.protein),
                     unit: 'g',
                   ),
                 ),
@@ -413,7 +429,7 @@ class NutritionGoalSection extends StatelessWidget {
                 Expanded(
                   child: ProfileMetricTile(
                     label: 'TINH BỘT',
-                    value: _formatNumber(_asDouble(nutritionGoal?['carbs'])),
+                    value: _formatNumber(nutritionGoal?.carbs),
                     unit: 'g',
                   ),
                 ),
@@ -421,17 +437,135 @@ class NutritionGoalSection extends StatelessWidget {
                 Expanded(
                   child: ProfileMetricTile(
                     label: 'CHẤT BÉO',
-                    value: _formatNumber(_asDouble(nutritionGoal?['fat'])),
+                    value: _formatNumber(nutritionGoal?.fat),
                     unit: 'g',
                   ),
                 ),
               ],
             ),
+            if (nutritionGoal != null) ...[
+              const SizedBox(height: 18),
+              _NutritionGoalPlanSummary(goal: nutritionGoal!),
+            ],
           ],
         ],
       ),
     );
   }
+}
+
+class _NutritionGoalPlanSummary extends StatelessWidget {
+  const _NutritionGoalPlanSummary({required this.goal});
+
+  final NutritionGoal goal;
+
+  @override
+  Widget build(BuildContext context) {
+    final planText = _goalPlanText(goal);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.field,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (planText != null) ...[
+                Text(
+                  planText,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.35,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              Text(
+                'Gợi ý hệ thống: ${_formatNumber(goal.recommendedCalories)} kcal/ngày',
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.35,
+                  color: AppColors.darkGreen,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (goal.warnings.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _NutritionGoalWarningBanner(warnings: goal.warnings),
+        ],
+      ],
+    );
+  }
+}
+
+class _NutritionGoalWarningBanner extends StatelessWidget {
+  const _NutritionGoalWarningBanner({required this.warnings});
+
+  final List<String> warnings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF4D7),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE6C979)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.warning_amber_outlined,
+            size: 18,
+            color: Color(0xFF8A6A00),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              warnings.join('\n'),
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String? _goalPlanText(NutritionGoal goal) {
+  if (!goal.hasWeightPlan) return null;
+  final direction = switch (goal.goalType) {
+    'LOSE_WEIGHT' => 'Giảm cân',
+    'GAIN_WEIGHT' => 'Tăng cân',
+    _ => 'Mục tiêu',
+  };
+  final parts = <String>[direction];
+  if (goal.targetWeight != null) {
+    parts.add('${_formatNumber(goal.targetWeight)}kg');
+  }
+  if (goal.durationWeeks != null) {
+    parts.add('trong ${goal.durationWeeks} tuần');
+  }
+  if (goal.weeklyRateKg != null) {
+    parts.add('${_formatNumber(goal.weeklyRateKg)}kg/tuần');
+  }
+  return 'Mục tiêu: ${parts.join(' · ')}';
 }
 
 class _NutritionGoalSetupCta extends StatelessWidget {
@@ -493,21 +627,23 @@ class DietPreferenceSection extends StatelessWidget {
     super.key,
     required this.dietPreferences,
     required this.allergies,
+    required this.allergenOptions,
   });
 
   final List<Map<String, dynamic>> dietPreferences;
   final List<Map<String, dynamic>> allergies;
+  final List<Map<String, dynamic>> allergenOptions;
 
   @override
   Widget build(BuildContext context) {
-    final dietText = dietPreferences.isEmpty
-        ? 'Chưa cập nhật'
-        : dietPreferences
-              .map((item) => _dietLabel(item['dietType']?.toString()))
-              .join(', ');
-    final allergyText = allergies.isEmpty
-        ? 'Không có dữ liệu'
-        : '${allergies.length} dị ứng đã ghi nhận';
+    final allergenNames = <int, String>{
+      for (final item in allergenOptions)
+        if (item['allergenId'] is num)
+          (item['allergenId'] as num)
+              .toInt(): item['name']?.toString().trim().isNotEmpty == true
+              ? item['name'].toString()
+              : 'Dị ứng #${(item['allergenId'] as num).toInt()}',
+    };
 
     return ProfileCard(
       child: Column(
@@ -515,53 +651,195 @@ class DietPreferenceSection extends StatelessWidget {
           const ProfileSectionHeader(
             icon: Icons.restaurant_menu,
             title: 'Sở thích ăn uống',
+            expanded: true,
           ),
           const SizedBox(height: 24),
-          Row(
-            children: [
-              const Text(
-                'Chế độ ăn',
-                style: TextStyle(fontSize: 16, color: AppColors.ink),
+          _PreferenceDetailTitle(icon: Icons.eco_outlined, label: 'Chế độ ăn'),
+          const SizedBox(height: 12),
+          if (dietPreferences.isEmpty)
+            const _PreferenceEmptyText('Chưa cập nhật chế độ ăn')
+          else
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final preference in dietPreferences)
+                    _DietPreferenceTag(
+                      label: _dietLabel(preference['dietType']?.toString()),
+                    ),
+                ],
               ),
-              const Spacer(),
-              Flexible(
-                child: Text(
-                  dietText,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.ink,
-                  ),
-                ),
-              ),
-            ],
+            ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Divider(height: 1, color: AppColors.line),
           ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              const Text(
-                'Dị ứng',
-                style: TextStyle(fontSize: 16, color: AppColors.ink),
+          const _PreferenceDetailTitle(
+            icon: Icons.health_and_safety_outlined,
+            label: 'Dị ứng',
+          ),
+          const SizedBox(height: 8),
+          if (allergies.isEmpty)
+            const _PreferenceEmptyText('Chưa ghi nhận dị ứng')
+          else
+            for (var index = 0; index < allergies.length; index++) ...[
+              _AllergyDetailRow(
+                name: _allergyName(allergies[index], allergenNames),
+                severity: allergies[index]['severity']?.toString(),
               ),
-              const Spacer(),
-              Flexible(
-                child: Text(
-                  allergyText,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.ink,
-                  ),
-                ),
-              ),
+              if (index < allergies.length - 1)
+                const Divider(height: 1, color: AppColors.line),
             ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PreferenceDetailTitle extends StatelessWidget {
+  const _PreferenceDetailTitle({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.darkGreen),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+            color: AppColors.ink,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PreferenceEmptyText extends StatelessWidget {
+  const _PreferenceEmptyText(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 14, color: AppColors.muted),
+      ),
+    );
+  }
+}
+
+class _DietPreferenceTag extends StatelessWidget {
+  const _DietPreferenceTag({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.mint,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+          color: AppColors.darkGreen,
+        ),
+      ),
+    );
+  }
+}
+
+class _AllergyDetailRow extends StatelessWidget {
+  const _AllergyDetailRow({required this.name, required this.severity});
+
+  final String name;
+  final String? severity;
+
+  @override
+  Widget build(BuildContext context) {
+    final detail = _severityDetail(severity);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 11),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: AppColors.ink,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: detail.background,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              detail.label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                color: detail.foreground,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+}
+
+String _allergyName(
+  Map<String, dynamic> allergy,
+  Map<int, String> allergenNames,
+) {
+  final id = (allergy['allergenId'] as num?)?.toInt();
+  if (id == null) return 'Dị ứng chưa xác định';
+  return allergenNames[id] ?? 'Dị ứng #$id';
+}
+
+({String label, Color background, Color foreground}) _severityDetail(
+  String? severity,
+) {
+  return switch (severity?.toUpperCase()) {
+    'LOW' => (
+      label: 'Nhẹ',
+      background: const Color(0xFFE4F2E3),
+      foreground: const Color(0xFF35613D),
+    ),
+    'HIGH' => (
+      label: 'Nặng',
+      background: const Color(0xFFFFE6E2),
+      foreground: const Color(0xFFA43128),
+    ),
+    _ => (
+      label: 'Trung bình',
+      background: const Color(0xFFFFF1D6),
+      foreground: const Color(0xFF815F12),
+    ),
+  };
 }
 
 class ProfileSectionHeader extends StatelessWidget {

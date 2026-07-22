@@ -2,13 +2,12 @@ import 'package:dio/dio.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/auth_api_client.dart';
+import 'models/nutrition_goal.dart';
 import 'models/user_profile.dart';
 
 class UserRepository {
   UserRepository({AuthApiClient? apiClient})
     : _apiClient = apiClient ?? AuthApiClient();
-
-  static const _nutritionGoalNotFoundCode = 'NUTRITION_GOAL_NOT_FOUND';
 
   final AuthApiClient _apiClient;
 
@@ -86,44 +85,74 @@ class UserRepository {
     }
   }
 
-  Future<Map<String, dynamic>?> getNutritionGoal() {
-    return _getOptionalMap(
-      '/users/me/nutrition-goal',
-      notFoundCode: _nutritionGoalNotFoundCode,
+  Future<NutritionGoal> getNutritionGoal() async {
+    final response = await _request(
+      () =>
+          _apiClient.dio.get<Map<String, dynamic>>('/users/me/nutrition-goal'),
     );
+    final data = response.data;
+    if (data == null) {
+      throw const ApiException(
+        message: 'User Service không trả dữ liệu mục tiêu dinh dưỡng.',
+      );
+    }
+    return NutritionGoal.fromJson(data);
   }
 
-  Future<Map<String, dynamic>> saveNutritionGoal({
-    required double calories,
-    required double protein,
-    required double carbs,
-    required double fat,
+  Future<NutritionGoal> saveNutritionGoal({
+    required String goalType,
+    double? targetWeight,
+    int? durationWeeks,
+    double? dailyCaloriesGoal,
   }) async {
-    final data = {
-      'dailyCaloriesGoal': calories,
-      'protein': protein,
-      'carbs': carbs,
-      'fat': fat,
+    final data = <String, dynamic>{
+      'goalType': goalType,
+      'targetWeight': targetWeight,
+      'durationWeeks': durationWeeks,
+      'dailyCaloriesGoal': dailyCaloriesGoal,
     };
 
-    try {
-      final response = await _request(
-        () => _apiClient.dio.put<Map<String, dynamic>>(
-          '/users/me/nutrition-goal',
-          data: data,
-        ),
+    final response = await _request(
+      () => _apiClient.dio.put<Map<String, dynamic>>(
+        '/users/me/nutrition-goal',
+        data: data,
+      ),
+    );
+    final responseData = response.data;
+    if (responseData == null) {
+      throw const ApiException(
+        message: 'User Service không trả dữ liệu mục tiêu đã lưu.',
       );
-      return response.data ?? const {};
-    } on ApiException catch (error) {
-      if (error.statusCode != 404) rethrow;
-      final response = await _request(
-        () => _apiClient.dio.post<Map<String, dynamic>>(
-          '/users/me/nutrition-goal',
-          data: data,
-        ),
-      );
-      return response.data ?? const {};
     }
+    return NutritionGoal.fromJson(responseData);
+  }
+
+  Future<NutritionGoalPreview> previewNutritionGoal({
+    required String goalType,
+    double? targetWeight,
+    int? durationWeeks,
+    double? dailyCaloriesGoal,
+    CancelToken? cancelToken,
+  }) async {
+    final response = await _request(
+      () => _apiClient.dio.post<Map<String, dynamic>>(
+        '/users/me/nutrition-goal/preview',
+        data: <String, dynamic>{
+          'goalType': goalType,
+          'targetWeight': targetWeight,
+          'durationWeeks': durationWeeks,
+          'dailyCaloriesGoal': dailyCaloriesGoal,
+        },
+        cancelToken: cancelToken,
+      ),
+    );
+    final data = response.data;
+    if (data == null) {
+      throw const ApiException(
+        message: 'User Service không trả dữ liệu xem trước mục tiêu.',
+      );
+    }
+    return NutritionGoalPreview.fromJson(data);
   }
 
   Future<List<Map<String, dynamic>>> getDietPreferences() {
@@ -138,9 +167,7 @@ class UserRepository {
     return _getOptionalList('/users/me/favorites');
   }
 
-  Future<Map<String, dynamic>> addFavorite({
-    required int recipeId,
-  }) async {
+  Future<Map<String, dynamic>> addFavorite({required int recipeId}) async {
     final response = await _request(
       () => _apiClient.dio.post<Map<String, dynamic>>(
         '/users/me/favorites',
@@ -150,9 +177,7 @@ class UserRepository {
     return response.data ?? const {};
   }
 
-  Future<void> deleteFavorite({
-    required int favoriteId,
-  }) async {
+  Future<void> deleteFavorite({required int favoriteId}) async {
     await _request(
       () => _apiClient.dio.delete<void>('/users/me/favorites/$favoriteId'),
     );
@@ -233,9 +258,7 @@ class UserRepository {
     );
   }
 
-  Future<void> syncDietPreferences({
-    required Set<String> dietTypes,
-  }) async {
+  Future<void> syncDietPreferences({required Set<String> dietTypes}) async {
     final current = await getDietPreferences();
     final desired = dietTypes.map((item) => item.trim().toUpperCase()).toSet();
 
@@ -244,9 +267,7 @@ class UserRepository {
       final dietType = preference['dietType']?.toString().toUpperCase();
       if (id != null && !desired.contains(dietType)) {
         await _request(
-          () => _apiClient.dio.delete<void>(
-            '/users/me/diet-preferences/$id',
-          ),
+          () => _apiClient.dio.delete<void>('/users/me/diet-preferences/$id'),
         );
       }
     }
@@ -265,9 +286,7 @@ class UserRepository {
     }
   }
 
-  Future<void> syncAllergies({
-    required Map<int, String> allergies,
-  }) async {
+  Future<void> syncAllergies({required Map<int, String> allergies}) async {
     final current = await getAllergies();
     final currentByAllergen = <int, Map<String, dynamic>>{};
     for (final allergy in current) {
@@ -279,9 +298,7 @@ class UserRepository {
       final allergyId = (entry.value['allergyId'] as num?)?.toInt();
       if (allergyId != null && !allergies.containsKey(entry.key)) {
         await _request(
-          () => _apiClient.dio.delete<void>(
-            '/users/me/allergies/$allergyId',
-          ),
+          () => _apiClient.dio.delete<void>('/users/me/allergies/$allergyId'),
         );
       }
     }
@@ -312,22 +329,13 @@ class UserRepository {
     }
   }
 
-  Future<Map<String, dynamic>?> _getOptionalMap(
-    String path, {
-    String? notFoundCode,
-  }) async {
+  Future<Map<String, dynamic>?> _getOptionalMap(String path) async {
     try {
       final response = await _request(
         () => _apiClient.dio.get<Map<String, dynamic>>(path),
       );
       return response.data;
     } on ApiException catch (error) {
-      if (notFoundCode != null) {
-        if (error.statusCode == 404 && error.code == notFoundCode) {
-          return null;
-        }
-        rethrow;
-      }
       if (error.statusCode == 404) return null;
       rethrow;
     }
@@ -354,6 +362,7 @@ class UserRepository {
     try {
       return await call();
     } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) rethrow;
       throw ApiException.fromDio(error);
     }
   }

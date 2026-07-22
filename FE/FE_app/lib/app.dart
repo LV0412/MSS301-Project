@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:dio/dio.dart';
 
 import 'core/network/api_exception.dart';
 import 'features/auth/application/auth_dependencies.dart';
@@ -10,7 +11,9 @@ import 'features/auth/data/models/account.dart';
 import 'features/auth/presentation/google_web_button.dart';
 import 'features/recipe/data/models/recipe.dart';
 import 'features/user/application/food_log_store.dart';
+import 'features/user/data/models/nutrition_goal.dart';
 import 'features/user/data/models/user_profile.dart';
+import 'features/user/data/user_repository.dart';
 
 part 'features/auth/presentation/auth_screens.dart';
 part 'features/auth/presentation/auth_widgets.dart';
@@ -32,6 +35,7 @@ part 'features/user/presentation/favorite_recipes_screen.dart';
 part 'features/user/presentation/food_log_screens.dart';
 part 'features/user/presentation/profile_screen.dart';
 part 'features/user/presentation/profile_widgets.dart';
+part 'features/user/presentation/nutrition_goal_plan_screen.dart';
 part 'features/user/presentation/weekly_analysis_screen.dart';
 part 'features/user/presentation/weekly_analysis_widgets.dart';
 

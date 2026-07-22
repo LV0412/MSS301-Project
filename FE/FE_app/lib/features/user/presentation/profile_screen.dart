@@ -19,7 +19,10 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
   }
 
   void _reloadProfile() {
-    setState(() => _profileFuture = _loadProfile());
+    final nextProfile = _loadProfile();
+    setState(() {
+      _profileFuture = nextProfile;
+    });
   }
 
   Future<void> _editBasicProfile(UserProfile? profile) async {
@@ -33,18 +36,29 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
     if (updated == true && mounted) _reloadProfile();
   }
 
+  Future<void> _editNutritionGoal(NutritionGoal? goal) async {
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NutritionGoalPlanScreen(initialGoal: goal),
+      ),
+    );
+    if (mounted) _reloadProfile();
+  }
+
   Future<_ProfileApiState> _loadProfile() async {
     final account = await AuthDependencies.instance.repository.me();
     UserProfile? userProfile;
     String? profileMessage;
     Map<String, dynamic>? healthProfile;
-    Map<String, dynamic>? nutritionGoal;
+    NutritionGoal? nutritionGoal;
     List<Map<String, dynamic>> dietPreferences = const [];
     List<Map<String, dynamic>> allergies = const [];
+    List<Map<String, dynamic>> allergenOptions = const [];
 
     try {
-      userProfile =
-          await AuthDependencies.instance.userRepository.getCurrentUser();
+      userProfile = await AuthDependencies.instance.userRepository
+          .getCurrentUser();
     } on ApiException catch (error) {
       profileMessage = error.message;
     }
@@ -56,6 +70,8 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
         nutritionGoal = await repository.getNutritionGoal();
         dietPreferences = await repository.getDietPreferences();
         allergies = await repository.getAllergies();
+        allergenOptions = await AuthDependencies.instance.recipeRepository
+            .getAllergens();
       } on ApiException catch (error) {
         profileMessage = error.message;
       }
@@ -69,6 +85,7 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
       nutritionGoal: nutritionGoal,
       dietPreferences: dietPreferences,
       allergies: allergies,
+      allergenOptions: allergenOptions,
     );
   }
 
@@ -136,18 +153,22 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
                     ProfileSetupBanner(
                       editing:
                           state.healthProfile != null ||
-                          state.nutritionGoal != null ||
+                          state.nutritionGoal?.isConfigured == true ||
                           state.dietPreferences.isNotEmpty ||
                           state.allergies.isNotEmpty,
                     ),
                     const SizedBox(height: 28),
                     HealthProfileSection(healthProfile: state.healthProfile),
                     const SizedBox(height: 16),
-                    NutritionGoalSection(nutritionGoal: state.nutritionGoal),
+                    NutritionGoalSection(
+                      nutritionGoal: state.nutritionGoal,
+                      onEdit: () => _editNutritionGoal(state.nutritionGoal),
+                    ),
                     const SizedBox(height: 16),
                     DietPreferenceSection(
                       dietPreferences: state.dietPreferences,
                       allergies: state.allergies,
+                      allergenOptions: state.allergenOptions,
                     ),
                     const SizedBox(height: 28),
                     SettingsCard(onLogout: _logout),
@@ -180,15 +201,17 @@ class _ProfileApiState {
     required this.nutritionGoal,
     required this.dietPreferences,
     required this.allergies,
+    required this.allergenOptions,
   });
 
   final Account account;
   final UserProfile? userProfile;
   final String? profileMessage;
   final Map<String, dynamic>? healthProfile;
-  final Map<String, dynamic>? nutritionGoal;
+  final NutritionGoal? nutritionGoal;
   final List<Map<String, dynamic>> dietPreferences;
   final List<Map<String, dynamic>> allergies;
+  final List<Map<String, dynamic>> allergenOptions;
 }
 
 class _ApiProfileHeader extends StatelessWidget {
