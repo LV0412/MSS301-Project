@@ -10,6 +10,7 @@ import 'features/auth/data/models/account.dart';
 import 'features/auth/presentation/google_web_button.dart';
 import 'features/recipe/data/models/recipe.dart';
 import 'features/user/application/food_log_store.dart';
+import 'features/user/data/models/nutrition_goal.dart';
 import 'features/user/data/models/user_profile.dart';
 
 part 'features/auth/presentation/auth_screens.dart';

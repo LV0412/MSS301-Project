@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping({"/api/v1/users/me/allergies", "/api/v1/users/{userId:\\d+}/allergies"})
+@RequestMapping("/api/v1/users/me/allergies")
 @RequiredArgsConstructor
 @Tag(name = "User Allergies", description = "User allergy APIs")
 public class UserAllergyController {

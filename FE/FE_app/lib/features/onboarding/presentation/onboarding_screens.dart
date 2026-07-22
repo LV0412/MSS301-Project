@@ -5,7 +5,7 @@ class _HealthProfileSetupDraft {
   String weight = '';
   String activityLevel = 'LIGHT';
 
-  String calories = '2000';
+  String calories = '';
   String protein = '100';
   String carbs = '250';
   String fat = '65';
@@ -25,10 +25,17 @@ class _HealthProfileSetupDraft {
     height = _draftNumber(health?['height']);
     weight = _draftNumber(health?['weight']);
     activityLevel = health?['activityLevel']?.toString() ?? 'LIGHT';
-    calories = _draftNumber(nutrition?['dailyCaloriesGoal']);
-    protein = _draftNumber(nutrition?['protein'], fallback: '100');
-    carbs = _draftNumber(nutrition?['carbs'], fallback: '250');
-    fat = _draftNumber(nutrition?['fat'], fallback: '65');
+    if (nutrition.isConfigured) {
+      calories = _draftNumber(nutrition.dailyCaloriesGoal);
+      protein = _draftNumber(nutrition.protein, fallback: '100');
+      carbs = _draftNumber(nutrition.carbs, fallback: '250');
+      fat = _draftNumber(nutrition.fat, fallback: '65');
+    } else {
+      calories = '';
+      protein = '100';
+      carbs = '250';
+      fat = '65';
+    }
 
     dietTypes
       ..clear()

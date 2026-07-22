@@ -49,6 +49,10 @@ public class NutritionGoal {
     @Column(name = "weekly_rate_kg", precision = 4, scale = 2)
     private BigDecimal weeklyRateKg;
 
+    @Builder.Default
+    @Column(name = "goal_configured", nullable = false)
+    private boolean goalConfigured = true;
+
     @Column(name = "recommended_calories", nullable = false, precision = 8, scale = 2)
     private BigDecimal recommendedCalories;
 

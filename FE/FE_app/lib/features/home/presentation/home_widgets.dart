@@ -86,7 +86,9 @@ class _DailyCaloriesCardState extends State<DailyCaloriesCard> {
     return _DailyCaloriesData(
       fullName: profile.fullName,
       consumedCalories: consumedCalories,
-      targetCalories: _asDouble(nutritionGoal?['dailyCaloriesGoal']),
+      targetCalories: nutritionGoal.isConfigured
+          ? nutritionGoal.dailyCaloriesGoal
+          : null,
     );
   }
 
@@ -230,7 +232,7 @@ class _DailyCaloriesContent extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Đã nạp / ${_formatCalories(target!)}',
+                              'Đã nạp / ${_formatCalories(target)}',
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
@@ -555,11 +557,13 @@ class _MacroSummaryCardState extends State<MacroSummaryCard> {
       dependencies.userRepository.getNutritionGoal(),
       dependencies.foodLogStore.load(date: _foodLogIsoDate(DateTime.now())),
     ]);
+    final goal = results[0] as NutritionGoal?;
+    final hasGoal = goal?.isConfigured == true;
     return _MacroSummaryData(
       consumed: _NutritionTotals.fromLogs(results[1] as List<FoodLogEntry>),
-      proteinTarget: _asDouble((results[0] as Map?)?['protein']),
-      carbsTarget: _asDouble((results[0] as Map?)?['carbs']),
-      fatTarget: _asDouble((results[0] as Map?)?['fat']),
+      proteinTarget: hasGoal ? goal?.protein : null,
+      carbsTarget: hasGoal ? goal?.carbs : null,
+      fatTarget: hasGoal ? goal?.fat : null,
     );
   }
 

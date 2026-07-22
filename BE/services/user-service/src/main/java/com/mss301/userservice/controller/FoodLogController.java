@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping({"/api/v1/users/me/food-logs", "/api/v1/users/{userId:\\d+}/food-logs"})
+@RequestMapping("/api/v1/users/me/food-logs")
 @RequiredArgsConstructor
 @Tag(name = "Food Logs", description = "User food log APIs")
 public class FoodLogController {
