@@ -60,8 +60,7 @@ class _EditBasicProfileScreenState extends State<EditBasicProfileScreen> {
 
     setState(() => _saving = true);
     try {
-      await AuthDependencies.instance.userRepository.updateUser(
-        userId: widget.profile.userId,
+      await AuthDependencies.instance.userRepository.updateCurrentUser(
         fullName: fullName,
         dob: _dobApiValue,
         gender: _gender,

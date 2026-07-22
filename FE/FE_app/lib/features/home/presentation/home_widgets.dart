@@ -72,13 +72,8 @@ class _DailyCaloriesCardState extends State<DailyCaloriesCard> {
 
   Future<_DailyCaloriesData> _loadData() async {
     final dependencies = AuthDependencies.instance;
-    final account = await dependencies.repository.me();
-    final profile = await dependencies.userRepository.getUserById(
-      account.userId,
-    );
-    final nutritionGoal = await dependencies.userRepository.getNutritionGoal(
-      account.userId,
-    );
+    final profile = await dependencies.userRepository.getCurrentUser();
+    final nutritionGoal = await dependencies.userRepository.getNutritionGoal();
     final logs = await dependencies.foodLogStore.load(
       date: _foodLogIsoDate(DateTime.now()),
     );
@@ -91,7 +86,7 @@ class _DailyCaloriesCardState extends State<DailyCaloriesCard> {
     return _DailyCaloriesData(
       fullName: profile.fullName,
       consumedCalories: consumedCalories,
-      targetCalories: _asDouble(nutritionGoal?['calories']),
+      targetCalories: _asDouble(nutritionGoal?['dailyCaloriesGoal']),
     );
   }
 
@@ -169,86 +164,172 @@ class _DailyCaloriesContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 32),
-        Container(
-          padding: const EdgeInsets.fromLTRB(26, 22, 26, 24),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'CALO HẰNG NGÀY',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.ink,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Center(
-                child: SizedBox(
-                  width: 198,
-                  height: 198,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      const SizedBox(
-                        width: 168,
-                        height: 168,
-                        child: CircularProgressIndicator(
-                          value: 0,
-                          strokeWidth: 8,
-                          strokeCap: StrokeCap.round,
-                          color: AppColors.green,
-                          backgroundColor: AppColors.line,
-                        ),
-                      ),
-                      SizedBox(
-                        width: 168,
-                        height: 168,
-                        child: CircularProgressIndicator(
-                          value: progress,
-                          strokeWidth: 8,
-                          strokeCap: StrokeCap.round,
-                          color: AppColors.green,
-                          backgroundColor: Colors.transparent,
-                        ),
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _formatCalories(data.consumedCalories),
-                            style: const TextStyle(
-                              fontSize: 44,
-                              height: 1,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.ink,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            target == null
-                                ? 'Đã nạp / Chưa có mục tiêu'
-                                : 'Đã nạp / ${_formatCalories(target)}',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.ink,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+        if (target == null)
+          _NutritionGoalSetupCard(
+            onPressed: () => _openNutritionGoalSetup(context),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.fromLTRB(26, 22, 26, 24),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'CALO HẰNG NGÀY',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.ink,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 14),
+                Center(
+                  child: SizedBox(
+                    width: 198,
+                    height: 198,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const SizedBox(
+                          width: 168,
+                          height: 168,
+                          child: CircularProgressIndicator(
+                            value: 0,
+                            strokeWidth: 8,
+                            strokeCap: StrokeCap.round,
+                            color: AppColors.green,
+                            backgroundColor: AppColors.line,
+                          ),
+                        ),
+                        SizedBox(
+                          width: 168,
+                          height: 168,
+                          child: CircularProgressIndicator(
+                            value: progress,
+                            strokeWidth: 8,
+                            strokeCap: StrokeCap.round,
+                            color: AppColors.green,
+                            backgroundColor: Colors.transparent,
+                          ),
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _formatCalories(data.consumedCalories),
+                              style: const TextStyle(
+                                fontSize: 44,
+                                height: 1,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.ink,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Đã nạp / ${_formatCalories(target!)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.ink,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
       ],
+    );
+  }
+}
+
+void _openNutritionGoalSetup(BuildContext context) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => const LifestyleScreen(
+        completeDestination: MainShell(),
+      ),
+    ),
+  );
+}
+
+class _NutritionGoalSetupCard extends StatelessWidget {
+  const _NutritionGoalSetupCard({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(26, 24, 26, 24),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'CALO HẰNG NGÀY',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              color: AppColors.ink,
+            ),
+          ),
+          const SizedBox(height: 22),
+          const Icon(
+            Icons.track_changes,
+            color: AppColors.green,
+            size: 34,
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Bạn chưa thiết lập mục tiêu calo',
+            style: TextStyle(
+              fontSize: 20,
+              height: 1.15,
+              fontWeight: FontWeight.w900,
+              color: AppColors.ink,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Hoàn thành 4 bước hồ sơ để ứng dụng tính calo và macro hằng ngày.',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.35,
+              color: AppColors.darkGreen,
+            ),
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: onPressed,
+            icon: const Icon(Icons.arrow_forward, size: 17),
+            label: const Text('Thiết lập mục tiêu'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.green,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              textStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -444,6 +525,9 @@ class _MacroSummaryData {
   final double? proteinTarget;
   final double? carbsTarget;
   final double? fatTarget;
+
+  bool get hasTargets =>
+      proteinTarget != null || carbsTarget != null || fatTarget != null;
 }
 
 String _macroValue(double consumed, double? target) {
@@ -467,9 +551,8 @@ class _MacroSummaryCardState extends State<MacroSummaryCard> {
 
   Future<_MacroSummaryData> _load() async {
     final dependencies = AuthDependencies.instance;
-    final account = await dependencies.repository.me();
     final results = await Future.wait([
-      dependencies.userRepository.getNutritionGoal(account.userId),
+      dependencies.userRepository.getNutritionGoal(),
       dependencies.foodLogStore.load(date: _foodLogIsoDate(DateTime.now())),
     ]);
     return _MacroSummaryData(
@@ -515,6 +598,8 @@ class _MacroSummaryContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!data.hasTargets) return const SizedBox.shrink();
+
     return Container(
       padding: const EdgeInsets.fromLTRB(26, 20, 26, 18),
       decoration: BoxDecoration(

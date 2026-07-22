@@ -8,11 +8,13 @@ class UserRepository {
   UserRepository({AuthApiClient? apiClient})
     : _apiClient = apiClient ?? AuthApiClient();
 
+  static const _nutritionGoalNotFoundCode = 'NUTRITION_GOAL_NOT_FOUND';
+
   final AuthApiClient _apiClient;
 
-  Future<UserProfile> getUserById(int userId) async {
+  Future<UserProfile> getCurrentUser() async {
     final response = await _request(
-      () => _apiClient.dio.get<Map<String, dynamic>>('/users/$userId'),
+      () => _apiClient.dio.get<Map<String, dynamic>>('/users/me'),
     );
     final data = response.data;
     if (data == null) {
@@ -23,8 +25,7 @@ class UserRepository {
     return UserProfile.fromJson(data);
   }
 
-  Future<UserProfile> updateUser({
-    required int userId,
+  Future<UserProfile> updateCurrentUser({
     required String fullName,
     String? dob,
     required String gender,
@@ -37,7 +38,7 @@ class UserRepository {
 
     final response = await _request(
       () => _apiClient.dio.put<Map<String, dynamic>>(
-        '/users/$userId',
+        '/users/me',
         data: requestData,
       ),
     );
@@ -50,12 +51,11 @@ class UserRepository {
     return UserProfile.fromJson(data);
   }
 
-  Future<Map<String, dynamic>?> getHealthProfile(int userId) {
-    return _getOptionalMap('/users/$userId/health-profile');
+  Future<Map<String, dynamic>?> getHealthProfile() {
+    return _getOptionalMap('/users/me/health-profile');
   }
 
   Future<Map<String, dynamic>> saveHealthProfile({
-    required int userId,
     required double height,
     required double weight,
     required String activityLevel,
@@ -69,7 +69,7 @@ class UserRepository {
     try {
       final response = await _request(
         () => _apiClient.dio.put<Map<String, dynamic>>(
-          '/users/$userId/health-profile',
+          '/users/me/health-profile',
           data: data,
         ),
       );
@@ -78,7 +78,7 @@ class UserRepository {
       if (error.statusCode != 404) rethrow;
       final response = await _request(
         () => _apiClient.dio.post<Map<String, dynamic>>(
-          '/users/$userId/health-profile',
+          '/users/me/health-profile',
           data: data,
         ),
       );
@@ -86,19 +86,21 @@ class UserRepository {
     }
   }
 
-  Future<Map<String, dynamic>?> getNutritionGoal(int userId) {
-    return _getOptionalMap('/users/$userId/nutrition-goal');
+  Future<Map<String, dynamic>?> getNutritionGoal() {
+    return _getOptionalMap(
+      '/users/me/nutrition-goal',
+      notFoundCode: _nutritionGoalNotFoundCode,
+    );
   }
 
   Future<Map<String, dynamic>> saveNutritionGoal({
-    required int userId,
     required double calories,
     required double protein,
     required double carbs,
     required double fat,
   }) async {
     final data = {
-      'calories': calories,
+      'dailyCaloriesGoal': calories,
       'protein': protein,
       'carbs': carbs,
       'fat': fat,
@@ -107,7 +109,7 @@ class UserRepository {
     try {
       final response = await _request(
         () => _apiClient.dio.put<Map<String, dynamic>>(
-          '/users/$userId/nutrition-goal',
+          '/users/me/nutrition-goal',
           data: data,
         ),
       );
@@ -116,7 +118,7 @@ class UserRepository {
       if (error.statusCode != 404) rethrow;
       final response = await _request(
         () => _apiClient.dio.post<Map<String, dynamic>>(
-          '/users/$userId/nutrition-goal',
+          '/users/me/nutrition-goal',
           data: data,
         ),
       );
@@ -124,25 +126,24 @@ class UserRepository {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getDietPreferences(int userId) {
-    return _getOptionalList('/users/$userId/diet-preferences');
+  Future<List<Map<String, dynamic>>> getDietPreferences() {
+    return _getOptionalList('/users/me/diet-preferences');
   }
 
-  Future<List<Map<String, dynamic>>> getAllergies(int userId) {
-    return _getOptionalList('/users/$userId/allergies');
+  Future<List<Map<String, dynamic>>> getAllergies() {
+    return _getOptionalList('/users/me/allergies');
   }
 
-  Future<List<Map<String, dynamic>>> getFavorites(int userId) {
-    return _getOptionalList('/users/$userId/favorites');
+  Future<List<Map<String, dynamic>>> getFavorites() {
+    return _getOptionalList('/users/me/favorites');
   }
 
   Future<Map<String, dynamic>> addFavorite({
-    required int userId,
     required int recipeId,
   }) async {
     final response = await _request(
       () => _apiClient.dio.post<Map<String, dynamic>>(
-        '/users/$userId/favorites',
+        '/users/me/favorites',
         data: {'recipeId': recipeId},
       ),
     );
@@ -150,16 +151,14 @@ class UserRepository {
   }
 
   Future<void> deleteFavorite({
-    required int userId,
     required int favoriteId,
   }) async {
     await _request(
-      () => _apiClient.dio.delete<void>('/users/$userId/favorites/$favoriteId'),
+      () => _apiClient.dio.delete<void>('/users/me/favorites/$favoriteId'),
     );
   }
 
   Future<List<Map<String, dynamic>>> getFoodLogs({
-    required int userId,
     String? date,
     String? mealType,
     int page = 0,
@@ -175,7 +174,7 @@ class UserRepository {
 
     final response = await _request(
       () => _apiClient.dio.get<Map<String, dynamic>>(
-        '/users/$userId/food-logs',
+        '/users/me/food-logs',
         queryParameters: queryParameters,
       ),
     );
@@ -188,7 +187,6 @@ class UserRepository {
   }
 
   Future<Map<String, dynamic>> createFoodLog({
-    required int userId,
     required int recipeId,
     required double quantity,
     required String mealType,
@@ -196,7 +194,7 @@ class UserRepository {
   }) async {
     final response = await _request(
       () => _apiClient.dio.post<Map<String, dynamic>>(
-        '/users/$userId/food-logs',
+        '/users/me/food-logs',
         data: {
           'recipeId': recipeId,
           'quantity': quantity,
@@ -209,7 +207,6 @@ class UserRepository {
   }
 
   Future<Map<String, dynamic>> updateFoodLog({
-    required int userId,
     required int logId,
     required int recipeId,
     required double quantity,
@@ -218,7 +215,7 @@ class UserRepository {
   }) async {
     final response = await _request(
       () => _apiClient.dio.put<Map<String, dynamic>>(
-        '/users/$userId/food-logs/$logId',
+        '/users/me/food-logs/$logId',
         data: {
           'recipeId': recipeId,
           'quantity': quantity,
@@ -230,17 +227,16 @@ class UserRepository {
     return response.data ?? const {};
   }
 
-  Future<void> deleteFoodLog({required int userId, required int logId}) async {
+  Future<void> deleteFoodLog({required int logId}) async {
     await _request(
-      () => _apiClient.dio.delete<void>('/users/$userId/food-logs/$logId'),
+      () => _apiClient.dio.delete<void>('/users/me/food-logs/$logId'),
     );
   }
 
   Future<void> syncDietPreferences({
-    required int userId,
     required Set<String> dietTypes,
   }) async {
-    final current = await getDietPreferences(userId);
+    final current = await getDietPreferences();
     final desired = dietTypes.map((item) => item.trim().toUpperCase()).toSet();
 
     for (final preference in current) {
@@ -249,7 +245,7 @@ class UserRepository {
       if (id != null && !desired.contains(dietType)) {
         await _request(
           () => _apiClient.dio.delete<void>(
-            '/users/$userId/diet-preferences/$id',
+            '/users/me/diet-preferences/$id',
           ),
         );
       }
@@ -262,7 +258,7 @@ class UserRepository {
     for (final dietType in desired.difference(existingTypes)) {
       await _request(
         () => _apiClient.dio.post<Map<String, dynamic>>(
-          '/users/$userId/diet-preferences',
+          '/users/me/diet-preferences',
           data: {'dietType': dietType},
         ),
       );
@@ -270,10 +266,9 @@ class UserRepository {
   }
 
   Future<void> syncAllergies({
-    required int userId,
     required Map<int, String> allergies,
   }) async {
-    final current = await getAllergies(userId);
+    final current = await getAllergies();
     final currentByAllergen = <int, Map<String, dynamic>>{};
     for (final allergy in current) {
       final allergenId = (allergy['allergenId'] as num?)?.toInt();
@@ -285,7 +280,7 @@ class UserRepository {
       if (allergyId != null && !allergies.containsKey(entry.key)) {
         await _request(
           () => _apiClient.dio.delete<void>(
-            '/users/$userId/allergies/$allergyId',
+            '/users/me/allergies/$allergyId',
           ),
         );
       }
@@ -297,7 +292,7 @@ class UserRepository {
       if (existing == null) {
         await _request(
           () => _apiClient.dio.post<Map<String, dynamic>>(
-            '/users/$userId/allergies',
+            '/users/me/allergies',
             data: {'allergenId': entry.key, 'severity': severity},
           ),
         );
@@ -309,7 +304,7 @@ class UserRepository {
       if (allergyId != null && currentSeverity != severity) {
         await _request(
           () => _apiClient.dio.put<Map<String, dynamic>>(
-            '/users/$userId/allergies/$allergyId',
+            '/users/me/allergies/$allergyId',
             data: {'allergenId': entry.key, 'severity': severity},
           ),
         );
@@ -317,13 +312,22 @@ class UserRepository {
     }
   }
 
-  Future<Map<String, dynamic>?> _getOptionalMap(String path) async {
+  Future<Map<String, dynamic>?> _getOptionalMap(
+    String path, {
+    String? notFoundCode,
+  }) async {
     try {
       final response = await _request(
         () => _apiClient.dio.get<Map<String, dynamic>>(path),
       );
       return response.data;
     } on ApiException catch (error) {
+      if (notFoundCode != null) {
+        if (error.statusCode == 404 && error.code == notFoundCode) {
+          return null;
+        }
+        rethrow;
+      }
       if (error.statusCode == 404) return null;
       rethrow;
     }

@@ -1,7 +1,6 @@
 part of '../../../app.dart';
 
 class _HealthProfileSetupDraft {
-  int? userId;
   String height = '';
   String weight = '';
   String activityLevel = 'LIGHT';
@@ -16,23 +15,17 @@ class _HealthProfileSetupDraft {
 
   Future<void> loadFromBackend() async {
     final dependencies = AuthDependencies.instance;
-    final account = await dependencies.repository.me();
-    userId = account.userId;
 
-    final health = await dependencies.userRepository.getHealthProfile(userId!);
-    final nutrition = await dependencies.userRepository.getNutritionGoal(
-      userId!,
-    );
-    final diets = await dependencies.userRepository.getDietPreferences(userId!);
-    final savedAllergies = await dependencies.userRepository.getAllergies(
-      userId!,
-    );
+    final health = await dependencies.userRepository.getHealthProfile();
+    final nutrition = await dependencies.userRepository.getNutritionGoal();
+    final diets = await dependencies.userRepository.getDietPreferences();
+    final savedAllergies = await dependencies.userRepository.getAllergies();
     allergenOptions = await dependencies.recipeRepository.getAllergens();
 
     height = _draftNumber(health?['height']);
     weight = _draftNumber(health?['weight']);
     activityLevel = health?['activityLevel']?.toString() ?? 'LIGHT';
-    calories = _draftNumber(nutrition?['calories'], fallback: '2000');
+    calories = _draftNumber(nutrition?['dailyCaloriesGoal']);
     protein = _draftNumber(nutrition?['protein'], fallback: '100');
     carbs = _draftNumber(nutrition?['carbs'], fallback: '250');
     fat = _draftNumber(nutrition?['fat'], fallback: '65');
@@ -338,7 +331,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
         const SizedBox(height: 16),
         const InfoPanel(
           title: 'API mapping',
-          text: 'Dữ liệu được lưu vào /users/{userId}/nutrition-goal.',
+          text: 'Dữ liệu được lưu vào /users/me/nutrition-goal.',
         ),
       ],
     );
@@ -407,32 +400,22 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     }
 
     final users = AuthDependencies.instance.userRepository;
-    final userId = _healthProfileSetupDraft.userId;
-    if (userId == null) {
-      throw const ApiException(
-        message: 'Không xác định được hồ sơ người dùng.',
-      );
-    }
 
     await users.saveHealthProfile(
-      userId: userId,
       height: height,
       weight: weight,
       activityLevel: _healthProfileSetupDraft.activityLevel,
     );
     await users.saveNutritionGoal(
-      userId: userId,
       calories: calories,
       protein: protein,
       carbs: carbs,
       fat: fat,
     );
     await users.syncDietPreferences(
-      userId: userId,
       dietTypes: _healthProfileSetupDraft.dietTypes,
     );
     await users.syncAllergies(
-      userId: userId,
       allergies: _healthProfileSetupDraft.allergies,
     );
   }

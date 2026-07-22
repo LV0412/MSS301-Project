@@ -75,6 +75,8 @@ class ApiException implements Exception {
       'ACCESS_DENIED' =>
         'Không thể thực hiện thao tác này. Vui lòng đăng xuất rồi thử lại hoặc dùng email khác.',
       'UNAUTHORIZED' => 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.',
+      _ when statusCode == 422 || statusCode == 503 =>
+        _statusMessage(statusCode),
       _ => message ?? _statusMessage(statusCode),
     };
   }
@@ -100,7 +102,9 @@ class ApiException implements Exception {
       403 => 'Bạn chưa có quyền thực hiện thao tác này.',
       404 => 'Không tìm thấy dữ liệu yêu cầu.',
       409 => 'Dữ liệu đã tồn tại.',
+      422 => 'Món ăn hoặc dị ứng bạn chọn không còn tồn tại trong hệ thống.',
       500 => 'Máy chủ đang gặp lỗi. Vui lòng thử lại sau.',
+      503 => 'Dịch vụ món ăn tạm thời không khả dụng. Thử lại sau.',
       _ => 'Không thể xử lý yêu cầu. Vui lòng thử lại.',
     };
   }
