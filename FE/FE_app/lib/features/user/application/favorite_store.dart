@@ -70,15 +70,11 @@ class FavoriteStore extends ChangeNotifier {
     try {
       final favoriteId = _favoriteIdsByRecipe[recipeId];
       if (favoriteId == null) {
-        final favorite = await _userRepository.addFavorite(
-          recipeId: recipeId,
-        );
+        final favorite = await _userRepository.addFavorite(recipeId: recipeId);
         _favoriteIdsByRecipe[recipeId] = (favorite['favoriteId'] as num)
             .toInt();
       } else {
-        await _userRepository.deleteFavorite(
-          favoriteId: favoriteId,
-        );
+        await _userRepository.deleteFavorite(favoriteId: favoriteId);
         _favoriteIdsByRecipe.remove(recipeId);
       }
     } catch (error) {

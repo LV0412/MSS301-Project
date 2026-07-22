@@ -99,37 +99,60 @@ class UserRepository {
     return NutritionGoal.fromJson(data);
   }
 
-  Future<Map<String, dynamic>> saveNutritionGoal({
-    required double calories,
-    required double protein,
-    required double carbs,
-    required double fat,
+  Future<NutritionGoal> saveNutritionGoal({
+    required String goalType,
+    double? targetWeight,
+    int? durationWeeks,
+    double? dailyCaloriesGoal,
   }) async {
-    final data = {
-      'dailyCaloriesGoal': calories,
-      'protein': protein,
-      'carbs': carbs,
-      'fat': fat,
+    final data = <String, dynamic>{
+      'goalType': goalType,
+      'targetWeight': targetWeight,
+      'durationWeeks': durationWeeks,
+      'dailyCaloriesGoal': dailyCaloriesGoal,
     };
 
-    try {
-      final response = await _request(
-        () => _apiClient.dio.put<Map<String, dynamic>>(
-          '/users/me/nutrition-goal',
-          data: data,
-        ),
+    final response = await _request(
+      () => _apiClient.dio.put<Map<String, dynamic>>(
+        '/users/me/nutrition-goal',
+        data: data,
+      ),
+    );
+    final responseData = response.data;
+    if (responseData == null) {
+      throw const ApiException(
+        message: 'User Service không trả dữ liệu mục tiêu đã lưu.',
       );
-      return response.data ?? const {};
-    } on ApiException catch (error) {
-      if (error.statusCode != 404) rethrow;
-      final response = await _request(
-        () => _apiClient.dio.post<Map<String, dynamic>>(
-          '/users/me/nutrition-goal',
-          data: data,
-        ),
-      );
-      return response.data ?? const {};
     }
+    return NutritionGoal.fromJson(responseData);
+  }
+
+  Future<NutritionGoalPreview> previewNutritionGoal({
+    required String goalType,
+    double? targetWeight,
+    int? durationWeeks,
+    double? dailyCaloriesGoal,
+    CancelToken? cancelToken,
+  }) async {
+    final response = await _request(
+      () => _apiClient.dio.post<Map<String, dynamic>>(
+        '/users/me/nutrition-goal/preview',
+        data: <String, dynamic>{
+          'goalType': goalType,
+          'targetWeight': targetWeight,
+          'durationWeeks': durationWeeks,
+          'dailyCaloriesGoal': dailyCaloriesGoal,
+        },
+        cancelToken: cancelToken,
+      ),
+    );
+    final data = response.data;
+    if (data == null) {
+      throw const ApiException(
+        message: 'User Service không trả dữ liệu xem trước mục tiêu.',
+      );
+    }
+    return NutritionGoalPreview.fromJson(data);
   }
 
   Future<List<Map<String, dynamic>>> getDietPreferences() {
@@ -339,6 +362,7 @@ class UserRepository {
     try {
       return await call();
     } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) rethrow;
       throw ApiException.fromDio(error);
     }
   }

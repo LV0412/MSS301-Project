@@ -92,7 +92,20 @@ class _DailyCaloriesCardState extends State<DailyCaloriesCard> {
     );
   }
 
-  void _reload() => setState(() => _dataFuture = _loadData());
+  void _reload() {
+    final nextData = _loadData();
+    setState(() {
+      _dataFuture = nextData;
+    });
+  }
+
+  Future<void> _openNutritionGoalSetup() async {
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const NutritionGoalPlanScreen()),
+    );
+    if (mounted) _reload();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,16 +128,20 @@ class _DailyCaloriesCardState extends State<DailyCaloriesCard> {
             onAction: _reload,
           );
         }
-        return _DailyCaloriesContent(data: snapshot.data!);
+        return _DailyCaloriesContent(
+          data: snapshot.data!,
+          onSetupGoal: _openNutritionGoalSetup,
+        );
       },
     );
   }
 }
 
 class _DailyCaloriesContent extends StatelessWidget {
-  const _DailyCaloriesContent({required this.data});
+  const _DailyCaloriesContent({required this.data, required this.onSetupGoal});
 
   final _DailyCaloriesData data;
+  final VoidCallback onSetupGoal;
 
   @override
   Widget build(BuildContext context) {
@@ -167,9 +184,7 @@ class _DailyCaloriesContent extends StatelessWidget {
         ),
         const SizedBox(height: 32),
         if (target == null)
-          _NutritionGoalSetupCard(
-            onPressed: () => _openNutritionGoalSetup(context),
-          )
+          _NutritionGoalSetupCard(onPressed: onSetupGoal)
         else
           Container(
             padding: const EdgeInsets.fromLTRB(26, 22, 26, 24),
@@ -253,17 +268,6 @@ class _DailyCaloriesContent extends StatelessWidget {
   }
 }
 
-void _openNutritionGoalSetup(BuildContext context) {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => const LifestyleScreen(
-        completeDestination: MainShell(),
-      ),
-    ),
-  );
-}
-
 class _NutritionGoalSetupCard extends StatelessWidget {
   const _NutritionGoalSetupCard({required this.onPressed});
 
@@ -289,11 +293,7 @@ class _NutritionGoalSetupCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 22),
-          const Icon(
-            Icons.track_changes,
-            color: AppColors.green,
-            size: 34,
-          ),
+          const Icon(Icons.track_changes, color: AppColors.green, size: 34),
           const SizedBox(height: 14),
           const Text(
             'Bạn chưa thiết lập mục tiêu calo',

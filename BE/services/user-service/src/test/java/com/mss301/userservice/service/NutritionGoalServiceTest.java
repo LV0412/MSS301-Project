@@ -4,9 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import com.mss301.userservice.dto.CreateNutritionGoalRequest;
 import com.mss301.userservice.dto.NutritionGoalResponse;
+import com.mss301.userservice.dto.NutritionGoalPreviewResponse;
 import com.mss301.userservice.dto.UpdateNutritionGoalRequest;
 import com.mss301.userservice.entity.ActivityLevel;
 import com.mss301.userservice.entity.Gender;
@@ -74,6 +77,9 @@ class NutritionGoalServiceTest {
         assertThat(response.weeklyRateKg()).isEqualByComparingTo("0.5");
         assertThat(response.recommendedCalories()).isEqualByComparingTo("2112.13");
         assertThat(response.dailyCaloriesGoal()).isEqualByComparingTo("2112.13");
+        assertThat(response.protein()).isEqualByComparingTo("105.61");
+        assertThat(response.carbs()).isEqualByComparingTo("264.02");
+        assertThat(response.fat()).isEqualByComparingTo("70.40");
     }
 
     @Test
@@ -257,7 +263,7 @@ class NutritionGoalServiceTest {
     }
 
     @Test
-    void createNutritionGoalRejectsWeeklyRateOutsideSafeRange() {
+    void createNutritionGoalRejectsCalculatedWeeklyRateOutsideSafeRange() {
         Long userId = 7L;
         User user = user(userId, Gender.MALE, 30);
         HealthProfile healthProfile = healthProfile(
@@ -267,8 +273,8 @@ class NutritionGoalServiceTest {
         CreateNutritionGoalRequest request = createRequest(
                 GoalType.LOSE_WEIGHT,
                 BigDecimal.valueOf(76),
-                10,
-                BigDecimal.valueOf(0.2),
+                20,
+                null,
                 null);
 
         stubCreateWithoutSave(userId, user, healthProfile);
@@ -279,7 +285,7 @@ class NutritionGoalServiceTest {
     }
 
     @Test
-    void createNutritionGoalRejectsNonZeroMaintainRate() {
+    void createNutritionGoalNormalizesMaintainPlanFields() {
         Long userId = 7L;
         User user = user(userId, Gender.MALE, 30);
         HealthProfile healthProfile = healthProfile(
@@ -293,11 +299,14 @@ class NutritionGoalServiceTest {
                 BigDecimal.valueOf(0.1),
                 null);
 
-        stubCreateWithoutSave(userId, user, healthProfile);
+        stubCreate(userId, user, healthProfile);
 
-        assertThatThrownBy(() -> nutritionGoalService.createNutritionGoal(userId, request))
-                .isInstanceOf(InvalidNutritionGoalException.class)
-                .hasMessage("Weekly rate must be 0 kg/week for MAINTAIN");
+        NutritionGoalResponse response = nutritionGoalService.createNutritionGoal(userId, request);
+
+        assertThat(response.goalType()).isEqualTo(GoalType.MAINTAIN);
+        assertThat(response.targetWeight()).isNull();
+        assertThat(response.durationWeeks()).isNull();
+        assertThat(response.weeklyRateKg()).isNull();
     }
 
     @Test
@@ -314,14 +323,6 @@ class NutritionGoalServiceTest {
                 GoalType.GAIN_WEIGHT,
                 BigDecimal.valueOf(75),
                 "Target weight must be higher than current weight for GAIN_WEIGHT");
-    }
-
-    @Test
-    void createNutritionGoalRejectsMaintainTargetOutsideTolerance() {
-        assertWrongDirection(
-                GoalType.MAINTAIN,
-                BigDecimal.valueOf(79),
-                "Target weight must match current weight for MAINTAIN");
     }
 
     @Test
@@ -463,7 +464,7 @@ class NutritionGoalServiceTest {
 
         assertThatThrownBy(() -> nutritionGoalService.createNutritionGoal(userId, request))
                 .isInstanceOf(InvalidNutritionGoalException.class)
-                .hasMessage("Target weight, duration weeks, and weekly rate are required for LOSE_WEIGHT");
+                .hasMessage("Target weight and duration weeks are required for LOSE_WEIGHT");
     }
 
     @Test
@@ -495,6 +496,78 @@ class NutritionGoalServiceTest {
         assertThat(response.goalConfigured()).isFalse();
         assertThat(response.dailyCaloriesGoal()).isNull();
         assertThat(response.protein()).isNull();
+    }
+
+    @Test
+    void updateNutritionGoalCreatesRecordWhenMissing() {
+        Long userId = 7L;
+        User user = user(userId, Gender.FEMALE, 28);
+        HealthProfile healthProfile = healthProfile(
+                BigDecimal.valueOf(165),
+                BigDecimal.valueOf(70),
+                ActivityLevel.LIGHT);
+        UpdateNutritionGoalRequest request = new UpdateNutritionGoalRequest(
+                GoalType.MAINTAIN,
+                BigDecimal.valueOf(60),
+                12,
+                BigDecimal.ONE,
+                null,
+                null,
+                null,
+                null);
+
+        when(nutritionGoalRepository.findByUserUserId(userId)).thenReturn(Optional.empty());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(healthProfileRepository.findByUserUserId(userId)).thenReturn(Optional.of(healthProfile));
+        when(nutritionGoalRepository.save(any(NutritionGoal.class))).thenAnswer(invocation -> {
+            NutritionGoal goal = invocation.getArgument(0);
+            goal.setGoalId(9L);
+            return goal;
+        });
+
+        NutritionGoalResponse response = nutritionGoalService.updateNutritionGoal(userId, request);
+
+        assertThat(response.goalId()).isEqualTo(9L);
+        assertThat(response.goalConfigured()).isTrue();
+        assertThat(response.goalType()).isEqualTo(GoalType.MAINTAIN);
+        assertThat(response.targetWeight()).isNull();
+        assertThat(response.durationWeeks()).isNull();
+        assertThat(response.weeklyRateKg()).isNull();
+        assertThat(response.protein()).isEqualByComparingTo("98.33");
+        assertThat(response.carbs()).isEqualByComparingTo("245.82");
+        assertThat(response.fat()).isEqualByComparingTo("65.55");
+    }
+
+    @Test
+    void previewNutritionGoalCalculatesPlanWithoutSaving() {
+        Long userId = 7L;
+        User user = user(userId, Gender.MALE, 30);
+        HealthProfile healthProfile = healthProfile(
+                BigDecimal.valueOf(170),
+                BigDecimal.valueOf(80),
+                ActivityLevel.ACTIVE);
+        UpdateNutritionGoalRequest request = new UpdateNutritionGoalRequest(
+                GoalType.LOSE_WEIGHT,
+                BigDecimal.valueOf(76),
+                10,
+                null,
+                BigDecimal.valueOf(2400),
+                null,
+                null,
+                null);
+
+        when(nutritionGoalRepository.findByUserUserId(userId)).thenReturn(Optional.empty());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(healthProfileRepository.findByUserUserId(userId)).thenReturn(Optional.of(healthProfile));
+
+        NutritionGoalPreviewResponse response = nutritionGoalService.previewNutritionGoal(userId, request);
+
+        assertThat(response.weeklyRateKg()).isEqualByComparingTo("0.40");
+        assertThat(response.dailyCaloriesGoal()).isEqualByComparingTo("2400.00");
+        assertThat(response.protein()).isEqualByComparingTo("120.00");
+        assertThat(response.carbs()).isEqualByComparingTo("300.00");
+        assertThat(response.fat()).isEqualByComparingTo("80.00");
+        verify(nutritionGoalRepository, never()).save(any(NutritionGoal.class));
     }
 
     private User user(Long userId, Gender gender, int age) {

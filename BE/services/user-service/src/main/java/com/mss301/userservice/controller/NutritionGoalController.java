@@ -2,6 +2,7 @@ package com.mss301.userservice.controller;
 
 import com.mss301.userservice.dto.CreateNutritionGoalRequest;
 import com.mss301.userservice.dto.NutritionGoalResponse;
+import com.mss301.userservice.dto.NutritionGoalPreviewResponse;
 import com.mss301.userservice.dto.UpdateNutritionGoalRequest;
 import com.mss301.userservice.service.NutritionGoalService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -65,6 +66,19 @@ public class NutritionGoalController {
             @RequestHeader("X-User-Id") Long authenticatedUserId,
             @Valid @RequestBody UpdateNutritionGoalRequest request) {
         return ResponseEntity.ok(nutritionGoalService.updateNutritionGoal(authenticatedUserId, request));
+    }
+
+    @PostMapping("/preview")
+    @Operation(summary = "Preview nutrition goal", description = "Calculate a nutrition goal without saving it.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Nutrition goal preview calculated"),
+            @ApiResponse(responseCode = "400", description = "Invalid request or unsafe goal"),
+            @ApiResponse(responseCode = "404", description = "User or health profile not found")
+    })
+    public ResponseEntity<NutritionGoalPreviewResponse> previewNutritionGoal(
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
+            @Valid @RequestBody UpdateNutritionGoalRequest request) {
+        return ResponseEntity.ok(nutritionGoalService.previewNutritionGoal(authenticatedUserId, request));
     }
 
     @DeleteMapping

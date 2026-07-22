@@ -6,9 +6,6 @@ class _HealthProfileSetupDraft {
   String activityLevel = 'LIGHT';
 
   String calories = '';
-  String protein = '100';
-  String carbs = '250';
-  String fat = '65';
   final Set<String> dietTypes = {};
   final Map<int, String> allergies = {};
   List<Map<String, dynamic>> allergenOptions = const [];
@@ -27,14 +24,8 @@ class _HealthProfileSetupDraft {
     activityLevel = health?['activityLevel']?.toString() ?? 'LIGHT';
     if (nutrition.isConfigured) {
       calories = _draftNumber(nutrition.dailyCaloriesGoal);
-      protein = _draftNumber(nutrition.protein, fallback: '100');
-      carbs = _draftNumber(nutrition.carbs, fallback: '250');
-      fat = _draftNumber(nutrition.fat, fallback: '65');
     } else {
       calories = '';
-      protein = '100';
-      carbs = '250';
-      fat = '65';
     }
 
     dietTypes
@@ -260,22 +251,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
   late final TextEditingController _caloriesController = TextEditingController(
     text: _healthProfileSetupDraft.calories,
   );
-  late final TextEditingController _proteinController = TextEditingController(
-    text: _healthProfileSetupDraft.protein,
-  );
-  late final TextEditingController _carbsController = TextEditingController(
-    text: _healthProfileSetupDraft.carbs,
-  );
-  late final TextEditingController _fatController = TextEditingController(
-    text: _healthProfileSetupDraft.fat,
-  );
-
   @override
   void dispose() {
     _caloriesController.dispose();
-    _proteinController.dispose();
-    _carbsController.dispose();
-    _fatController.dispose();
     super.dispose();
   }
 
@@ -285,7 +263,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
       step: 3,
       progress: .75,
       title: 'Mục tiêu dinh dưỡng',
-      subtitle: 'Thiết lập calories và các chỉ số macro mục tiêu mỗi ngày.',
+      subtitle:
+          'Thiết lập calories mỗi ngày. Các chỉ số macro được hệ thống tự tính.',
       next: PreferencesScreen(completeDestination: widget.completeDestination),
       children: [
         AppTextField(
@@ -296,49 +275,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: (value) => _healthProfileSetupDraft.calories = value,
         ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: AppTextField(
-                label: 'Protein (g)',
-                hint: '100',
-                compact: true,
-                controller: _proteinController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                onChanged: (value) => _healthProfileSetupDraft.protein = value,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: AppTextField(
-                label: 'Carbs (g)',
-                hint: '250',
-                compact: true,
-                controller: _carbsController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                onChanged: (value) => _healthProfileSetupDraft.carbs = value,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        AppTextField(
-          label: 'Fat (g)',
-          hint: '65',
-          compact: true,
-          controller: _fatController,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          onChanged: (value) => _healthProfileSetupDraft.fat = value,
-        ),
         const SizedBox(height: 16),
         const InfoPanel(
-          title: 'API mapping',
-          text: 'Dữ liệu được lưu vào /users/me/nutrition-goal.',
+          title: 'Phân bổ macro tự động',
+          text:
+              'Hệ thống dùng 20% calories cho đạm, 50% cho tinh bột và 30% cho chất béo.',
         ),
       ],
     );
@@ -377,15 +318,6 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     final calories = double.tryParse(
       _healthProfileSetupDraft.calories.replaceAll(',', '.'),
     );
-    final protein = double.tryParse(
-      _healthProfileSetupDraft.protein.replaceAll(',', '.'),
-    );
-    final carbs = double.tryParse(
-      _healthProfileSetupDraft.carbs.replaceAll(',', '.'),
-    );
-    final fat = double.tryParse(
-      _healthProfileSetupDraft.fat.replaceAll(',', '.'),
-    );
 
     if (height == null || weight == null || height <= 0 || weight <= 0) {
       throw const ApiException(
@@ -393,16 +325,9 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
       );
     }
 
-    if (calories == null ||
-        protein == null ||
-        carbs == null ||
-        fat == null ||
-        calories <= 0 ||
-        protein < 0 ||
-        carbs < 0 ||
-        fat < 0) {
+    if (calories == null || calories <= 0) {
       throw const ApiException(
-        message: 'Nhập calories và các chỉ số macro hợp lệ.',
+        message: 'Nhập mục tiêu calories hợp lệ.',
       );
     }
 
@@ -414,17 +339,13 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
       activityLevel: _healthProfileSetupDraft.activityLevel,
     );
     await users.saveNutritionGoal(
-      calories: calories,
-      protein: protein,
-      carbs: carbs,
-      fat: fat,
+      goalType: 'MAINTAIN',
+      dailyCaloriesGoal: calories,
     );
     await users.syncDietPreferences(
       dietTypes: _healthProfileSetupDraft.dietTypes,
     );
-    await users.syncAllergies(
-      allergies: _healthProfileSetupDraft.allergies,
-    );
+    await users.syncAllergies(allergies: _healthProfileSetupDraft.allergies);
   }
 
   @override

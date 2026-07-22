@@ -13,7 +13,7 @@ class NutritionGoalRequestValidationTest {
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
     @Test
-    void createNutritionGoalRequiresMacroFields() {
+    void createNutritionGoalAllowsBackendCalculatedMacroFields() {
         CreateNutritionGoalRequest request = new CreateNutritionGoalRequest(
                 null,
                 null,
@@ -24,9 +24,7 @@ class NutritionGoalRequestValidationTest {
                 null,
                 null);
 
-        assertThat(validator.validate(request))
-                .extracting(violation -> violation.getPropertyPath().toString())
-                .containsExactlyInAnyOrder("protein", "carbs", "fat");
+        assertThat(validator.validate(request)).isEmpty();
     }
 
     @Test

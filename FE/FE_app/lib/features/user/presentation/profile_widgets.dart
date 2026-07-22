@@ -360,9 +360,10 @@ class HealthProfileSection extends StatelessWidget {
 }
 
 class NutritionGoalSection extends StatelessWidget {
-  const NutritionGoalSection({super.key, this.nutritionGoal});
+  const NutritionGoalSection({super.key, this.nutritionGoal, this.onEdit});
 
   final NutritionGoal? nutritionGoal;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -376,16 +377,33 @@ class NutritionGoalSection extends StatelessWidget {
           const SizedBox(height: 24),
           if (nutritionGoal?.isConfigured != true)
             _NutritionGoalSetupCta(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const LifestyleScreen(
-                    completeDestination: ApiUserProfileScreen(),
+              onPressed:
+                  onEdit ??
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NutritionGoalPlanScreen(),
+                    ),
                   ),
-                ),
-              ),
             )
           else ...[
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed:
+                    onEdit ??
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            NutritionGoalPlanScreen(initialGoal: nutritionGoal),
+                      ),
+                    ),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Chỉnh sửa kế hoạch'),
+              ),
+            ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(

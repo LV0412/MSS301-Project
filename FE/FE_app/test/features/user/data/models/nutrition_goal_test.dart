@@ -65,4 +65,27 @@ void main() {
       expect(goal.warnings, hasLength(1));
     });
   });
+
+  test('NutritionGoalPreview maps calculated calories and macro fields', () {
+    final preview = NutritionGoalPreview.fromJson({
+      'goalType': 'LOSE_WEIGHT',
+      'targetWeight': 75,
+      'durationWeeks': 10,
+      'weeklyRateKg': 0.5,
+      'bmr': 1750.25,
+      'recommendedCalories': 2200,
+      'dailyCaloriesGoal': 2300,
+      'protein': 115,
+      'carbs': 287.5,
+      'fat': 76.67,
+      'warnings': ['warning'],
+    });
+
+    expect(preview.goalType, 'LOSE_WEIGHT');
+    expect(preview.weeklyRateKg, 0.5);
+    expect(preview.bmr, 1750.25);
+    expect(preview.dailyCaloriesGoal, 2300);
+    expect(preview.protein, 115);
+    expect(preview.warnings, ['warning']);
+  });
 }

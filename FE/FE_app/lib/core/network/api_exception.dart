@@ -75,8 +75,9 @@ class ApiException implements Exception {
       'ACCESS_DENIED' =>
         'Không thể thực hiện thao tác này. Vui lòng đăng xuất rồi thử lại hoặc dùng email khác.',
       'UNAUTHORIZED' => 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.',
-      _ when statusCode == 422 || statusCode == 503 =>
-        _statusMessage(statusCode),
+      _ when statusCode == 422 || statusCode == 503 => _statusMessage(
+        statusCode,
+      ),
       _ => message ?? _statusMessage(statusCode),
     };
   }

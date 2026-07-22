@@ -19,7 +19,10 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
   }
 
   void _reloadProfile() {
-    setState(() => _profileFuture = _loadProfile());
+    final nextProfile = _loadProfile();
+    setState(() {
+      _profileFuture = nextProfile;
+    });
   }
 
   Future<void> _editBasicProfile(UserProfile? profile) async {
@@ -31,6 +34,16 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
       ),
     );
     if (updated == true && mounted) _reloadProfile();
+  }
+
+  Future<void> _editNutritionGoal(NutritionGoal? goal) async {
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NutritionGoalPlanScreen(initialGoal: goal),
+      ),
+    );
+    if (mounted) _reloadProfile();
   }
 
   Future<_ProfileApiState> _loadProfile() async {
@@ -147,7 +160,10 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
                     const SizedBox(height: 28),
                     HealthProfileSection(healthProfile: state.healthProfile),
                     const SizedBox(height: 16),
-                    NutritionGoalSection(nutritionGoal: state.nutritionGoal),
+                    NutritionGoalSection(
+                      nutritionGoal: state.nutritionGoal,
+                      onEdit: () => _editNutritionGoal(state.nutritionGoal),
+                    ),
                     const SizedBox(height: 16),
                     DietPreferenceSection(
                       dietPreferences: state.dietPreferences,

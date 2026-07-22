@@ -99,9 +99,7 @@ class FoodLogStore {
   }
 
   Future<void> delete(int logId) async {
-    await _userRepository.deleteFoodLog(
-      logId: logId,
-    );
+    await _userRepository.deleteFoodLog(logId: logId);
   }
 
   void clear() {}
