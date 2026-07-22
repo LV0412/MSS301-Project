@@ -108,7 +108,7 @@ services:
       DATABASE_URL: jdbc:mysql://user-mysql:3306/${USER_MYSQL_DATABASE:-user_service}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       DATABASE_USERNAME: root
       DATABASE_PASSWORD: ${USER_MYSQL_ROOT_PASSWORD:-root}
-      JPA_DDL_AUTO: ${USER_JPA_DDL_AUTO:-update}
+      JPA_DDL_AUTO: ${USER_JPA_DDL_AUTO:-validate}
       JPA_SHOW_SQL: ${USER_JPA_SHOW_SQL:-false}
       APP_SEED_ENABLED: true
       RECIPE_SERVICE_URL: http://recipe-service:8002

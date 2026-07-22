@@ -13,20 +13,20 @@ class NutritionGoalRequestValidationTest {
     private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
     @Test
-    void createNutritionGoalRequiresWeightGoalPlanFields() {
+    void createNutritionGoalRequiresMacroFields() {
         CreateNutritionGoalRequest request = new CreateNutritionGoalRequest(
                 null,
                 null,
                 null,
                 null,
                 null,
-                BigDecimal.valueOf(120),
-                BigDecimal.valueOf(250),
-                BigDecimal.valueOf(70));
+                null,
+                null,
+                null);
 
         assertThat(validator.validate(request))
                 .extracting(violation -> violation.getPropertyPath().toString())
-                .contains("goalType", "targetWeight", "durationWeeks", "weeklyRateKg");
+                .containsExactlyInAnyOrder("protein", "carbs", "fat");
     }
 
     @Test

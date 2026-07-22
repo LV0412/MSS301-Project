@@ -21,6 +21,7 @@ public record NutritionGoalResponse(
         BigDecimal protein,
         BigDecimal carbs,
         BigDecimal fat,
-        List<String> warnings
+        List<String> warnings,
+        Boolean goalConfigured
 ) {
 }

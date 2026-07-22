@@ -11,12 +11,17 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update}
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     open-in-view: false
     properties:
       hibernate:
         format_sql: true
     show-sql: ${JPA_SHOW_SQL:false}
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:true}
+    baseline-version: 1
+    validate-on-migrate: true
 
 app:
   seed:

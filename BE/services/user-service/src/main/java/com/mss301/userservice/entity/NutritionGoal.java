@@ -40,13 +40,13 @@ public class NutritionGoal {
     @Column(name = "goal_type", nullable = false, length = 20)
     private GoalType goalType;
 
-    @Column(name = "target_weight", nullable = false, precision = 5, scale = 2)
+    @Column(name = "target_weight", precision = 5, scale = 2)
     private BigDecimal targetWeight;
 
-    @Column(name = "duration_weeks", nullable = false)
+    @Column(name = "duration_weeks")
     private Integer durationWeeks;
 
-    @Column(name = "weekly_rate_kg", nullable = false, precision = 4, scale = 2)
+    @Column(name = "weekly_rate_kg", precision = 4, scale = 2)
     private BigDecimal weeklyRateKg;
 
     @Column(name = "recommended_calories", nullable = false, precision = 8, scale = 2)
