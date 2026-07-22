@@ -1,4 +1,3 @@
-import '../../auth/data/auth_repository.dart';
 import '../../recipe/data/models/recipe.dart';
 import '../../recipe/data/recipe_repository.dart';
 import '../data/user_repository.dart';
@@ -34,33 +33,19 @@ class FoodLogEntry {
 
 class FoodLogStore {
   FoodLogStore({
-    required AuthRepository authRepository,
     required UserRepository userRepository,
     required RecipeRepository recipeRepository,
-  }) : _authRepository = authRepository,
-       _userRepository = userRepository,
+  }) : _userRepository = userRepository,
        _recipeRepository = recipeRepository;
 
-  final AuthRepository _authRepository;
   final UserRepository _userRepository;
   final RecipeRepository _recipeRepository;
-  int? _userId;
-
-  Future<int> _resolveUserId() async {
-    final cached = _userId;
-    if (cached != null) return cached;
-    final account = await _authRepository.me();
-    _userId = account.userId;
-    return account.userId;
-  }
 
   Future<List<FoodLogEntry>> load({
     required String date,
     String? mealType,
   }) async {
-    final userId = await _resolveUserId();
     final logs = await _userRepository.getFoodLogs(
-      userId: userId,
       date: date,
       mealType: mealType,
     );
@@ -90,7 +75,6 @@ class FoodLogStore {
     required String logDate,
   }) async {
     await _userRepository.createFoodLog(
-      userId: await _resolveUserId(),
       recipeId: recipeId,
       quantity: quantity,
       mealType: mealType,
@@ -106,7 +90,6 @@ class FoodLogStore {
     required String logDate,
   }) async {
     await _userRepository.updateFoodLog(
-      userId: await _resolveUserId(),
       logId: logId,
       recipeId: recipeId,
       quantity: quantity,
@@ -117,10 +100,9 @@ class FoodLogStore {
 
   Future<void> delete(int logId) async {
     await _userRepository.deleteFoodLog(
-      userId: await _resolveUserId(),
       logId: logId,
     );
   }
 
-  void clear() => _userId = null;
+  void clear() {}
 }

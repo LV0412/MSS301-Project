@@ -374,44 +374,113 @@ class NutritionGoalSection extends StatelessWidget {
             title: 'Mục tiêu dinh dưỡng',
           ),
           const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: ProfileMetricTile(
-                  label: 'CALO\nMỖI NGÀY',
-                  value: _formatNumber(_asDouble(nutritionGoal?['calories'])),
-                  unit: 'kcal',
+          if (nutritionGoal == null)
+            _NutritionGoalSetupCta(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const LifestyleScreen(
+                    completeDestination: ApiUserProfileScreen(),
+                  ),
                 ),
               ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: ProfileMetricTile(
-                  label: 'CHẤT ĐẠM',
-                  value: _formatNumber(_asDouble(nutritionGoal?['protein'])),
-                  unit: 'g',
+            )
+          else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: ProfileMetricTile(
+                    label: 'CALO\nMỖI NGÀY',
+                    value: _formatNumber(
+                      _asDouble(nutritionGoal?['dailyCaloriesGoal']),
+                    ),
+                    unit: 'kcal',
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 24),
+                Expanded(
+                  child: ProfileMetricTile(
+                    label: 'CHẤT ĐẠM',
+                    value: _formatNumber(_asDouble(nutritionGoal?['protein'])),
+                    unit: 'g',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: ProfileMetricTile(
+                    label: 'TINH BỘT',
+                    value: _formatNumber(_asDouble(nutritionGoal?['carbs'])),
+                    unit: 'g',
+                  ),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: ProfileMetricTile(
+                    label: 'CHẤT BÉO',
+                    value: _formatNumber(_asDouble(nutritionGoal?['fat'])),
+                    unit: 'g',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _NutritionGoalSetupCta extends StatelessWidget {
+  const _NutritionGoalSetupCta({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.mint,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Bạn chưa thiết lập mục tiêu calo',
+            style: TextStyle(
+              fontSize: 16,
+              height: 1.2,
+              fontWeight: FontWeight.w900,
+              color: AppColors.ink,
+            ),
           ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: ProfileMetricTile(
-                  label: 'TINH BỘT',
-                  value: _formatNumber(_asDouble(nutritionGoal?['carbs'])),
-                  unit: 'g',
-                ),
+          const SizedBox(height: 8),
+          const Text(
+            'Hoàn thành hồ sơ để lưu calories và macro mục tiêu.',
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.35,
+              color: AppColors.darkGreen,
+            ),
+          ),
+          const SizedBox(height: 14),
+          FilledButton.icon(
+            onPressed: onPressed,
+            icon: const Icon(Icons.arrow_forward, size: 17),
+            label: const Text('Thiết lập mục tiêu'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.green,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: ProfileMetricTile(
-                  label: 'CHẤT BÉO',
-                  value: _formatNumber(_asDouble(nutritionGoal?['fat'])),
-                  unit: 'g',
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),

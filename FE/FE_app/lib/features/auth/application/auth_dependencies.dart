@@ -28,12 +28,10 @@ class AuthDependencies {
     apiClient: apiClient,
   );
   late final FavoriteStore favoriteStore = FavoriteStore(
-    authRepository: repository,
     userRepository: userRepository,
     recipeRepository: recipeRepository,
   );
   late final FoodLogStore foodLogStore = FoodLogStore(
-    authRepository: repository,
     userRepository: userRepository,
     recipeRepository: recipeRepository,
   );

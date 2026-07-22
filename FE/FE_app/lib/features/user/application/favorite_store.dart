@@ -1,26 +1,21 @@
 import 'package:flutter/foundation.dart';
 
-import '../../auth/data/auth_repository.dart';
 import '../../recipe/data/recipe_repository.dart';
 import '../data/user_repository.dart';
 
 class FavoriteStore extends ChangeNotifier {
   FavoriteStore({
-    required AuthRepository authRepository,
     required UserRepository userRepository,
     required RecipeRepository recipeRepository,
-  }) : _authRepository = authRepository,
-       _userRepository = userRepository,
+  }) : _userRepository = userRepository,
        _recipeRepository = recipeRepository;
 
-  final AuthRepository _authRepository;
   final UserRepository _userRepository;
   final RecipeRepository _recipeRepository;
 
   final Map<int, int> _favoriteIdsByRecipe = {};
   final Set<int> _pendingRecipeIds = {};
   Future<void>? _loadOperation;
-  int? _userId;
   bool _loaded = false;
   String? _errorMessage;
 
@@ -47,10 +42,7 @@ class FavoriteStore extends ChangeNotifier {
 
   Future<void> _loadFavorites() async {
     try {
-      final account = await _authRepository.me();
-      _userId = account.userId;
-
-      final favorites = await _userRepository.getFavorites(account.userId);
+      final favorites = await _userRepository.getFavorites();
       _favoriteIdsByRecipe
         ..clear()
         ..addEntries(
@@ -71,8 +63,6 @@ class FavoriteStore extends ChangeNotifier {
   Future<void> toggle(int recipeId) async {
     if (_pendingRecipeIds.contains(recipeId)) return;
     await load();
-    final userId = _userId;
-    if (userId == null) return;
 
     _pendingRecipeIds.add(recipeId);
     _errorMessage = null;
@@ -81,14 +71,12 @@ class FavoriteStore extends ChangeNotifier {
       final favoriteId = _favoriteIdsByRecipe[recipeId];
       if (favoriteId == null) {
         final favorite = await _userRepository.addFavorite(
-          userId: userId,
           recipeId: recipeId,
         );
         _favoriteIdsByRecipe[recipeId] = (favorite['favoriteId'] as num)
             .toInt();
       } else {
         await _userRepository.deleteFavorite(
-          userId: userId,
           favoriteId: favoriteId,
         );
         _favoriteIdsByRecipe.remove(recipeId);
@@ -103,7 +91,6 @@ class FavoriteStore extends ChangeNotifier {
   }
 
   void clear() {
-    _userId = null;
     _loaded = false;
     _errorMessage = null;
     _favoriteIdsByRecipe.clear();

@@ -12,15 +12,12 @@ class _WeeklyAnalysisScreenState extends State<WeeklyAnalysisScreen> {
 
   Future<_WeeklyNutritionData> _load() async {
     final dependencies = AuthDependencies.instance;
-    final account = await dependencies.repository.me();
     final end = DateTime.now();
     final days = List.generate(
       7,
       (index) => DateTime(end.year, end.month, end.day - 6 + index),
     );
-    final goalFuture = dependencies.userRepository.getNutritionGoal(
-      account.userId,
-    );
+    final goalFuture = dependencies.userRepository.getNutritionGoal();
     final logsByDay = await Future.wait(
       days.map(
         (day) => dependencies.foodLogStore.load(date: _foodLogIsoDate(day)),
@@ -36,7 +33,7 @@ class _WeeklyAnalysisScreenState extends State<WeeklyAnalysisScreen> {
       days: days,
       dailyTotals: dailyTotals,
       total: total,
-      caloriesTarget: _asDouble(goal?['calories']),
+      caloriesTarget: _asDouble(goal?['dailyCaloriesGoal']),
       proteinTarget: _asDouble(goal?['protein']),
       carbsTarget: _asDouble(goal?['carbs']),
       fatTarget: _asDouble(goal?['fat']),

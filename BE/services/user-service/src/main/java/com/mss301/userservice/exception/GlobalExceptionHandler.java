@@ -16,6 +16,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final String NUTRITION_GOAL_NOT_FOUND = "NUTRITION_GOAL_NOT_FOUND";
+
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFound(
             UserNotFoundException exception,
@@ -34,7 +36,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNutritionGoalNotFound(
             NutritionGoalNotFoundException exception,
             HttpServletRequest request) {
-        return buildErrorResponse(HttpStatus.NOT_FOUND, exception.getMessage(), request, null);
+        return buildErrorResponse(
+                HttpStatus.NOT_FOUND,
+                NUTRITION_GOAL_NOT_FOUND,
+                exception.getMessage(),
+                request,
+                null);
     }
 
     @ExceptionHandler(DietPreferenceNotFoundException.class)
@@ -188,10 +195,20 @@ public class GlobalExceptionHandler {
             String message,
             HttpServletRequest request,
             Map<String, String> validationErrors) {
+        return buildErrorResponse(status, null, message, request, validationErrors);
+    }
+
+    private ResponseEntity<ErrorResponse> buildErrorResponse(
+            HttpStatus status,
+            String code,
+            String message,
+            HttpServletRequest request,
+            Map<String, String> validationErrors) {
         ErrorResponse body = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(status.value())
                 .error(status.getReasonPhrase())
+                .code(code)
                 .message(message)
                 .path(request.getRequestURI())
                 .validationErrors(validationErrors)

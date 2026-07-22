@@ -43,9 +43,8 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
     List<Map<String, dynamic>> allergies = const [];
 
     try {
-      userProfile = await AuthDependencies.instance.userRepository.getUserById(
-        account.userId,
-      );
+      userProfile =
+          await AuthDependencies.instance.userRepository.getCurrentUser();
     } on ApiException catch (error) {
       profileMessage = error.message;
     }
@@ -53,12 +52,10 @@ class _ApiUserProfileScreenState extends State<ApiUserProfileScreen> {
     if (userProfile != null) {
       try {
         final repository = AuthDependencies.instance.userRepository;
-        healthProfile = await repository.getHealthProfile(userProfile.userId);
-        nutritionGoal = await repository.getNutritionGoal(userProfile.userId);
-        dietPreferences = await repository.getDietPreferences(
-          userProfile.userId,
-        );
-        allergies = await repository.getAllergies(userProfile.userId);
+        healthProfile = await repository.getHealthProfile();
+        nutritionGoal = await repository.getNutritionGoal();
+        dietPreferences = await repository.getDietPreferences();
+        allergies = await repository.getAllergies();
       } on ApiException catch (error) {
         profileMessage = error.message;
       }
