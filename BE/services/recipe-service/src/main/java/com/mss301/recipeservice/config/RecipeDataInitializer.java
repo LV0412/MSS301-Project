@@ -1,6 +1,6 @@
 package com.mss301.recipeservice.config;
 
-import com.mss301.recipeservice.infrastructure.repositories.RecipeRepository;
+import com.mss301.recipeservice.repository.RecipeRepository;
 import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
