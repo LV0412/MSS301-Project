@@ -43,15 +43,15 @@ docker compose up --build -d
 
 Các service được chạy:
 
-| Service | Công dụng | URL |
-| --- | --- | --- |
-| `auth-mysql` | MySQL database cho Auth Service | `localhost:3307` |
-| `auth-service` | Đăng ký, đăng nhập, JWT, refresh token, OTP, reset password | `http://localhost:8000` |
-| `user-mysql` | MySQL database cho User Service | `localhost:3308` |
-| `user-service` | User profile, health profile, allergies, goals, favorites, food logs | `http://localhost:8001` |
-| `recipe-postgres` | PostgreSQL database cho Recipe Service | `localhost:5433` |
-| `recipe-service` | Recipe, ingredient, category, allergen, nutrition info | `http://localhost:8002` |
-| `api-gateway-service` | Cổng vào chung cho frontend gọi backend | `http://localhost:8080` |
+| Service               | Công dụng                                                            | URL                     |
+| --------------------- | -------------------------------------------------------------------- | ----------------------- |
+| `auth-mysql`          | MySQL database cho Auth Service                                      | `localhost:3307`        |
+| `auth-service`        | Đăng ký, đăng nhập, JWT, refresh token, OTP, reset password          | `http://localhost:8000` |
+| `user-mysql`          | MySQL database cho User Service                                      | `localhost:3308`        |
+| `user-service`        | User profile, health profile, allergies, goals, favorites, food logs | `http://localhost:8001` |
+| `recipe-postgres`     | PostgreSQL database cho Recipe Service                               | `localhost:5433`        |
+| `recipe-service`      | Recipe, ingredient, category, allergen, nutrition info               | `http://localhost:8002` |
+| `api-gateway-service` | Cổng vào chung cho frontend gọi backend                              | `http://localhost:8080` |
 
 ## 3. Kiểm Tra Trạng Thái Và Log Container
 
@@ -300,7 +300,7 @@ http://localhost:8080/v3/api-docs/recipes
 **Dùng để:** chạy gateway kèm các service phụ thuộc chính.
 
 ```powershell
-docker compose up --build auth-mysql auth-service user-mysql user-service recipe-postgres recipe-service api-gateway-service
+docker compose up --build auth-mysql auth-service user-mysql user-service recipe-mysql recipe-service api-gateway-service
 ```
 
 **Công dụng:**
@@ -352,31 +352,31 @@ Recipe Service: http://localhost:8080/v3/api-docs/recipes
 
 **Gateway routes:**
 
-| Path | Route tới service |
-| --- | --- |
-| `/api/v1/auth/**` | `auth-service` |
-| `/api/v1/users/**` | `user-service` |
-| `/api/recipes/**` | `recipe-service` |
-| `/api/v1/recipes/**` | `recipe-service` |
-| `/api/ingredients/**` | `recipe-service` |
-| `/api/v1/ingredients/**` | `recipe-service` |
-| `/api/categories/**` | `recipe-service` |
-| `/api/v1/categories/**` | `recipe-service` |
-| `/api/allergens/**` | `recipe-service` |
-| `/api/v1/allergens/**` | `recipe-service` |
-| `/v3/api-docs/auth` | `auth-service` OpenAPI |
-| `/v3/api-docs/users` | `user-service` OpenAPI |
-| `/v3/api-docs/recipes` | `recipe-service` OpenAPI |
+| Path                     | Route tới service        |
+| ------------------------ | ------------------------ |
+| `/api/v1/auth/**`        | `auth-service`           |
+| `/api/v1/users/**`       | `user-service`           |
+| `/api/recipes/**`        | `recipe-service`         |
+| `/api/v1/recipes/**`     | `recipe-service`         |
+| `/api/ingredients/**`    | `recipe-service`         |
+| `/api/v1/ingredients/**` | `recipe-service`         |
+| `/api/categories/**`     | `recipe-service`         |
+| `/api/v1/categories/**`  | `recipe-service`         |
+| `/api/allergens/**`      | `recipe-service`         |
+| `/api/v1/allergens/**`   | `recipe-service`         |
+| `/v3/api-docs/auth`      | `auth-service` OpenAPI   |
+| `/v3/api-docs/users`     | `user-service` OpenAPI   |
+| `/v3/api-docs/recipes`   | `recipe-service` OpenAPI |
 
 ## 7. Swagger Và API Docs Tổng Hợp
 
-| Service | Swagger UI | OpenAPI JSON |
-| --- | --- | --- |
-| API Gateway tổng hợp | `http://localhost:8080/swagger-ui/index.html` | Không dùng làm API docs chính |
-| Auth Service | `http://localhost:8000/swagger-ui/index.html` | `http://localhost:8000/v3/api-docs` |
-| User Service | `http://localhost:8001/swagger-ui/index.html` | `http://localhost:8001/v3/api-docs` |
-| Recipe Service | `http://localhost:8002/swagger-ui.html` | `http://localhost:8002/v3/api-docs` |
-| AI Recommendation Service | `http://localhost:8004/docs` | `http://localhost:8004/openapi.json` |
+| Service                   | Swagger UI                                    | OpenAPI JSON                         |
+| ------------------------- | --------------------------------------------- | ------------------------------------ |
+| API Gateway tổng hợp      | `http://localhost:8080/swagger-ui/index.html` | Không dùng làm API docs chính        |
+| Auth Service              | `http://localhost:8000/swagger-ui/index.html` | `http://localhost:8000/v3/api-docs`  |
+| User Service              | `http://localhost:8001/swagger-ui/index.html` | `http://localhost:8001/v3/api-docs`  |
+| Recipe Service            | `http://localhost:8002/swagger-ui.html`       | `http://localhost:8002/v3/api-docs`  |
+| AI Recommendation Service | `http://localhost:8004/docs`                  | `http://localhost:8004/openapi.json` |
 
 Ghi chú:
 

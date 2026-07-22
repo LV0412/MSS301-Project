@@ -15,20 +15,16 @@ import lombok.Builder;
 @Schema(description = "Create Nutrition Goal Request")
 @Builder
 public record CreateNutritionGoalRequest(
-        @NotNull
         GoalType goalType,
 
-        @NotNull
         @DecimalMin(value = "10.0")
         @DecimalMax(value = "300.0")
         BigDecimal targetWeight,
 
-        @NotNull
         @Min(1)
         @Max(520)
         Integer durationWeeks,
 
-        @NotNull
         @DecimalMin(value = "0.0")
         @DecimalMax(value = "1.0")
         BigDecimal weeklyRateKg,
