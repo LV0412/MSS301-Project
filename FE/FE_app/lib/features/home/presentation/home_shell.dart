@@ -17,6 +17,7 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     _selected = widget.initialTab;
+    _saveSelectedTab();
     _screens = [
       HomeScreen(onTabSelected: _selectTab),
       ExploreRecipesScreen(onTabSelected: _selectTab),
@@ -25,7 +26,15 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _selectTab(HomeTab tab) {
-    if (tab != _selected) setState(() => _selected = tab);
+    if (tab == _selected) return;
+    setState(() => _selected = tab);
+    _saveSelectedTab();
+  }
+
+  void _saveSelectedTab() {
+    unawaited(
+      AuthDependencies.instance.sessionStorage.saveLastHomeTab(_selected.name),
+    );
   }
 
   int get _selectedIndex => switch (_selected) {

@@ -18,6 +18,8 @@ public class AuthUserPrincipal implements UserDetails {
 
     private final Long accountId;
 
+    private final Long userId;
+
     private final String email;
 
     private final AccountRole role;

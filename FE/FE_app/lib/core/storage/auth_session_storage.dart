@@ -8,12 +8,13 @@ class AuthSessionStorage {
 
   static const _accessTokenKey = 'auth.accessToken';
   static const _refreshTokenKey = 'auth.refreshToken';
+  static const _lastHomeTabKey = 'navigation.lastHomeTab';
 
   final FlutterSecureStorage _secureStorage;
 
   Future<AuthSession?> read() async {
-    final accessToken = await _secureStorage.read(key: _accessTokenKey);
-    final refreshToken = await _secureStorage.read(key: _refreshTokenKey);
+    final accessToken = await readAccessToken();
+    final refreshToken = await readRefreshToken();
 
     if (accessToken == null || refreshToken == null) {
       return null;
@@ -23,11 +24,11 @@ class AuthSessionStorage {
   }
 
   Future<String?> readAccessToken() {
-    return _secureStorage.read(key: _accessTokenKey);
+    return _readValue(_accessTokenKey);
   }
 
   Future<String?> readRefreshToken() {
-    return _secureStorage.read(key: _refreshTokenKey);
+    return _readValue(_refreshTokenKey);
   }
 
   Future<void> save(AuthSession session) async {
@@ -42,5 +43,21 @@ class AuthSessionStorage {
       _secureStorage.delete(key: _accessTokenKey),
       _secureStorage.delete(key: _refreshTokenKey),
     ]);
+  }
+
+  Future<String?> readLastHomeTab() {
+    return _readValue(_lastHomeTabKey);
+  }
+
+  Future<void> saveLastHomeTab(String tabName) {
+    return _secureStorage.write(key: _lastHomeTabKey, value: tabName);
+  }
+
+  Future<String?> _readValue(String key) async {
+    try {
+      return await _secureStorage.read(key: key);
+    } catch (_) {
+      return null;
+    }
   }
 }

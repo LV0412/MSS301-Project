@@ -67,6 +67,7 @@ public class JwtService {
         Claims claims = parseClaims(token);
         return AuthUserPrincipal.builder()
                 .accountId(extractAccountId(claims))
+                .userId(extractUserId(claims))
                 .email(claims.get(EMAIL_CLAIM, String.class))
                 .role(AccountRole.valueOf(claims.get(ROLE_CLAIM, String.class)))
                 .status(AccountStatus.valueOf(claims.get(STATUS_CLAIM, String.class)))
@@ -105,6 +106,11 @@ public class JwtService {
     private Long extractAccountId(Claims claims) {
         Number accountId = claims.get(ACCOUNT_ID_CLAIM, Number.class);
         return accountId.longValue();
+    }
+
+    private Long extractUserId(Claims claims) {
+        Number userId = claims.get(USER_ID_CLAIM, Number.class);
+        return userId == null ? null : userId.longValue();
     }
 
     private SecretKey signingKey() {
