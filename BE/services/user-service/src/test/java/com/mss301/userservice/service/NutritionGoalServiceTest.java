@@ -21,6 +21,7 @@ import com.mss301.userservice.exception.InvalidNutritionGoalException;
 import com.mss301.userservice.repository.HealthProfileRepository;
 import com.mss301.userservice.repository.NutritionGoalRepository;
 import com.mss301.userservice.repository.UserRepository;
+import com.mss301.userservice.service.impl.NutritionGoalServiceImpl;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -43,7 +44,7 @@ class NutritionGoalServiceTest {
     private HealthProfileRepository healthProfileRepository;
 
     @InjectMocks
-    private NutritionGoalService nutritionGoalService;
+    private NutritionGoalServiceImpl nutritionGoalService;
 
     @Test
     void createNutritionGoalPersistsWeightGoalPlanFields() {

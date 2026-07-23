@@ -11,6 +11,7 @@ import com.mss301.userservice.entity.Gender;
 import com.mss301.userservice.entity.User;
 import com.mss301.userservice.exception.InvalidDateOfBirthException;
 import com.mss301.userservice.repository.UserRepository;
+import com.mss301.userservice.service.impl.UserManagementServiceImpl;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ class UserManagementServiceTest {
     private UserRepository userRepository;
 
     @InjectMocks
-    private UserManagementService userManagementService;
+    private UserManagementServiceImpl userManagementService;
 
     @Test
     void createUserRejectsDateOfBirthYoungerThanThirteen() {

@@ -11,6 +11,7 @@ import com.mss301.userservice.entity.User;
 import com.mss301.userservice.entity.UserAllergy;
 import com.mss301.userservice.repository.UserAllergyRepository;
 import com.mss301.userservice.repository.UserRepository;
+import com.mss301.userservice.service.impl.UserAllergyServiceImpl;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,7 +32,7 @@ class UserAllergyServiceTest {
     private RecipeCatalogReferenceValidator recipeCatalogReferenceValidator;
 
     @InjectMocks
-    private UserAllergyService userAllergyService;
+    private UserAllergyServiceImpl userAllergyService;
 
     @Test
     void addAllergyVerifiesAllergenBeforeSaving() {

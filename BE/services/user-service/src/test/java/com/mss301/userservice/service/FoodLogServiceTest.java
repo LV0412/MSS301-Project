@@ -12,6 +12,7 @@ import com.mss301.userservice.entity.MealType;
 import com.mss301.userservice.entity.User;
 import com.mss301.userservice.repository.FoodLogRepository;
 import com.mss301.userservice.repository.UserRepository;
+import com.mss301.userservice.service.impl.FoodLogServiceImpl;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -34,7 +35,7 @@ class FoodLogServiceTest {
     private RecipeCatalogReferenceValidator recipeCatalogReferenceValidator;
 
     @InjectMocks
-    private FoodLogService foodLogService;
+    private FoodLogServiceImpl foodLogService;
 
     @Test
     void createFoodLogVerifiesRecipeBeforeSaving() {
