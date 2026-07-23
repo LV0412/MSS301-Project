@@ -1,5 +1,6 @@
 package com.mss301.authservice.seed;
 
+import com.mss301.authservice.entity.AccountRole;
 import java.util.List;
 
 public final class AuthSeedDataFactory {
@@ -20,15 +21,21 @@ public final class AuthSeedDataFactory {
                 account("an.ngo.seed@example.com", "Ngo An"),
                 account("khoa.bui.seed@example.com", "Bui Khoa"),
                 account("thao.dang.seed@example.com", "Dang Thao"),
-                account("son.ho.seed@example.com", "Ho Son"));
+                account("son.ho.seed@example.com", "Ho Son"),
+                account("admin2.seed@example.com", "Seed Admin Two", AccountRole.ADMIN));
     }
 
     private static SeedAccount account(String email, String fullName) {
-        return new SeedAccount(email, fullName);
+        return account(email, fullName, AccountRole.USER);
+    }
+
+    private static SeedAccount account(String email, String fullName, AccountRole role) {
+        return new SeedAccount(email, fullName, role);
     }
 
     public record SeedAccount(
             String email,
-            String fullName) {
+            String fullName,
+            AccountRole role) {
     }
 }
