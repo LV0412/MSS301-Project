@@ -15,6 +15,7 @@ import com.mss301.userservice.entity.User;
 import com.mss301.userservice.exception.InvalidRecipeReferenceException;
 import com.mss301.userservice.repository.FavoriteRepository;
 import com.mss301.userservice.repository.UserRepository;
+import com.mss301.userservice.service.impl.FavoriteServiceImpl;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,7 +37,7 @@ class FavoriteServiceTest {
     private RecipeCatalogReferenceValidator recipeCatalogReferenceValidator;
 
     @InjectMocks
-    private FavoriteService favoriteService;
+    private FavoriteServiceImpl favoriteService;
 
     @Test
     void addFavoriteVerifiesRecipeBeforeSaving() {
