@@ -30,6 +30,8 @@ spring:
             enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
 
 auth:
+  seed:
+    enabled: ${AUTH_SEED_ENABLED:true}
   admin-account:
     default-password: ${ADMIN_DEFAULT_USER_PASSWORD:ChangeMe@123}
   jwt:

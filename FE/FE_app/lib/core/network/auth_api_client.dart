@@ -17,6 +17,7 @@ class AuthApiClient {
   }
 
   final AuthSessionStorage _sessionStorage;
+  Future<AuthSession?>? _refreshSessionFuture;
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl: AppConfig.authApiBaseUrl,
@@ -32,6 +33,17 @@ class AuthApiClient {
     return call().onError<DioException>((error, stackTrace) {
       throw ApiException.fromDio(error);
     });
+  }
+
+  Future<AuthSession?> refreshSession() {
+    final runningRefresh = _refreshSessionFuture;
+    if (runningRefresh != null) return runningRefresh;
+
+    final refresh = _refreshSession().whenComplete(() {
+      _refreshSessionFuture = null;
+    });
+    _refreshSessionFuture = refresh;
+    return refresh;
   }
 
   Future<void> _attachAccessToken(
@@ -67,10 +79,28 @@ class AuthApiClient {
       return;
     }
 
+    try {
+      final session = await refreshSession();
+      if (session == null) {
+        handler.next(error);
+        return;
+      }
+
+      final retryOptions = error.requestOptions;
+      retryOptions.headers['Authorization'] = 'Bearer ${session.accessToken}';
+      final retryResponse = await _dio.fetch<dynamic>(retryOptions);
+      handler.resolve(retryResponse);
+    } on DioException catch (refreshError) {
+      handler.next(refreshError);
+    } catch (_) {
+      handler.next(error);
+    }
+  }
+
+  Future<AuthSession?> _refreshSession() async {
     final refreshToken = await _sessionStorage.readRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
-      handler.next(error);
-      return;
+      return null;
     }
 
     try {
@@ -88,26 +118,21 @@ class AuthApiClient {
         data: {'refreshToken': refreshToken},
       );
       final data = refreshResponse.data;
-      if (data == null) {
-        handler.next(error);
-        return;
-      }
+      if (data == null) return null;
 
-      await _sessionStorage.save(
-        AuthSession(
-          accessToken: data['accessToken'] as String,
-          refreshToken: data['refreshToken'] as String,
-        ),
+      final session = AuthSession(
+        accessToken: data['accessToken'] as String,
+        refreshToken: data['refreshToken'] as String,
       );
-
-      final accessToken = data['accessToken'] as String;
-      final retryOptions = error.requestOptions;
-      retryOptions.headers['Authorization'] = 'Bearer $accessToken';
-      final retryResponse = await _dio.fetch<dynamic>(retryOptions);
-      handler.resolve(retryResponse);
-    } catch (_) {
-      await _sessionStorage.clear();
-      handler.next(error);
+      await _sessionStorage.save(session);
+      return session;
+    } on DioException catch (error) {
+      final statusCode = error.response?.statusCode;
+      if (statusCode == 401 || statusCode == 403) {
+        await _sessionStorage.clear();
+        return null;
+      }
+      rethrow;
     }
   }
 

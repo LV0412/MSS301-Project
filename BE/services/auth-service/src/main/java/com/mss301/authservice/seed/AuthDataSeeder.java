@@ -1,6 +1,5 @@
 package com.mss301.authservice.seed;
 
-import com.mss301.authservice.entity.AccountRole;
 import com.mss301.authservice.entity.AccountStatus;
 import com.mss301.authservice.entity.AuthProvider;
 import com.mss301.authservice.entity.UserAccount;
@@ -39,7 +38,7 @@ public class AuthDataSeeder implements CommandLineRunner {
                     .email(seedAccount.email())
                     .passwordHash(passwordEncoder.encode(AuthSeedDataFactory.TEST_PASSWORD))
                     .fullName(seedAccount.fullName())
-                    .role(AccountRole.USER)
+                    .role(seedAccount.role())
                     .status(AccountStatus.ACTIVE)
                     .emailVerified(true)
                     .provider(AuthProvider.LOCAL)

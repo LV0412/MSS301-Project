@@ -1,9 +1,10 @@
 part of '../../../app.dart';
 
 class ApiLoginScreen extends StatefulWidget {
-  const ApiLoginScreen({super.key, this.initialEmail});
+  const ApiLoginScreen({super.key, this.initialEmail, this.initialMessage});
 
   final String? initialEmail;
+  final String? initialMessage;
 
   @override
   State<ApiLoginScreen> createState() => _ApiLoginScreenState();
@@ -24,6 +25,7 @@ class _ApiLoginScreenState extends State<ApiLoginScreen> {
     if (initialEmail != null && initialEmail.isNotEmpty) {
       _emailController.text = initialEmail;
     }
+    _message = widget.initialMessage;
     _initializeGoogleSignIn();
   }
 

@@ -183,6 +183,6 @@ public class AuthController {
     })
     @GetMapping("/me")
     public ResponseEntity<AccountResponse> me(@AuthenticationPrincipal AuthUserPrincipal principal) {
-        return ResponseEntity.ok(authService.getCurrentAccount(principal.getAccountId()));
+        return ResponseEntity.ok(authService.getCurrentAccount(principal.getAccountId(), principal.getUserId()));
     }
 }

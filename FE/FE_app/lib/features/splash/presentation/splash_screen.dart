@@ -1,7 +1,102 @@
 part of '../../../app.dart';
 
-class SplashScreen extends StatelessWidget {
+enum _SplashState { checking, noSession, connectionError }
+
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  _SplashState _state = _SplashState.checking;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_bootstrap());
+  }
+
+  Future<void> _bootstrap() async {
+    setState(() {
+      _state = _SplashState.checking;
+      _errorMessage = null;
+    });
+
+    final dependencies = AuthDependencies.instance;
+    final session = await dependencies.sessionStorage.read();
+    if (session == null) {
+      if (!mounted) return;
+      setState(() => _state = _SplashState.noSession);
+      return;
+    }
+
+    try {
+      await dependencies.repository.me();
+      final tabName = await dependencies.sessionStorage.readLastHomeTab();
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MainShell(initialTab: _homeTabFromName(tabName)),
+        ),
+      );
+    } on ApiException catch (error) {
+      if (!mounted) return;
+
+      if (error.statusCode == 401) {
+        await dependencies.repository.clearSession();
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const ApiLoginScreen(
+              initialMessage:
+                  'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      if (error.statusCode == 403) {
+        await dependencies.repository.clearSession();
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const ApiLoginScreen(
+              initialMessage:
+                  'Tài khoản đang bị khóa hoặc không còn quyền truy cập.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        _state = _SplashState.connectionError;
+        _errorMessage = error.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _state = _SplashState.connectionError;
+        _errorMessage =
+            'Không thể xác minh phiên đăng nhập. Kiểm tra kết nối rồi thử lại.';
+      });
+    }
+  }
+
+  HomeTab _homeTabFromName(String? tabName) {
+    return switch (tabName) {
+      'explore' => HomeTab.explore,
+      'profile' => HomeTab.profile,
+      _ => HomeTab.home,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,13 +135,7 @@ class SplashScreen extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  PrimaryButton(
-                    label: 'Bắt đầu ngay',
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ApiLoginScreen()),
-                    ),
-                  ),
+                  _buildAction(),
                   const SizedBox(height: 16),
                   const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -72,6 +161,35 @@ class SplashScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildAction() {
+    return switch (_state) {
+      _SplashState.checking => const SizedBox(
+        width: 42,
+        height: 42,
+        child: CircularProgressIndicator(color: AppColors.green),
+      ),
+      _SplashState.noSession => PrimaryButton(
+        label: 'Bắt đầu ngay',
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ApiLoginScreen()),
+        ),
+      ),
+      _SplashState.connectionError => Column(
+        children: [
+          if (_errorMessage != null) ...[
+            ApiMessageBanner(message: _errorMessage!, isError: true),
+            const SizedBox(height: 12),
+          ],
+          PrimaryButton(
+            label: 'Thử lại',
+            onPressed: () => unawaited(_bootstrap()),
+          ),
+        ],
+      ),
+    };
   }
 }
 

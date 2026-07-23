@@ -1159,6 +1159,9 @@ class HomeBottomNav extends StatelessWidget {
   }
 
   void _openTab(BuildContext context, HomeTab tab) {
+    unawaited(
+      AuthDependencies.instance.sessionStorage.saveLastHomeTab(tab.name),
+    );
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => MainShell(initialTab: tab)),

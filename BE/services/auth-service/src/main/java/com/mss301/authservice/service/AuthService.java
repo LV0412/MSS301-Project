@@ -38,5 +38,5 @@ public interface AuthService {
 
     MessageResponse changePassword(Long accountId, ChangePasswordRequest request);
 
-    AccountResponse getCurrentAccount(Long accountId);
+    AccountResponse getCurrentAccount(Long accountId, Long userId);
 }

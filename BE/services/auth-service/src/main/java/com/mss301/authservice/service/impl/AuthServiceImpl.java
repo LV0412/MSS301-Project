@@ -124,7 +124,7 @@ public class AuthServiceImpl implements AuthService {
 
         UserAccount savedAccount = userAccountRepository.save(account);
         createAndSendVerificationOtp(savedAccount);
-        return toAccountResponse(savedAccount);
+        return toProvisionedAccountResponse(savedAccount);
     }
 
     @Override
@@ -345,10 +345,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional(readOnly = true)
     @Override
-    public AccountResponse getCurrentAccount(Long accountId) {
+    public AccountResponse getCurrentAccount(Long accountId, Long userId) {
         UserAccount account = findAccountById(accountId);
         ensureAccountCanAccessSession(account);
-        return toAccountResponse(account);
+        return toAccountResponse(account, userId);
     }
 
     private CreatedRefreshToken createRefreshToken(UserAccount account) {
@@ -370,7 +370,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private AuthResponse issueAuthResponse(UserAccount account, CreatedRefreshToken refreshToken) {
-        AccountResponse accountResponse = toAccountResponse(account);
+        AccountResponse accountResponse = toProvisionedAccountResponse(account);
         return AuthResponse.builder()
                 .accessToken(jwtService.generateAccessToken(account, accountResponse.userId()))
                 .refreshToken(refreshToken.rawToken())
@@ -650,8 +650,12 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private AccountResponse toAccountResponse(UserAccount account) {
+    private AccountResponse toProvisionedAccountResponse(UserAccount account) {
         Long userId = userProfileClient.ensureUser(account);
+        return toAccountResponse(account, userId);
+    }
+
+    private AccountResponse toAccountResponse(UserAccount account, Long userId) {
         return AccountResponse.builder()
                 .accountId(account.getAccountId())
                 .userId(userId)
