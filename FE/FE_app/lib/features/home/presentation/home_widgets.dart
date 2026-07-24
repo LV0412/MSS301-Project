@@ -86,6 +86,7 @@ class _DailyCaloriesCardState extends State<DailyCaloriesCard> {
     return _DailyCaloriesData(
       fullName: profile.fullName,
       consumedCalories: consumedCalories,
+      nutritionGoal: nutritionGoal,
       targetCalories: nutritionGoal.isConfigured
           ? nutritionGoal.dailyCaloriesGoal
           : null,
@@ -99,10 +100,12 @@ class _DailyCaloriesCardState extends State<DailyCaloriesCard> {
     });
   }
 
-  Future<void> _openNutritionGoalSetup() async {
+  Future<void> _openNutritionGoalSetup(NutritionGoal goal) async {
     await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => const NutritionGoalPlanScreen()),
+      MaterialPageRoute(
+        builder: (_) => NutritionGoalPlanScreen(initialGoal: goal),
+      ),
     );
     if (mounted) _reload();
   }
@@ -130,7 +133,8 @@ class _DailyCaloriesCardState extends State<DailyCaloriesCard> {
         }
         return _DailyCaloriesContent(
           data: snapshot.data!,
-          onSetupGoal: _openNutritionGoalSetup,
+          onSetupGoal: () =>
+              _openNutritionGoalSetup(snapshot.data!.nutritionGoal),
         );
       },
     );
@@ -182,6 +186,16 @@ class _DailyCaloriesContent extends StatelessWidget {
             color: AppColors.darkGreen,
           ),
         ),
+        if (data.nutritionGoal.isOutdated) ...[
+          const SizedBox(height: 18),
+          ApiMessageBanner(
+            message:
+                'Hồ sơ sức khỏe đã thay đổi. Mục tiêu dinh dưỡng hiện tại có thể không còn phù hợp.',
+            isError: true,
+            actionLabel: 'Cập nhật mục tiêu',
+            onAction: onSetupGoal,
+          ),
+        ],
         const SizedBox(height: 32),
         if (target == null)
           _NutritionGoalSetupCard(onPressed: onSetupGoal)
@@ -340,11 +354,13 @@ class _DailyCaloriesData {
   const _DailyCaloriesData({
     required this.fullName,
     required this.consumedCalories,
+    required this.nutritionGoal,
     required this.targetCalories,
   });
 
   final String fullName;
   final double consumedCalories;
+  final NutritionGoal nutritionGoal;
   final double? targetCalories;
 }
 
@@ -487,6 +503,7 @@ class _WeeklyNutritionData {
     required this.proteinTarget,
     required this.carbsTarget,
     required this.fatTarget,
+    required this.nutritionGoal,
   });
   final List<DateTime> days;
   final List<_NutritionTotals> dailyTotals;
@@ -495,6 +512,7 @@ class _WeeklyNutritionData {
   final double? proteinTarget;
   final double? carbsTarget;
   final double? fatTarget;
+  final NutritionGoal nutritionGoal;
 
   double get calorieProgress =>
       _weeklyMacroProgress(total.calories, caloriesTarget);

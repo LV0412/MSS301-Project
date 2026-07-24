@@ -1,6 +1,10 @@
 server:
   port: ${APP_PORT:8001}
 
+openapi:
+  server:
+    url: ${OPENAPI_SERVER_URL:http://localhost:8080}
+
 spring:
   application:
     name: user-service

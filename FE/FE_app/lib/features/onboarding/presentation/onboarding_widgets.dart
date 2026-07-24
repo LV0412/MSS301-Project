@@ -4,6 +4,7 @@ class OnboardingScaffold extends StatelessWidget {
   const OnboardingScaffold({
     super.key,
     required this.step,
+    this.totalSteps = 4,
     required this.progress,
     required this.title,
     required this.subtitle,
@@ -13,9 +14,11 @@ class OnboardingScaffold extends StatelessWidget {
     this.complete = false,
     this.completeDestination = const MainShell(),
     this.onComplete,
+    this.resolveCompleteDestination,
   });
 
   final int step;
+  final int totalSteps;
   final double progress;
   final String title;
   final String subtitle;
@@ -25,6 +28,8 @@ class OnboardingScaffold extends StatelessWidget {
   final bool complete;
   final Widget completeDestination;
   final Future<void> Function(BuildContext context)? onComplete;
+  final Future<Widget> Function(BuildContext context)?
+  resolveCompleteDestination;
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +71,7 @@ class OnboardingScaffold extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      'BƯỚC $step TRÊN 4',
+                      'BƯỚC $step TRÊN $totalSteps',
                       style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
@@ -153,9 +158,13 @@ class OnboardingScaffold extends StatelessWidget {
                         return;
                       }
                       if (!context.mounted) return;
+                      final destination = resolveCompleteDestination == null
+                          ? completeDestination
+                          : await resolveCompleteDestination!(context);
+                      if (!context.mounted) return;
                       Navigator.pushAndRemoveUntil(
                         context,
-                        MaterialPageRoute(builder: (_) => completeDestination),
+                        MaterialPageRoute(builder: (_) => destination),
                         (route) => false,
                       );
                     } else if (next != null) {

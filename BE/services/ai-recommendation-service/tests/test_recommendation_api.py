@@ -139,3 +139,28 @@ def test_strict_ingredients_removes_recipe_with_missing_ingredients(monkeypatch)
 def test_rejects_non_numeric_user_id():
     response = TestClient(app).post("/api/ai/recommendations", json={"user_id": "../../admin"})
     assert response.status_code == 422
+
+
+def test_outdated_nutrition_goal_does_not_supply_ai_constraints():
+    request = recommendation_api.RecommendationRequest(
+        meal_type="lunch",
+        target_calories=500,
+    )
+    profile = {
+        "nutritionGoal": {
+            "status": "OUTDATED",
+            "outdatedReason": "HEALTH_PROFILE_CHANGED",
+            "calories": 1800,
+            "protein": 90,
+            "carbs": 210,
+            "fat": 60,
+        }
+    }
+
+    merged = recommendation_api._merge_profile(request, profile)
+
+    assert merged.target_calories == 500
+    assert merged.max_calories is None
+    assert merged.min_protein is None
+    assert merged.max_carbs is None
+    assert merged.max_fat is None

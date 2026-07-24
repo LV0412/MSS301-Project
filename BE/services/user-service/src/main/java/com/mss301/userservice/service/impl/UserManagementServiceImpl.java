@@ -11,9 +11,11 @@ import com.mss301.userservice.exception.InvalidDateOfBirthException;
 import com.mss301.userservice.exception.UserNotFoundException;
 import com.mss301.userservice.repository.UserRepository;
 import com.mss301.userservice.service.UserManagementService;
+import com.mss301.userservice.service.NutritionGoalFreshnessService;
 import com.mss301.userservice.util.PageableUtils;
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +32,7 @@ public class UserManagementServiceImpl implements UserManagementService {
     private static final int MAX_AGE = 120;
 
     private final UserRepository userRepository;
+    private final NutritionGoalFreshnessService nutritionGoalFreshnessService;
 
     public UserResponse createUser(CreateUserRequest request) {
         validateDateOfBirth(request.dob());
@@ -78,6 +81,9 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     public UserResponse updateUser(Long userId, UpdateUserRequest request) {
         User user = findUser(userId);
+        boolean nutritionInputsChanged =
+                (request.dob() != null && !Objects.equals(request.dob(), user.getDob()))
+                        || (request.gender() != null && request.gender() != user.getGender());
 
         if (StringUtils.hasText(request.email()) && !request.email().equalsIgnoreCase(user.getEmail())) {
             ensureEmailIsAvailable(request.email());
@@ -97,7 +103,11 @@ public class UserManagementServiceImpl implements UserManagementService {
             user.setGender(request.gender());
         }
 
-        return toResponse(userRepository.save(user));
+        User savedUser = userRepository.save(user);
+        if (nutritionInputsChanged) {
+            nutritionGoalFreshnessService.markOutdatedForHealthProfileChange(userId);
+        }
+        return toResponse(savedUser);
     }
 
     public void deleteUser(Long userId) {

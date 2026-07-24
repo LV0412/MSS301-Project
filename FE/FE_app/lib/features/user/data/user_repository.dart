@@ -85,6 +85,27 @@ class UserRepository {
     }
   }
 
+  Future<void> saveHealthProfileFlow({
+    required bool isOnboarding,
+    required double height,
+    required double weight,
+    required String activityLevel,
+    double? dailyCaloriesGoal,
+  }) async {
+    await saveHealthProfile(
+      height: height,
+      weight: weight,
+      activityLevel: activityLevel,
+    );
+    if (!isOnboarding) return;
+
+    await saveNutritionGoal(
+      goalType: 'MAINTAIN',
+      targetWeight: weight,
+      dailyCaloriesGoal: dailyCaloriesGoal,
+    );
+  }
+
   Future<NutritionGoal> getNutritionGoal() async {
     final response = await _request(
       () =>

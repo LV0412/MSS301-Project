@@ -16,6 +16,8 @@ import com.mss301.userservice.entity.Gender;
 import com.mss301.userservice.entity.GoalType;
 import com.mss301.userservice.entity.HealthProfile;
 import com.mss301.userservice.entity.NutritionGoal;
+import com.mss301.userservice.entity.NutritionGoalOutdatedReason;
+import com.mss301.userservice.entity.NutritionGoalStatus;
 import com.mss301.userservice.entity.User;
 import com.mss301.userservice.exception.InvalidNutritionGoalException;
 import com.mss301.userservice.repository.HealthProfileRepository;
@@ -81,6 +83,8 @@ class NutritionGoalServiceTest {
         assertThat(response.protein()).isEqualByComparingTo("105.61");
         assertThat(response.carbs()).isEqualByComparingTo("264.02");
         assertThat(response.fat()).isEqualByComparingTo("70.40");
+        assertThat(response.status()).isEqualTo(NutritionGoalStatus.CURRENT);
+        assertThat(response.outdatedReason()).isNull();
     }
 
     @Test
@@ -95,6 +99,8 @@ class NutritionGoalServiceTest {
                 .targetWeight(BigDecimal.valueOf(70))
                 .durationWeeks(12)
                 .weeklyRateKg(BigDecimal.ZERO)
+                .status(NutritionGoalStatus.OUTDATED)
+                .outdatedReason(NutritionGoalOutdatedReason.HEALTH_PROFILE_CHANGED)
                 .recommendedCalories(BigDecimal.valueOf(2000))
                 .dailyCaloriesGoal(BigDecimal.valueOf(2200))
                 .protein(BigDecimal.valueOf(120))
@@ -122,6 +128,8 @@ class NutritionGoalServiceTest {
         assertThat(response.durationWeeks()).isEqualTo(20);
         assertThat(response.weeklyRateKg()).isEqualByComparingTo("0.25");
         assertThat(response.dailyCaloriesGoal()).isEqualByComparingTo("2300");
+        assertThat(response.status()).isEqualTo(NutritionGoalStatus.CURRENT);
+        assertThat(response.outdatedReason()).isNull();
     }
 
     @Test
@@ -155,7 +163,7 @@ class NutritionGoalServiceTest {
     }
 
     @Test
-    void createNutritionGoalDefaultsMissingGoalTypeToConfiguredMaintain() {
+    void createNutritionGoalRejectsMaintainWhenTargetWeightIsMissing() {
         Long userId = 7L;
         User user = user(userId, Gender.FEMALE, 28);
         HealthProfile healthProfile = healthProfile(BigDecimal.valueOf(165), BigDecimal.valueOf(70), ActivityLevel.LIGHT);
@@ -172,20 +180,58 @@ class NutritionGoalServiceTest {
         when(nutritionGoalRepository.existsByUserUserId(userId)).thenReturn(false);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(healthProfileRepository.findByUserUserId(userId)).thenReturn(Optional.of(healthProfile));
-        when(nutritionGoalRepository.save(any(NutritionGoal.class))).thenAnswer(invocation -> {
-            NutritionGoal nutritionGoal = invocation.getArgument(0);
-            nutritionGoal.setGoalId(1L);
-            return nutritionGoal;
-        });
+        assertThatThrownBy(() -> nutritionGoalService.createNutritionGoal(userId, request))
+                .isInstanceOf(InvalidNutritionGoalException.class)
+                .hasMessage("Với mục tiêu Duy trì cân nặng, cân nặng mục tiêu là bắt buộc");
 
-        NutritionGoalResponse response = nutritionGoalService.createNutritionGoal(userId, request);
+        verify(nutritionGoalRepository, never()).save(any(NutritionGoal.class));
+    }
 
-        assertThat(response.goalType()).isEqualTo(GoalType.MAINTAIN);
-        assertThat(response.targetWeight()).isNull();
-        assertThat(response.durationWeeks()).isNull();
-        assertThat(response.weeklyRateKg()).isNull();
-        assertThat(response.goalConfigured()).isTrue();
-        assertThat(response.dailyCaloriesGoal()).isEqualByComparingTo("1966.59");
+    @Test
+    void updateNutritionGoalRejectsMaintainWhenTargetWeightIsMissing() {
+        Long userId = 7L;
+        User user = user(userId, Gender.FEMALE, 28);
+        HealthProfile healthProfile = healthProfile(
+                BigDecimal.valueOf(165),
+                BigDecimal.valueOf(70),
+                ActivityLevel.LIGHT);
+        NutritionGoal existingGoal = NutritionGoal.builder()
+                .goalId(1L)
+                .user(user)
+                .goalType(GoalType.LOSE_WEIGHT)
+                .targetWeight(BigDecimal.valueOf(65))
+                .durationWeeks(10)
+                .weeklyRateKg(BigDecimal.valueOf(0.5))
+                .goalConfigured(true)
+                .status(NutritionGoalStatus.OUTDATED)
+                .outdatedReason(NutritionGoalOutdatedReason.HEALTH_PROFILE_CHANGED)
+                .recommendedCalories(BigDecimal.valueOf(1800))
+                .dailyCaloriesGoal(BigDecimal.valueOf(1800))
+                .protein(BigDecimal.valueOf(90))
+                .carbs(BigDecimal.valueOf(225))
+                .fat(BigDecimal.valueOf(60))
+                .build();
+        UpdateNutritionGoalRequest request = new UpdateNutritionGoalRequest(
+                GoalType.MAINTAIN,
+                null,
+                null,
+                null,
+                BigDecimal.valueOf(2000),
+                null,
+                null,
+                null);
+
+        when(nutritionGoalRepository.findByUserUserId(userId)).thenReturn(Optional.of(existingGoal));
+        when(healthProfileRepository.findByUserUserId(userId)).thenReturn(Optional.of(healthProfile));
+
+        assertThatThrownBy(() -> nutritionGoalService.updateNutritionGoal(userId, request))
+                .isInstanceOf(InvalidNutritionGoalException.class)
+                .hasMessage("Với mục tiêu Duy trì cân nặng, cân nặng mục tiêu là bắt buộc");
+
+        verify(nutritionGoalRepository, never()).save(any(NutritionGoal.class));
+        assertThat(existingGoal.getGoalType()).isEqualTo(GoalType.LOSE_WEIGHT);
+        assertThat(existingGoal.getTargetWeight()).isEqualByComparingTo("65");
+        assertThat(existingGoal.getDurationWeeks()).isEqualTo(10);
     }
 
     @Test
@@ -238,6 +284,47 @@ class NutritionGoalServiceTest {
         assertThat(response.goalType()).isEqualTo(GoalType.MAINTAIN);
         assertThat(response.targetWeight()).isNull();
         assertThat(response.dailyCaloriesGoal()).isEqualByComparingTo("2000");
+    }
+
+    @Test
+    void getNutritionGoalKeepsStoredPlanFieldsWhenGoalIsOutdated() {
+        Long userId = 7L;
+        User user = user(userId, Gender.FEMALE, 28);
+        HealthProfile healthProfile = healthProfile(
+                BigDecimal.valueOf(165),
+                BigDecimal.valueOf(69),
+                ActivityLevel.LIGHT);
+        NutritionGoal goal = NutritionGoal.builder()
+                .goalId(1L)
+                .user(user)
+                .goalType(GoalType.LOSE_WEIGHT)
+                .targetWeight(BigDecimal.valueOf(65))
+                .durationWeeks(10)
+                .weeklyRateKg(BigDecimal.valueOf(0.5))
+                .goalConfigured(true)
+                .status(NutritionGoalStatus.OUTDATED)
+                .outdatedReason(NutritionGoalOutdatedReason.HEALTH_PROFILE_CHANGED)
+                .recommendedCalories(BigDecimal.valueOf(1800))
+                .dailyCaloriesGoal(BigDecimal.valueOf(1750))
+                .protein(BigDecimal.valueOf(87.5))
+                .carbs(BigDecimal.valueOf(218.75))
+                .fat(BigDecimal.valueOf(58.33))
+                .build();
+
+        when(nutritionGoalRepository.findByUserUserId(userId)).thenReturn(Optional.of(goal));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(healthProfileRepository.findByUserUserId(userId)).thenReturn(Optional.of(healthProfile));
+
+        NutritionGoalResponse response = nutritionGoalService.getNutritionGoal(userId);
+
+        assertThat(response.goalType()).isEqualTo(GoalType.LOSE_WEIGHT);
+        assertThat(response.targetWeight()).isEqualByComparingTo("65");
+        assertThat(response.durationWeeks()).isEqualTo(10);
+        assertThat(response.weeklyRateKg()).isEqualByComparingTo("0.5");
+        assertThat(response.dailyCaloriesGoal()).isEqualByComparingTo("1750");
+        assertThat(response.status()).isEqualTo(NutritionGoalStatus.OUTDATED);
+        assertThat(response.outdatedReason())
+                .isEqualTo(NutritionGoalOutdatedReason.HEALTH_PROFILE_CHANGED);
     }
 
     @Test
@@ -308,6 +395,51 @@ class NutritionGoalServiceTest {
         assertThat(response.targetWeight()).isNull();
         assertThat(response.durationWeeks()).isNull();
         assertThat(response.weeklyRateKg()).isNull();
+    }
+
+    @Test
+    void createNutritionGoalAcceptsMaintainTargetExactlyOneKgFromCurrentWeight() {
+        Long userId = 7L;
+        User user = user(userId, Gender.MALE, 30);
+        HealthProfile healthProfile = healthProfile(
+                BigDecimal.valueOf(170),
+                BigDecimal.valueOf(80),
+                ActivityLevel.MODERATE);
+        CreateNutritionGoalRequest request = createRequest(
+                GoalType.MAINTAIN,
+                BigDecimal.valueOf(81),
+                10,
+                null,
+                null);
+
+        stubCreate(userId, user, healthProfile);
+
+        NutritionGoalResponse response = nutritionGoalService.createNutritionGoal(userId, request);
+
+        assertThat(response.goalType()).isEqualTo(GoalType.MAINTAIN);
+        assertThat(response.targetWeight()).isNull();
+    }
+
+    @Test
+    void createNutritionGoalRejectsMaintainTargetMoreThanOneKgFromCurrentWeight() {
+        Long userId = 7L;
+        User user = user(userId, Gender.MALE, 30);
+        HealthProfile healthProfile = healthProfile(
+                BigDecimal.valueOf(170),
+                BigDecimal.valueOf(80),
+                ActivityLevel.MODERATE);
+        CreateNutritionGoalRequest request = createRequest(
+                GoalType.MAINTAIN,
+                BigDecimal.valueOf(81.01),
+                10,
+                null,
+                null);
+
+        stubCreateWithoutSave(userId, user, healthProfile);
+
+        assertThatThrownBy(() -> nutritionGoalService.createNutritionGoal(userId, request))
+                .isInstanceOf(InvalidNutritionGoalException.class)
+                .hasMessageContaining("±1kg");
     }
 
     @Test
@@ -509,7 +641,7 @@ class NutritionGoalServiceTest {
                 ActivityLevel.LIGHT);
         UpdateNutritionGoalRequest request = new UpdateNutritionGoalRequest(
                 GoalType.MAINTAIN,
-                BigDecimal.valueOf(60),
+                BigDecimal.valueOf(70),
                 12,
                 BigDecimal.ONE,
                 null,

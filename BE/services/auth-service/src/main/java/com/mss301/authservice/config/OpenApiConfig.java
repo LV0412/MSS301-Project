@@ -5,6 +5,9 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,6 +15,9 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     private static final String BEARER_AUTH = "bearerAuth";
+
+    @Value("${openapi.server.url:http://localhost:8080}")
+    private String serverUrl;
 
     @Bean
     public OpenAPI authServiceOpenAPI() {
@@ -21,6 +27,9 @@ public class OpenApiConfig {
                 .bearerFormat("JWT");
 
         return new OpenAPI()
+                .servers(List.of(new Server()
+                        .url(serverUrl)
+                        .description("API Gateway")))
                 .info(new Info()
                         .title("MSS301 Auth Service API")
                         .version("v1")

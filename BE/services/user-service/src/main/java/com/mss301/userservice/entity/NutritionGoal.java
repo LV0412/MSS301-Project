@@ -12,11 +12,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "nutrition_goals")
@@ -52,6 +54,19 @@ public class NutritionGoal {
     @Builder.Default
     @Column(name = "goal_configured", nullable = false)
     private boolean goalConfigured = true;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private NutritionGoalStatus status = NutritionGoalStatus.CURRENT;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "outdated_reason", length = 40)
+    private NutritionGoalOutdatedReason outdatedReason;
+
+    @CreationTimestamp
+    @Column(name = "calculated_at", nullable = false)
+    private LocalDateTime calculatedAt;
 
     @Column(name = "recommended_calories", nullable = false, precision = 8, scale = 2)
     private BigDecimal recommendedCalories;
