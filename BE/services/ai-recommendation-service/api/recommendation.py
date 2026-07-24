@@ -124,6 +124,14 @@ def _merge_profile(
     return request.model_copy(update=updates)
 
 
+def _is_unusable_nutrition_goal(nutrition_goal: dict[str, Any]) -> bool:
+    return (
+        nutrition_goal.get("goalConfigured") is False
+        or nutrition_goal.get("goal_configured") is False
+        or str(nutrition_goal.get("status", "")).upper() == "OUTDATED"
+    )
+
+
 def _load_recipe_candidates(request: RecommendationRequest) -> list[RecipeDocument]:
     service_documents = _search_recipe_service(request)
     if service_documents:
@@ -265,6 +273,7 @@ def _per_meal_int(
     multiplier: float = 1.0,
     minimum: int = 1,
 ) -> int | None:
+    value = _int_value(payload, key)
     value = _int_value(payload, key)
     if value is None:
         return None

@@ -2,6 +2,8 @@ class NutritionGoal {
   const NutritionGoal({
     required this.goalType,
     required this.goalConfigured,
+    this.status,
+    this.outdatedReason,
     this.targetWeight,
     this.durationWeeks,
     this.weeklyRateKg,
@@ -17,6 +19,8 @@ class NutritionGoal {
     return NutritionGoal(
       goalType: json['goalType']?.toString(),
       goalConfigured: json['goalConfigured'] == true,
+      status: json['status']?.toString(),
+      outdatedReason: json['outdatedReason']?.toString(),
       targetWeight: _asDouble(json['targetWeight']),
       durationWeeks: (json['durationWeeks'] as num?)?.toInt(),
       weeklyRateKg: _asDouble(json['weeklyRateKg']),
@@ -31,6 +35,8 @@ class NutritionGoal {
 
   final String? goalType;
   final bool goalConfigured;
+  final String? status;
+  final String? outdatedReason;
   final double? targetWeight;
   final int? durationWeeks;
   final double? weeklyRateKg;
@@ -42,6 +48,7 @@ class NutritionGoal {
   final List<String> warnings;
 
   bool get isConfigured => goalConfigured;
+  bool get isOutdated => isConfigured && status == 'OUTDATED';
   bool get hasWeightPlan => isConfigured && goalType != 'MAINTAIN';
 }
 

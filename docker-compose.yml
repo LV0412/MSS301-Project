@@ -42,6 +42,7 @@ services:
       AUTH_DATABASE_URL: jdbc:mysql://auth-mysql:3306/auth_service?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
       AUTH_DATABASE_USERNAME: root
       AUTH_DATABASE_PASSWORD: ${AUTH_MYSQL_ROOT_PASSWORD:-root}
+      OPENAPI_SERVER_URL: http://localhost:8080
       USER_SERVICE_URL: http://user-service:8001
     expose:
       - "8000"
@@ -88,6 +89,7 @@ services:
       JPA_DDL_AUTO: ${USER_JPA_DDL_AUTO:-validate}
       JPA_SHOW_SQL: ${USER_JPA_SHOW_SQL:-false}
       APP_SEED_ENABLED: true
+      OPENAPI_SERVER_URL: http://localhost:8080
       RECIPE_SERVICE_URL: http://recipe-service:8002
     expose:
       - "8001"
@@ -132,6 +134,7 @@ services:
       DATABASE_USERNAME: root
       DATABASE_PASSWORD: ${RECIPE_MYSQL_ROOT_PASSWORD:-root}
       JPA_SHOW_SQL: ${RECIPE_JPA_SHOW_SQL:-false}
+      OPENAPI_SERVER_URL: http://localhost:8080
     expose:
       - "8002"
 

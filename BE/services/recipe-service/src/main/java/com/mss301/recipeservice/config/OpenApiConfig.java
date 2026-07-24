@@ -1,9 +1,7 @@
-package com.mss301.userservice.config;
+package com.mss301.recipeservice.config;
 
-import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,19 +15,14 @@ public class OpenApiConfig {
     private String serverUrl;
 
     @Bean
-    public OpenAPI userServiceOpenAPI() {
+    public OpenAPI recipeServiceOpenAPI() {
         return new OpenAPI()
                 .servers(List.of(new Server()
                         .url(serverUrl)
                         .description("API Gateway")))
                 .info(new Info()
-                        .title("MSS301 User Service API")
+                        .title("MSS301 Recipe Service API")
                         .version("v1")
-                        .description("User profile, health profile, nutrition goal, preference, favorite, and food log APIs."))
-                .components(new Components()
-                        .addSecuritySchemes("bearerAuth", new SecurityScheme()
-                                .type(SecurityScheme.Type.HTTP)
-                                .scheme("bearer")
-                                .bearerFormat("JWT")));
+                        .description("Recipe, ingredient, category, allergen, and image APIs."));
     }
 }

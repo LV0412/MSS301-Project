@@ -1,6 +1,8 @@
 package com.mss301.userservice.dto;
 
 import com.mss301.userservice.entity.GoalType;
+import com.mss301.userservice.entity.NutritionGoalOutdatedReason;
+import com.mss301.userservice.entity.NutritionGoalStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -23,6 +25,8 @@ public record NutritionGoalResponse(
         BigDecimal carbs,
         BigDecimal fat,
         List<String> warnings,
-        Boolean goalConfigured
+        Boolean goalConfigured,
+        NutritionGoalStatus status,
+        NutritionGoalOutdatedReason outdatedReason
 ) {
 }

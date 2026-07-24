@@ -156,6 +156,9 @@ public class InternalUserServiceImpl implements InternalUserService {
                 .protein(nutritionGoal.getProtein())
                 .carbs(nutritionGoal.getCarbs())
                 .fat(nutritionGoal.getFat())
+                .goalConfigured(nutritionGoal.isGoalConfigured())
+                .status(nutritionGoal.getStatus())
+                .outdatedReason(nutritionGoal.getOutdatedReason())
                 .build();
     }
 

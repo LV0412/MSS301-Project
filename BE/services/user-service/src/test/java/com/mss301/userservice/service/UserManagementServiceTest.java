@@ -1,6 +1,7 @@
 package com.mss301.userservice.service;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,6 +26,9 @@ class UserManagementServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private NutritionGoalFreshnessService nutritionGoalFreshnessService;
 
     @InjectMocks
     private UserManagementServiceImpl userManagementService;
@@ -68,5 +72,30 @@ class UserManagementServiceTest {
                 .isInstanceOf(InvalidDateOfBirthException.class);
 
         verify(userRepository, never()).save(org.mockito.ArgumentMatchers.any(User.class));
+    }
+
+    @Test
+    void changingGenderMarksNutritionGoalOutdated() {
+        Long userId = 7L;
+        User user = User.builder()
+                .userId(userId)
+                .email("user@example.com")
+                .fullName("Existing User")
+                .dob(LocalDate.of(1995, 1, 1))
+                .gender(Gender.MALE)
+                .build();
+        UpdateUserRequest request = new UpdateUserRequest(
+                null,
+                null,
+                null,
+                null,
+                Gender.FEMALE);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        userManagementService.updateUser(userId, request);
+
+        verify(nutritionGoalFreshnessService).markOutdatedForHealthProfileChange(userId);
     }
 }

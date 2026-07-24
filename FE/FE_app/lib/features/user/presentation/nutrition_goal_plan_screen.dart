@@ -214,7 +214,7 @@ class _NutritionGoalPlanScreenState extends State<NutritionGoalPlanScreen> {
       final preview = await _repository.previewNutritionGoal(
         goalType: _goalType,
         targetWeight: _goalType == 'MAINTAIN'
-            ? null
+            ? _asDouble(_healthProfile?['weight'])
             : _optionalDouble(_targetWeightController.text),
         durationWeeks: _goalType == 'MAINTAIN'
             ? null
@@ -288,7 +288,7 @@ class _NutritionGoalPlanScreenState extends State<NutritionGoalPlanScreen> {
       final goal = await _repository.saveNutritionGoal(
         goalType: _goalType,
         targetWeight: _goalType == 'MAINTAIN'
-            ? null
+            ? _asDouble(_healthProfile?['weight'])
             : _optionalDouble(_targetWeightController.text),
         durationWeeks: _goalType == 'MAINTAIN'
             ? null

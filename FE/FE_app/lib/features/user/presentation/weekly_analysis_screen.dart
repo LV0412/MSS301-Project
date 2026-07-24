@@ -38,10 +38,21 @@ class _WeeklyAnalysisScreenState extends State<WeeklyAnalysisScreen> {
       proteinTarget: hasGoal ? goal.protein : null,
       carbsTarget: hasGoal ? goal.carbs : null,
       fatTarget: hasGoal ? goal.fat : null,
+      nutritionGoal: goal,
     );
   }
 
   void _retry() => setState(() => _future = _load());
+
+  Future<void> _openNutritionGoalUpdate(NutritionGoal goal) async {
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NutritionGoalPlanScreen(initialGoal: goal),
+      ),
+    );
+    if (mounted) _retry();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +106,18 @@ class _WeeklyAnalysisScreenState extends State<WeeklyAnalysisScreen> {
                         onAction: _retry,
                       )
                     else ...[
+                      if (snapshot.requireData.nutritionGoal.isOutdated) ...[
+                        ApiMessageBanner(
+                          message:
+                              'Hồ sơ sức khỏe đã thay đổi. Phân tích tuần này đang dùng mục tiêu dinh dưỡng cũ.',
+                          isError: true,
+                          actionLabel: 'Cập nhật mục tiêu',
+                          onAction: () => _openNutritionGoalUpdate(
+                            snapshot.requireData.nutritionGoal,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                      ],
                       _WeeklyDateRangePill(data: snapshot.requireData),
                       const SizedBox(height: 28),
                       _WeeklyGoalCard(data: snapshot.requireData),
