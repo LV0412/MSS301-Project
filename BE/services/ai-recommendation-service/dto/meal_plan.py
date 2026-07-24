@@ -1,19 +1,10 @@
 from datetime import date, time
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SwapMealPlanEntryRequest(BaseModel):
     new_recipe_id: int = Field(alias="newRecipeId", gt=0)
-
-
-class GenerateMealPlanRequest(BaseModel):
-    recent_recipe_ids: list[int] = Field(default_factory=list, alias="recentRecipeIds")
-
-    @field_validator("recent_recipe_ids")
-    @classmethod
-    def validate_recent_recipe_ids(cls, values: list[int]) -> list[int]:
-        return sorted({value for value in values if value > 0})
 
 
 class GeneratedMealPlanEntry(BaseModel):

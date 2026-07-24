@@ -17,18 +17,17 @@ SLOTS: tuple[tuple[str, time, float], ...] = (
 )
 
 
-def generate_meal_plan(user_id: int, plan_date: date, recent_recipe_ids: list[int] | None = None) -> GeneratedMealPlanResponse:
+def generate_meal_plan(user_id: int, plan_date: date) -> GeneratedMealPlanResponse:
     user_profile = _require_configured_profile(user_id)
     nutrition_goal = _nutrition_goal(user_profile)
     selected_items = []
     warnings: list[str] = []
-    recent_ids = {str(recipe_id) for recipe_id in recent_recipe_ids or []}
 
     used_recipe_ids: set[str] = set()
     for meal_type, scheduled_time, ratio in SLOTS:
         request = _slot_request(user_id, meal_type, nutrition_goal, ratio)
         target_calories = request.target_calories
-        item, slot_warnings = _select_slot_recipe(request, user_profile, used_recipe_ids, recent_ids)
+        item, slot_warnings = _select_slot_recipe(request, user_profile, used_recipe_ids)
         warnings.extend([f"{meal_type}: {warning}" for warning in slot_warnings])
         if item is None:
             warnings.append(f"Thieu slot {meal_type}: khong tim thay mon phu hop hard constraints.")
@@ -87,7 +86,6 @@ def _select_slot_recipe(
     request: RecommendationRequest,
     user_profile: dict[str, Any],
     used_recipe_ids: set[str],
-    recent_recipe_ids: set[str],
 ):
     enriched_request = recommendation_api._merge_profile(request, user_profile).model_copy(
         update={
@@ -110,12 +108,6 @@ def _select_slot_recipe(
         candidates = meal_type_candidates
     else:
         warnings.append(f"Khong co mon dung loai bua {request.meal_type}; cho phep chon mon khac bua.")
-
-    without_recent = [candidate for candidate in candidates if candidate.recipe_id not in recent_recipe_ids]
-    if without_recent:
-        candidates = without_recent
-    else:
-        warnings.append("Khong du lua chon moi nen cho phep lap mon trong 3 ngay gan nhat.")
 
     target = enriched_request.target_calories
     if target is None:

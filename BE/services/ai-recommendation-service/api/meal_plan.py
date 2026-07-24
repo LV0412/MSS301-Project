@@ -1,8 +1,8 @@
 from datetime import date
 
-from fastapi import APIRouter, Body, Header, Query
+from fastapi import APIRouter, Header, Query
 
-from dto.meal_plan import GeneratedMealPlanEntry, GeneratedMealPlanResponse, GenerateMealPlanRequest
+from dto.meal_plan import GeneratedMealPlanEntry, GeneratedMealPlanResponse
 from services.meal_plan_service import build_swap_candidate, generate_meal_plan
 
 
@@ -16,10 +16,9 @@ router = APIRouter(prefix="/internal/meal-plans")
 )
 def generate(
     date_: date = Query(alias="date"),
-    request: GenerateMealPlanRequest = Body(default_factory=GenerateMealPlanRequest),
     user_id: int = Header(alias="X-User-Id", gt=0),
 ) -> GeneratedMealPlanResponse:
-    return generate_meal_plan(user_id=user_id, plan_date=date_, recent_recipe_ids=request.recent_recipe_ids)
+    return generate_meal_plan(user_id=user_id, plan_date=date_)
 
 
 @router.get(
