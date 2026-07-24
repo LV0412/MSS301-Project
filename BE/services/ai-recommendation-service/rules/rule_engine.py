@@ -48,8 +48,6 @@ class RuleEngine:
 
         if self._has_allergy_match(candidate, request.allergies):
             violations.append("trung di ung")
-        if request.diet and not self._matches_diet(candidate, request.diet):
-            violations.append(f"khong dung diet {request.diet}")
         if request.max_calories and candidate.calories > request.max_calories:
             violations.append(f"vuot {request.max_calories} kcal")
         if request.min_protein and candidate.protein < request.min_protein:

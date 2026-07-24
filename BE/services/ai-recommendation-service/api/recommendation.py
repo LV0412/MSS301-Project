@@ -3,7 +3,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
-from clients.recipe_service_client import RecipeServiceClient, normalize_diet_type
+from clients.recipe_service_client import RecipeServiceClient
 from clients.user_service_client import UserServiceClient
 from config import settings
 from dto.request import RecommendationRequest
@@ -103,11 +103,10 @@ def _merge_profile(
         return request
 
     nutrition_goal = _dict_value(user_profile, "nutritionGoal", "nutrition_goal")
-    diet = _first_diet_preference(user_profile)
     allergen_tokens = _allergy_tokens(user_profile)
 
     updates = {
-        "diet": request.diet or diet,
+        "diet": request.diet,
         "allergies": _unique([*request.allergies, *allergen_tokens]),
         "target_calories": request.target_calories or _per_meal_int(nutrition_goal, "calories", request.meal_type),
         "max_calories": request.max_calories or _per_meal_int(
@@ -160,7 +159,7 @@ def _search_recipe_service(request: RecommendationRequest) -> list[RecipeDocumen
         return recipe_service_client.search_recipe_documents(
             query=None if request.ingredient_ids else request.query,
             max_calories=request.max_calories,
-            diet_type=normalize_diet_type(request.diet),
+            diet_type=None,
             excluded_allergen_ids=_excluded_allergen_ids(request),
             ingredient_ids=request.ingredient_ids,
             size=max(request.limit * 4, 20),
@@ -239,16 +238,6 @@ def _list_value(payload: dict[str, Any], *keys: str) -> list[Any]:
         if isinstance(value, list):
             return value
     return []
-
-
-def _first_diet_preference(user_profile: dict[str, Any]) -> str | None:
-    for item in _list_value(user_profile, "dietPreferences", "diet_preferences"):
-        if not isinstance(item, dict):
-            continue
-        diet_type = _string_value(item, "dietType", "diet_type")
-        if diet_type:
-            return diet_type
-    return _string_value(user_profile, "diet", "dietType", "diet_type")
 
 
 def _allergy_tokens(user_profile: dict[str, Any]) -> list[str]:
