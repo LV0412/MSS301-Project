@@ -74,6 +74,11 @@ def build_swap_candidate(user_id: int, meal_type: str, new_recipe_id: int) -> Ge
             status_code=422,
             detail={"message": "Recipe violates hard constraints.", "warnings": rule_result.warnings},
         )
+    if _recipe_meal_type(recipe) and _recipe_meal_type(recipe) != meal_type:
+        raise HTTPException(
+            status_code=422,
+            detail={"message": f"Recipe is for {_recipe_meal_type(recipe)}, not {meal_type}."},
+        )
     item = MealOptimizer().optimize([recipe], enriched_request, llm_scores=[])[0]
     return _to_entry(meal_type, scheduled_time, item, enriched_request.target_calories, manually_swapped=True)
 
@@ -99,6 +104,12 @@ def _select_slot_recipe(
     candidates = [candidate for candidate in rule_result.candidates if candidate.recipe_id not in used_recipe_ids]
     if not candidates:
         return None, warnings
+
+    meal_type_candidates = [candidate for candidate in candidates if _recipe_meal_type(candidate) == request.meal_type]
+    if meal_type_candidates:
+        candidates = meal_type_candidates
+    else:
+        warnings.append(f"Khong co mon dung loai bua {request.meal_type}; cho phep chon mon khac bua.")
 
     without_recent = [candidate for candidate in candidates if candidate.recipe_id not in recent_recipe_ids]
     if without_recent:
@@ -128,6 +139,11 @@ def _select_slot_recipe(
 
 def _to_greedy_item(candidate, request: RecommendationRequest):
     return MealOptimizer().optimize([candidate], request, llm_scores=[])[0]
+
+
+def _recipe_meal_type(candidate) -> str:
+    value = candidate.metadata.get("meal_type") if getattr(candidate, "metadata", None) else ""
+    return str(value or "").strip().lower()
 
 
 def _require_configured_profile(user_id: int) -> dict[str, Any]:

@@ -221,7 +221,8 @@ class RecipeServiceClient:
         title = str(recipe.get("title") or recipe.get("name") or "")
         description = str(recipe.get("description") or "")
         total_time = self._to_int(recipe.get("preparationTime"), 0) + self._to_int(recipe.get("cookTime"), 0)
-        tags = [*diet_types, *allergen_names]
+        meal_type = self._meal_type(recipe)
+        tags = [meal_type, *diet_types, *allergen_names] if meal_type else [*diet_types, *allergen_names]
 
         return RecipeDocument(
             recipe_id=str(recipe.get("recipeId") or recipe.get("id")),
@@ -232,7 +233,7 @@ class RecipeServiceClient:
             estimated_cost=0,
             text=" ".join([title, description, " ".join(ingredient_names), " ".join(diet_types)]),
             metadata={
-                "meal_type": "",
+                "meal_type": meal_type,
                 "diet": diet_types,
                 "allergens": [*allergen_names, *[f"allergen:{item}" for item in allergen_ids]],
                 "allergen_ids": allergen_ids,
@@ -265,6 +266,44 @@ class RecipeServiceClient:
                 "source": "recipe-service",
             },
         )
+
+    def _meal_type(self, recipe: dict[str, Any]) -> str:
+        direct_value = recipe.get("mealType") or recipe.get("meal_type")
+        if direct_value:
+            return self._normalize_meal_type(str(direct_value))
+
+        category = recipe.get("category") if isinstance(recipe.get("category"), dict) else {}
+        category_id = self._to_int(category.get("categoryId") or recipe.get("categoryId"), 0)
+        by_id = {
+            1: "breakfast",
+            2: "lunch",
+            3: "dinner",
+            4: "snack",
+        }
+        if category_id in by_id:
+            return by_id[category_id]
+
+        return self._normalize_meal_type(str(category.get("name") or ""))
+
+    def _normalize_meal_type(self, value: str) -> str:
+        normalized = normalize_ingredient_name(value)
+        aliases = {
+            "breakfast": "breakfast",
+            "bua sang": "breakfast",
+            "sang": "breakfast",
+            "lunch": "lunch",
+            "bua trua": "lunch",
+            "trua": "lunch",
+            "dinner": "dinner",
+            "bua toi": "dinner",
+            "bua chieu": "dinner",
+            "toi": "dinner",
+            "chieu": "dinner",
+            "snack": "snack",
+            "an nhe": "snack",
+            "bua phu": "snack",
+        }
+        return aliases.get(normalized, "")
 
     def _allergens(self, ingredients: list[Any]) -> tuple[list[str], list[int]]:
         names: set[str] = set()
