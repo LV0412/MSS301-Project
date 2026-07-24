@@ -3,13 +3,15 @@ services:
     build:
       context: ./BE/services/ai-recommendation-service
       dockerfile: Dockerfile.gpu
-    gpus: all
+    runtime: nvidia
     shm_size: "2gb"
     environment:
       AI_LLM_PROVIDER: foodyllm
       AI_LLM_STRICT: "true"
       HF_HOME: /models/huggingface
       TRANSFORMERS_CACHE: /models/huggingface
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
     volumes:
       - hf_model_cache:/models/huggingface
 
