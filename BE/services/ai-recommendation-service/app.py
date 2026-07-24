@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from api.meal_plan import router as meal_plan_router
 from api.recommendation import router as recommendation_router
 from config import settings
 
@@ -37,6 +38,10 @@ app = FastAPI(
                 "calorie limits, and Recipe Service candidates."
             ),
         },
+        {
+            "name": "meal-plans",
+            "description": "Generate, swap, finalize, and read user meal plans.",
+        },
     ],
     lifespan=lifespan,
 )
@@ -57,3 +62,4 @@ def health_check() -> dict[str, str]:
 
 
 app.include_router(recommendation_router, prefix="/api/ai", tags=["recommendations"])
+app.include_router(meal_plan_router, prefix="/api/ai", tags=["meal-plans"])

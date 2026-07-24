@@ -46,6 +46,9 @@ class RecipeServiceClient:
     def get_recipe(self, recipe_id: int) -> dict[str, Any]:
         return self._get(f"/api/internal/recipes/{recipe_id}")
 
+    def get_recipe_document(self, recipe_id: int) -> RecipeDocument:
+        return self._to_document(self.get_recipe(recipe_id))
+
     def get_catalog_snapshot_documents(self) -> list[RecipeDocument]:
         payload = self._get("/api/internal/recipes/snapshot")
         recipes = payload.get("recipes") if isinstance(payload, dict) else None

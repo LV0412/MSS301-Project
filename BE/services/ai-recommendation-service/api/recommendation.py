@@ -276,7 +276,7 @@ def _per_meal_int(
     multiplier: float = 1.0,
     minimum: int = 1,
 ) -> int | None:
-    value = _int_value(payload, *keys)
+    value = _int_value(payload, key)
     if value is None:
         return None
     ratios = {"breakfast": 0.25, "lunch": 0.35, "dinner": 0.30, "snack": 0.10}
