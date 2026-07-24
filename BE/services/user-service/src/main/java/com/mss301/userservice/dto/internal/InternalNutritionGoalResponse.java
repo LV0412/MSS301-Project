@@ -9,6 +9,9 @@ import lombok.Builder;
 @Schema(description = "Internal Nutrition Goal Response")
 @Builder
 public record InternalNutritionGoalResponse(
+        Long goalId,
+        Integer goalVersion,
+        Boolean goalConfigured,
         GoalType goalType,
         BigDecimal targetWeight,
         Integer durationWeeks,

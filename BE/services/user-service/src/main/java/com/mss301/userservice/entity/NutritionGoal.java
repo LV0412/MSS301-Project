@@ -53,6 +53,10 @@ public class NutritionGoal {
     @Column(name = "goal_configured", nullable = false)
     private boolean goalConfigured = true;
 
+    @Builder.Default
+    @Column(name = "goal_version", nullable = false)
+    private Integer goalVersion = 1;
+
     @Column(name = "recommended_calories", nullable = false, precision = 8, scale = 2)
     private BigDecimal recommendedCalories;
 

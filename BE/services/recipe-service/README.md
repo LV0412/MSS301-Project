@@ -144,10 +144,10 @@ OpenAPI JSON is available at `/v3/api-docs`; Swagger UI is at `/swagger-ui.html`
 
 ## Database and local run
 
-The service uses MySQL. Hibernate manages the schema directly on startup via JPA.
+The service uses PostgreSQL. Hibernate manages the schema directly on startup via JPA.
 
 ```bash
-export DATABASE_URL=jdbc:mysql://localhost:3306/recipe_service?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+export DATABASE_URL=jdbc:postgresql://localhost:5435/recipe_service
 export DATABASE_USERNAME=root
 export DATABASE_PASSWORD=root
 export APP_CLOUDINARY_ENABLED=true
@@ -160,7 +160,7 @@ mvn spring-boot:run
 
 Default port: `8002`.
 
-Run the integration suite (H2 in MySQL compatibility mode):
+Run the integration suite (H2 in PostgreSQL compatibility mode):
 
 ```bash
 mvn test

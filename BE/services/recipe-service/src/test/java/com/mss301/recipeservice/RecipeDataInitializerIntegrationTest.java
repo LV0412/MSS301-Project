@@ -13,7 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(properties = {
         "app.seed-data.enabled=true",
-        "spring.datasource.url=jdbc:h2:mem:recipe_seed_service;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE"
+        "spring.datasource.url=jdbc:h2:mem:recipe_seed_service;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE"
 })
 @ActiveProfiles("test")
 class RecipeDataInitializerIntegrationTest {

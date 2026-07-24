@@ -193,9 +193,9 @@ Start MySQL first, then configure environment variables:
 
 ```env
 APP_PORT=8001
-DATABASE_URL=jdbc:mysql://localhost:3306/user_service?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+DATABASE_URL=jdbc:mysql://localhost:3308/user_service?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
 DATABASE_USERNAME=root
-DATABASE_PASSWORD=
+DATABASE_PASSWORD=root
 JPA_DDL_AUTO=update
 JPA_SHOW_SQL=false
 ```

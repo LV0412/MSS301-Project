@@ -12,6 +12,7 @@ import lombok.Builder;
 public record NutritionGoalResponse(
         Long goalId,
         Long userId,
+        Integer goalVersion,
         GoalType goalType,
         BigDecimal targetWeight,
         Integer durationWeeks,

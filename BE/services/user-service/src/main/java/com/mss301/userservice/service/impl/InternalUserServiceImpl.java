@@ -143,6 +143,9 @@ public class InternalUserServiceImpl implements InternalUserService {
 
     private InternalNutritionGoalResponse toNutritionGoalResponse(NutritionGoal nutritionGoal) {
         return InternalNutritionGoalResponse.builder()
+                .goalId(nutritionGoal.getGoalId())
+                .goalVersion(nutritionGoal.getGoalVersion() == null ? 1 : nutritionGoal.getGoalVersion())
+                .goalConfigured(nutritionGoal.isGoalConfigured())
                 .goalType(nutritionGoal.getGoalType())
                 .targetWeight(nutritionGoal.getTargetWeight())
                 .durationWeeks(nutritionGoal.getDurationWeeks())

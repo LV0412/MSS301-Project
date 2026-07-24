@@ -8,6 +8,7 @@ import com.mss301.userservice.entity.ActivityLevel;
 import com.mss301.userservice.entity.Gender;
 import com.mss301.userservice.entity.GoalType;
 import com.mss301.userservice.entity.HealthProfile;
+import com.mss301.userservice.entity.MealPlanStatus;
 import com.mss301.userservice.entity.NutritionGoal;
 import com.mss301.userservice.entity.User;
 import com.mss301.userservice.exception.HealthProfileNotFoundException;
@@ -16,6 +17,7 @@ import com.mss301.userservice.exception.NutritionGoalAlreadyExistsException;
 import com.mss301.userservice.exception.NutritionGoalNotFoundException;
 import com.mss301.userservice.exception.UserNotFoundException;
 import com.mss301.userservice.repository.HealthProfileRepository;
+import com.mss301.userservice.repository.MealPlanRepository;
 import com.mss301.userservice.repository.NutritionGoalRepository;
 import com.mss301.userservice.repository.UserRepository;
 import com.mss301.userservice.service.NutritionGoalService;
@@ -56,6 +58,7 @@ public class NutritionGoalServiceImpl implements NutritionGoalService {
     private final NutritionGoalRepository nutritionGoalRepository;
     private final UserRepository userRepository;
     private final HealthProfileRepository healthProfileRepository;
+    private final MealPlanRepository mealPlanRepository;
 
     public NutritionGoalResponse createNutritionGoal(Long userId, CreateNutritionGoalRequest request) {
         if (nutritionGoalRepository.existsByUserUserId(userId)) {
@@ -137,6 +140,7 @@ public class NutritionGoalServiceImpl implements NutritionGoalService {
                 request.weeklyRateKg(),
                 request.dailyCaloriesGoal());
 
+        boolean existingGoal = nutritionGoal != null;
         if (nutritionGoal == null) {
             nutritionGoal = NutritionGoal.builder().user(user).build();
         }
@@ -151,8 +155,17 @@ public class NutritionGoalServiceImpl implements NutritionGoalService {
         nutritionGoal.setProtein(evaluation.protein());
         nutritionGoal.setCarbs(evaluation.carbs());
         nutritionGoal.setFat(evaluation.fat());
+        if (existingGoal) {
+            nutritionGoal.setGoalVersion(currentGoalVersion(nutritionGoal) + 1);
+            markDraftMealPlansOutdated(userId);
+        }
 
         return toResponse(nutritionGoalRepository.save(nutritionGoal), evaluation);
+    }
+
+    private void markDraftMealPlansOutdated(Long userId) {
+        mealPlanRepository.findAllByUserUserIdAndStatus(userId, MealPlanStatus.DRAFT)
+                .forEach(mealPlan -> mealPlan.setStatus(MealPlanStatus.OUTDATED));
     }
 
     @Transactional(readOnly = true)
@@ -210,6 +223,7 @@ public class NutritionGoalServiceImpl implements NutritionGoalService {
         return NutritionGoalResponse.builder()
                 .goalId(nutritionGoal.getGoalId())
                 .userId(nutritionGoal.getUser().getUserId())
+                .goalVersion(currentGoalVersion(nutritionGoal))
                 .goalType(evaluation.goalType())
                 .targetWeight(evaluation.targetWeight())
                 .durationWeeks(evaluation.durationWeeks())
@@ -227,9 +241,14 @@ public class NutritionGoalServiceImpl implements NutritionGoalService {
     private NutritionGoalResponse notConfiguredResponse(Long userId) {
         return NutritionGoalResponse.builder()
                 .userId(userId)
+                .goalVersion(0)
                 .warnings(List.of())
                 .goalConfigured(false)
                 .build();
+    }
+
+    private int currentGoalVersion(NutritionGoal nutritionGoal) {
+        return nutritionGoal.getGoalVersion() == null ? 1 : nutritionGoal.getGoalVersion();
     }
 
     private NutritionGoalEvaluation evaluateGoalForWrite(

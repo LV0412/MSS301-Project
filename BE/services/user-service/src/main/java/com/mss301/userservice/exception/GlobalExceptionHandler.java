@@ -1,5 +1,6 @@
 package com.mss301.userservice.exception;
 
+import com.mss301.userservice.client.AiRecommendationUnavailableException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -125,6 +126,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RecipeCatalogUnavailableException.class)
     public ResponseEntity<ErrorResponse> handleRecipeCatalogUnavailable(
             RecipeCatalogUnavailableException exception,
+            HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(AiRecommendationUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleAiRecommendationUnavailable(
+            AiRecommendationUnavailableException exception,
             HttpServletRequest request) {
         return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage(), request, null);
     }
