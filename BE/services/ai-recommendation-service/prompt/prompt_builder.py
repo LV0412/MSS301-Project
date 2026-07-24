@@ -76,7 +76,23 @@ class PromptBuilder:
         if health_profile:
             lines.append(f"- healthProfile: {health_profile}")
         if nutrition_goal:
-            lines.append(f"- dailyNutritionGoal: {nutrition_goal}")
+            is_configured = nutrition_goal.get(
+                "goalConfigured",
+                nutrition_goal.get("goal_configured", True),
+            )
+            if is_configured is False:
+                lines.append(
+                    "- dailyNutritionGoal: not configured; do not infer calorie or macro targets."
+                )
+            elif str(nutrition_goal.get("status", "")).upper() == "OUTDATED":
+                reason = nutrition_goal.get("outdatedReason") or nutrition_goal.get("outdated_reason")
+                lines.append(
+                    "- dailyNutritionGoal: OUTDATED"
+                    f" ({reason or 'profile changed'}); ignore its calorie and macro targets "
+                    "until the user confirms an update."
+                )
+            else:
+                lines.append(f"- dailyNutritionGoal: {nutrition_goal}")
         if diet_preferences:
             lines.append(f"- dietPreferences: {diet_preferences}")
         if allergies:

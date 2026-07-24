@@ -64,6 +64,18 @@ void main() {
       expect(goal.recommendedCalories, 1750.25);
       expect(goal.warnings, hasLength(1));
     });
+
+    test('parses outdated status and reason', () {
+      final goal = NutritionGoal.fromJson({
+        'goalConfigured': true,
+        'goalType': 'MAINTAIN',
+        'status': 'OUTDATED',
+        'outdatedReason': 'HEALTH_PROFILE_CHANGED',
+      });
+
+      expect(goal.isOutdated, isTrue);
+      expect(goal.outdatedReason, 'HEALTH_PROFILE_CHANGED');
+    });
   });
 
   test('NutritionGoalPreview maps calculated calories and macro fields', () {

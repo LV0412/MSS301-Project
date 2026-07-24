@@ -1,6 +1,10 @@
 server:
   port: ${AUTH_APP_PORT:8000}
 
+openapi:
+  server:
+    url: ${OPENAPI_SERVER_URL:http://localhost:8080}
+
 spring:
   application:
     name: auth-service

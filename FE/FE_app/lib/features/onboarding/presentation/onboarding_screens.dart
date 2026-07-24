@@ -61,9 +61,11 @@ class LifestyleScreen extends StatefulWidget {
   const LifestyleScreen({
     super.key,
     this.completeDestination = const MainShell(),
+    this.isOnboarding = true,
   });
 
   final Widget completeDestination;
+  final bool isOnboarding;
 
   @override
   State<LifestyleScreen> createState() => _LifestyleScreenState();
@@ -119,7 +121,10 @@ class _LifestyleScreenState extends State<LifestyleScreen> {
       title: 'Chỉ số cơ thể',
       subtitle:
           'Nhập chiều cao và cân nặng để cập nhật hồ sơ sức khỏe trong user-service.',
-      next: HealthStatusScreen(completeDestination: widget.completeDestination),
+      next: HealthStatusScreen(
+        completeDestination: widget.completeDestination,
+        isOnboarding: widget.isOnboarding,
+      ),
       children: [
         Row(
           children: [
@@ -165,15 +170,70 @@ class HealthStatusScreen extends StatefulWidget {
   const HealthStatusScreen({
     super.key,
     this.completeDestination = const MainShell(),
+    this.isOnboarding = true,
   });
 
   final Widget completeDestination;
+  final bool isOnboarding;
 
   @override
   State<HealthStatusScreen> createState() => _HealthStatusScreenState();
 }
 
 class _HealthStatusScreenState extends State<HealthStatusScreen> {
+  Future<void> _saveHealthProfileEdit(BuildContext context) async {
+    final height = double.tryParse(
+      _healthProfileSetupDraft.height.replaceAll(',', '.'),
+    );
+    final weight = double.tryParse(
+      _healthProfileSetupDraft.weight.replaceAll(',', '.'),
+    );
+    if (height == null || weight == null || height <= 0 || weight <= 0) {
+      throw const ApiException(
+        message: 'Nhập chiều cao và cân nặng hợp lệ trước khi lưu.',
+      );
+    }
+
+    await AuthDependencies.instance.userRepository.saveHealthProfileFlow(
+      isOnboarding: false,
+      height: height,
+      weight: weight,
+      activityLevel: _healthProfileSetupDraft.activityLevel,
+    );
+  }
+
+  Future<Widget> _resolveEditDestination(BuildContext context) async {
+    final goal = await AuthDependencies.instance.userRepository
+        .getNutritionGoal();
+    if (!goal.isOutdated || !context.mounted) {
+      return widget.completeDestination;
+    }
+
+    final updateGoal = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Mục tiêu dinh dưỡng cần cập nhật'),
+        content: const Text(
+          'Hồ sơ sức khỏe đã thay đổi. Mục tiêu dinh dưỡng cũ vẫn được giữ nguyên, nhưng có thể không còn phù hợp.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Để sau'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Cập nhật mục tiêu'),
+          ),
+        ],
+      ),
+    );
+    return updateGoal == true
+        ? NutritionGoalPlanScreen(initialGoal: goal)
+        : widget.completeDestination;
+  }
+
   @override
   Widget build(BuildContext context) {
     final items = [
@@ -211,11 +271,24 @@ class _HealthStatusScreenState extends State<HealthStatusScreen> {
 
     return OnboardingScaffold(
       step: 2,
-      progress: .50,
+      totalSteps: widget.isOnboarding ? 4 : 2,
+      progress: widget.isOnboarding ? .50 : 1,
       title: 'Mức vận động',
       subtitle:
           'Chọn activityLevel đúng với enum backend: SEDENTARY, LIGHT, MODERATE, ACTIVE hoặc VERY_ACTIVE.',
-      next: GoalsScreen(completeDestination: widget.completeDestination),
+      next: widget.isOnboarding
+          ? GoalsScreen(
+              completeDestination: widget.completeDestination,
+              isOnboarding: true,
+            )
+          : null,
+      buttonLabel: widget.isOnboarding ? 'Tiếp tục' : 'Lưu hồ sơ sức khỏe',
+      complete: !widget.isOnboarding,
+      completeDestination: widget.completeDestination,
+      onComplete: widget.isOnboarding ? null : _saveHealthProfileEdit,
+      resolveCompleteDestination: widget.isOnboarding
+          ? null
+          : _resolveEditDestination,
       children: [
         for (final item in items)
           ChoiceCard(
@@ -239,9 +312,14 @@ class _HealthStatusScreenState extends State<HealthStatusScreen> {
 }
 
 class GoalsScreen extends StatefulWidget {
-  const GoalsScreen({super.key, this.completeDestination = const MainShell()});
+  const GoalsScreen({
+    super.key,
+    this.completeDestination = const MainShell(),
+    this.isOnboarding = true,
+  });
 
   final Widget completeDestination;
+  final bool isOnboarding;
 
   @override
   State<GoalsScreen> createState() => _GoalsScreenState();
@@ -265,7 +343,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
       title: 'Mục tiêu dinh dưỡng',
       subtitle:
           'Thiết lập calories mỗi ngày. Các chỉ số macro được hệ thống tự tính.',
-      next: PreferencesScreen(completeDestination: widget.completeDestination),
+      next: PreferencesScreen(
+        completeDestination: widget.completeDestination,
+        isOnboarding: widget.isOnboarding,
+      ),
       children: [
         AppTextField(
           label: 'Calories mỗi ngày (kcal)',
@@ -290,9 +371,11 @@ class PreferencesScreen extends StatefulWidget {
   const PreferencesScreen({
     super.key,
     this.completeDestination = const MainShell(),
+    this.isOnboarding = true,
   });
 
   final Widget completeDestination;
+  final bool isOnboarding;
 
   @override
   State<PreferencesScreen> createState() => _PreferencesScreenState();
@@ -325,21 +408,17 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
       );
     }
 
-    if (calories == null || calories <= 0) {
-      throw const ApiException(
-        message: 'Nhập mục tiêu calories hợp lệ.',
-      );
+    if (widget.isOnboarding && (calories == null || calories <= 0)) {
+      throw const ApiException(message: 'Nhập mục tiêu calories hợp lệ.');
     }
 
     final users = AuthDependencies.instance.userRepository;
 
-    await users.saveHealthProfile(
+    await users.saveHealthProfileFlow(
+      isOnboarding: widget.isOnboarding,
       height: height,
       weight: weight,
       activityLevel: _healthProfileSetupDraft.activityLevel,
-    );
-    await users.saveNutritionGoal(
-      goalType: 'MAINTAIN',
       dailyCaloriesGoal: calories,
     );
     await users.syncDietPreferences(

@@ -16,6 +16,7 @@ class _FakeUserRepository extends UserRepository {
   String? savedGoalType;
   double? savedTargetWeight;
   int? savedDurationWeeks;
+  double? previewTargetWeight;
 
   @override
   Future<Map<String, dynamic>?> getHealthProfile() async => {
@@ -33,6 +34,7 @@ class _FakeUserRepository extends UserRepository {
     CancelToken? cancelToken,
   }) async {
     previewCalls++;
+    previewTargetWeight = targetWeight;
     if (failPreview) {
       throw const ApiException(
         message: 'Target weight and duration weeks are invalid.',
@@ -195,5 +197,32 @@ void main() {
 
     expect(repository.previewCalls, 2);
     expect(repository.saveCalls, 0);
+  });
+
+  testWidgets('maintain preview and save send current weight', (tester) async {
+    final repository = _FakeUserRepository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NutritionGoalPlanScreen(
+          initialGoal: initialGoal,
+          repository: repository,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
+
+    expect(repository.previewTargetWeight, 80);
+
+    final saveButton = find.text('Lưu mục tiêu');
+    await tester.ensureVisible(saveButton);
+    await tester.tap(saveButton);
+    await tester.pump();
+    await tester.pump();
+
+    expect(repository.saveCalls, 1);
+    expect(repository.savedGoalType, 'MAINTAIN');
+    expect(repository.savedTargetWeight, 80);
   });
 }

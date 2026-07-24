@@ -9,6 +9,7 @@ import com.mss301.userservice.entity.Gender;
 import com.mss301.userservice.entity.GoalType;
 import com.mss301.userservice.entity.HealthProfile;
 import com.mss301.userservice.entity.NutritionGoal;
+import com.mss301.userservice.entity.NutritionGoalStatus;
 import com.mss301.userservice.entity.User;
 import com.mss301.userservice.exception.HealthProfileNotFoundException;
 import com.mss301.userservice.exception.InvalidNutritionGoalException;
@@ -22,6 +23,7 @@ import com.mss301.userservice.service.NutritionGoalService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +46,7 @@ public class NutritionGoalServiceImpl implements NutritionGoalService {
     private static final BigDecimal MIN_WARNING_TARGET_BMI = BigDecimal.valueOf(18.5);
     private static final BigDecimal MAX_WARNING_TARGET_BMI = BigDecimal.valueOf(30);
     private static final BigDecimal MAX_ABSOLUTE_TARGET_BMI = BigDecimal.valueOf(35);
-    private static final BigDecimal MAINTAIN_WEIGHT_TOLERANCE_KG = BigDecimal.valueOf(0.05);
+    private static final BigDecimal MAINTAIN_WEIGHT_TOLERANCE_KG = BigDecimal.ONE;
     private static final BigDecimal PROTEIN_CALORIE_RATIO = BigDecimal.valueOf(0.20);
     private static final BigDecimal CARBS_CALORIE_RATIO = BigDecimal.valueOf(0.50);
     private static final BigDecimal FAT_CALORIE_RATIO = BigDecimal.valueOf(0.30);
@@ -81,6 +83,8 @@ public class NutritionGoalServiceImpl implements NutritionGoalService {
                 .durationWeeks(evaluation.durationWeeks())
                 .weeklyRateKg(evaluation.weeklyRateKg())
                 .goalConfigured(evaluation.goalConfigured())
+                .status(NutritionGoalStatus.CURRENT)
+                .calculatedAt(LocalDateTime.now())
                 .recommendedCalories(evaluation.recommendedCalories())
                 .dailyCaloriesGoal(evaluation.dailyCaloriesGoal())
                 .protein(evaluation.protein())
@@ -146,6 +150,9 @@ public class NutritionGoalServiceImpl implements NutritionGoalService {
         nutritionGoal.setDurationWeeks(evaluation.durationWeeks());
         nutritionGoal.setWeeklyRateKg(evaluation.weeklyRateKg());
         nutritionGoal.setGoalConfigured(evaluation.goalConfigured());
+        nutritionGoal.setStatus(NutritionGoalStatus.CURRENT);
+        nutritionGoal.setOutdatedReason(null);
+        nutritionGoal.setCalculatedAt(LocalDateTime.now());
         nutritionGoal.setRecommendedCalories(evaluation.recommendedCalories());
         nutritionGoal.setDailyCaloriesGoal(evaluation.dailyCaloriesGoal());
         nutritionGoal.setProtein(evaluation.protein());
@@ -221,6 +228,8 @@ public class NutritionGoalServiceImpl implements NutritionGoalService {
                 .fat(evaluation.fat())
                 .warnings(evaluation.warnings())
                 .goalConfigured(evaluation.goalConfigured())
+                .status(nutritionGoal.getStatus())
+                .outdatedReason(nutritionGoal.getOutdatedReason())
                 .build();
     }
 
@@ -242,6 +251,11 @@ public class NutritionGoalServiceImpl implements NutritionGoalService {
             BigDecimal requestedDailyCaloriesGoal) {
         validateRequiredProfile(user, healthProfile);
         if (goalType == GoalType.MAINTAIN) {
+            if (targetWeight == null) {
+                throw new InvalidNutritionGoalException(
+                        "Với mục tiêu Duy trì cân nặng, cân nặng mục tiêu là bắt buộc");
+            }
+            validateGoalDirection(goalType, healthProfile.getWeight(), targetWeight);
             return calculateMaintainGoal(user, healthProfile, requestedDailyCaloriesGoal, true, true);
         }
 
@@ -262,6 +276,9 @@ public class NutritionGoalServiceImpl implements NutritionGoalService {
             HealthProfile healthProfile,
             NutritionGoal nutritionGoal) {
         validateRequiredProfile(user, healthProfile);
+        if (nutritionGoal.getStatus() == NutritionGoalStatus.OUTDATED) {
+            return storedGoalEvaluation(nutritionGoal, List.of());
+        }
         if (nutritionGoal.getGoalType() == GoalType.MAINTAIN
                 && !hasAnyPlanField(
                         nutritionGoal.getTargetWeight(),
@@ -428,7 +445,8 @@ public class NutritionGoalServiceImpl implements NutritionGoalService {
         }
         if (goalType == GoalType.MAINTAIN
                 && currentWeight.subtract(targetWeight).abs().compareTo(MAINTAIN_WEIGHT_TOLERANCE_KG) > 0) {
-            throw new InvalidNutritionGoalException("Target weight must match current weight for MAINTAIN");
+            throw new InvalidNutritionGoalException(
+                    "Với mục tiêu Duy trì cân nặng, cân nặng mục tiêu phải trong khoảng ±1kg so với cân nặng hiện tại");
         }
     }
 
@@ -579,7 +597,7 @@ public class NutritionGoalServiceImpl implements NutritionGoalService {
             NutritionGoal existingGoal,
             GoalType goalType) {
         if (goalType == GoalType.MAINTAIN) {
-            return null;
+            return request.targetWeight();
         }
         return request.targetWeight() != null
                 ? request.targetWeight()

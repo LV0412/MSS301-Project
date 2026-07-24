@@ -103,6 +103,8 @@ def _merge_profile(
         return request
 
     nutrition_goal = _dict_value(user_profile, "nutritionGoal", "nutrition_goal")
+    if _is_unusable_nutrition_goal(nutrition_goal):
+        nutrition_goal = {}
     diet = _first_diet_preference(user_profile)
     allergen_tokens = _allergy_tokens(user_profile)
 
@@ -123,6 +125,14 @@ def _merge_profile(
         "budget": request.budget or _int_value(user_profile, "budget", "maxBudget", "max_budget"),
     }
     return request.model_copy(update=updates)
+
+
+def _is_unusable_nutrition_goal(nutrition_goal: dict[str, Any]) -> bool:
+    return (
+        nutrition_goal.get("goalConfigured") is False
+        or nutrition_goal.get("goal_configured") is False
+        or str(nutrition_goal.get("status", "")).upper() == "OUTDATED"
+    )
 
 
 def _load_recipe_candidates(request: RecommendationRequest) -> list[RecipeDocument]:
@@ -276,7 +286,7 @@ def _per_meal_int(
     multiplier: float = 1.0,
     minimum: int = 1,
 ) -> int | None:
-    value = _int_value(payload, *keys)
+    value = _int_value(payload, key)
     if value is None:
         return None
     ratios = {"breakfast": 0.25, "lunch": 0.35, "dinner": 0.30, "snack": 0.10}

@@ -236,7 +236,7 @@ class ProfileSetupBanner extends StatelessWidget {
               children: [
                 Text(
                   editing
-                      ? 'Chỉnh sửa sức khỏe và dinh dưỡng'
+                      ? 'Chỉnh sửa hồ sơ sức khỏe'
                       : 'Thiết lập hồ sơ cá nhân',
                   style: const TextStyle(
                     fontSize: 18,
@@ -247,7 +247,7 @@ class ProfileSetupBanner extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   editing
-                      ? 'Mở lại 4 bước với dữ liệu hiện tại để sửa health profile, nutrition goal, dị ứng và chế độ ăn.'
+                      ? 'Cập nhật chiều cao, cân nặng và mức vận động. Mục tiêu dinh dưỡng hiện tại sẽ được giữ nguyên.'
                       : 'Hoàn thành 4 bước để cập nhật sức khỏe, mục tiêu dinh dưỡng, dị ứng và sở thích ăn uống.',
                   style: const TextStyle(
                     fontSize: 14,
@@ -264,11 +264,14 @@ class ProfileSetupBanner extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (_) => const LifestyleScreen(
                           completeDestination: ApiUserProfileScreen(),
+                          isOnboarding: false,
                         ),
                       ),
                     ),
                     icon: const Icon(Icons.arrow_forward, size: 17),
-                    label: Text(editing ? 'Chỉnh sửa hồ sơ' : 'Bắt đầu 4 bước'),
+                    label: Text(
+                      editing ? 'Chỉnh sửa sức khỏe' : 'Bắt đầu 4 bước',
+                    ),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.green,
                       foregroundColor: Colors.white,
